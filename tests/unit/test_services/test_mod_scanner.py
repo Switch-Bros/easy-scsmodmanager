@@ -53,9 +53,13 @@ def test_scan_mod_directory_returns_empty_for_missing_dir(tmp_path: Path) -> Non
     assert scan_mod_directory(tmp_path / "does-not-exist") == []
 
 
-def test_scan_mod_directory_ignores_non_scs_files(tmp_path: Path) -> None:
+def test_scan_mod_directory_ignores_files_with_unrelated_extensions(tmp_path: Path) -> None:
+    # Non-archive files (.txt, .png, ...) are skipped even when they live
+    # next to mod files. .scs and .zip get picked up; this test guards
+    # everything else.
     (tmp_path / "readme.txt").write_text("hi")
-    (tmp_path / "other.zip").write_bytes(b"PK\x03\x04")
+    (tmp_path / "preview.png").write_bytes(b"\x89PNG")
+    (tmp_path / "_metadata.json").write_text("{}")
 
     assert scan_mod_directory(tmp_path) == []
 

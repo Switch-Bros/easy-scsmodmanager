@@ -6,7 +6,7 @@ parsed manifest + icon bytes keyed on ``(path, mtime, size)`` so the
 second scan drops to milliseconds and only re-reads files the user has
 actually changed.
 
-Schema (``user_version=1``)::
+Schema (``user_version=2``)::
 
     mod_cache(
         path TEXT PRIMARY KEY,
@@ -16,8 +16,13 @@ Schema (``user_version=1``)::
         manifest_json TEXT,
         error TEXT,
         icon_bytes BLOB,
+        description TEXT,
         scanned_at REAL NOT NULL
     )
+
+For directory mod payloads ``size`` stores the number of immediate
+children (the directory's own ``st_size`` does not change when a file
+inside is edited).
 
 The cache is opened in WAL mode with NORMAL sync so a concurrent scanner
 process can read while a foreground GUI thread writes new entries.
@@ -38,7 +43,7 @@ from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 APP_DIR_NAME = "easy-scsmodmanager"
 DB_FILE_NAME = "scan_cache.db"
 
@@ -48,6 +53,7 @@ class CachedEntry:
     mod: ScannedMod
     icon_bytes: bytes | None
     scanned_at: float
+    description: str | None = None
 
 
 def default_cache_path() -> Path:
@@ -78,7 +84,8 @@ class ScanCache:
         ).fetchone()
         if row is None:
             return None
-        if row["mtime"] != stat.st_mtime or row["size"] != stat.st_size:
+        mtime, size = _cache_signature(scs_path, stat)
+        if row["mtime"] != mtime or row["size"] != size:
             return None
         return _row_to_entry(row, scs_path)
 
@@ -87,16 +94,18 @@ class ScanCache:
         scs_path: Path,
         mod: ScannedMod,
         icon_bytes: bytes | None = None,
+        description: str | None = None,
     ) -> None:
         stat = scs_path.stat()
+        mtime, size = _cache_signature(scs_path, stat)
         manifest_json = _manifest_to_json(mod.manifest)
         with self._conn:
             self._conn.execute(
                 """
                 INSERT INTO mod_cache (
                     path, mtime, size, format, manifest_json,
-                    error, icon_bytes, scanned_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    error, icon_bytes, description, scanned_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(path) DO UPDATE SET
                     mtime         = excluded.mtime,
                     size          = excluded.size,
@@ -104,16 +113,18 @@ class ScanCache:
                     manifest_json = excluded.manifest_json,
                     error         = excluded.error,
                     icon_bytes    = excluded.icon_bytes,
+                    description   = excluded.description,
                     scanned_at    = excluded.scanned_at
                 """,
                 (
                     str(scs_path),
-                    stat.st_mtime,
-                    stat.st_size,
+                    mtime,
+                    size,
                     mod.format.value,
                     manifest_json,
                     mod.error,
                     icon_bytes,
+                    description,
                     time.time(),
                 ),
             )
@@ -163,6 +174,10 @@ class ScanCache:
                 )
                 """
             )
+            if current < 2:
+                cols = {row[1] for row in self._conn.execute("PRAGMA table_info(mod_cache)")}
+                if "description" not in cols:
+                    self._conn.execute("ALTER TABLE mod_cache ADD COLUMN description TEXT")
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
@@ -199,15 +214,35 @@ def _manifest_from_json(text: str | None) -> ModManifest | None:
 
 
 def _row_to_entry(row: sqlite3.Row, scs_path: Path) -> CachedEntry:
+    try:
+        description = row["description"]
+    except (IndexError, KeyError):
+        description = None
     mod = ScannedMod(
         path=scs_path,
         format=ScsFormat(row["format"]),
         manifest=_manifest_from_json(row["manifest_json"]),
         error=row["error"],
+        description=description,
     )
     icon_bytes = row["icon_bytes"]
     return CachedEntry(
         mod=mod,
         icon_bytes=bytes(icon_bytes) if icon_bytes is not None else None,
         scanned_at=row["scanned_at"],
+        description=description,
     )
+
+
+def _cache_signature(path: Path, stat: os.stat_result) -> tuple[float, int]:
+    """Returns (mtime, size) that invalidates the cache when the payload
+    changes. Directory mods use the count of immediate children for size
+    because the directory's own ``st_size`` does not change when files
+    inside are edited."""
+    if path.is_dir():
+        try:
+            child_count = sum(1 for _ in path.iterdir())
+        except OSError:
+            child_count = 0
+        return stat.st_mtime, child_count
+    return stat.st_mtime, stat.st_size
