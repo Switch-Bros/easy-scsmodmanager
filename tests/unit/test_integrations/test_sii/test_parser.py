@@ -181,6 +181,65 @@ def test_parses_file_with_utf8_bom_prefix() -> None:
     assert units[0].properties["display_name"] == "WithBOM"
 
 
+def test_string_decodes_hex_byte_escapes_into_utf8() -> None:
+    # SCS writes non-ASCII chars as \xNN byte escapes. The bytes form
+    # valid UTF-8 once recombined, e.g. \xe2\x98\x86 == "☆".
+    text = 'SiiNunit\n{\nx: .x\n{\nname: "\\xe2\\x98\\x86Becky"\n}\n}\n'
+
+    units = parse_sii(text)
+
+    assert units[0].properties["name"] == "☆Becky"
+
+
+def test_string_leaves_pure_latin1_bytes_alone_when_not_valid_utf8() -> None:
+    # \xff alone is not a valid UTF-8 start byte. Keep the raw char.
+    text = 'SiiNunit\n{\nx: .x\n{\nname: "\\xff"\n}\n}\n'
+
+    units = parse_sii(text)
+
+    assert units[0].properties["name"] == "ÿ"
+
+
+def test_indexed_array_property_aggregates_in_order() -> None:
+    # profile.sii uses indexed arrays for active_mods
+    text = """
+SiiNunit
+{
+profile: .profile_id
+{
+    active_mods: 3
+    active_mods[0]: "low_prio|Low"
+    active_mods[1]: "mid_prio|Mid"
+    active_mods[2]: "high_prio|High"
+}
+}
+"""
+    units = parse_sii(text)
+
+    assert units[0].properties["active_mods"] == [
+        "low_prio|Low",
+        "mid_prio|Mid",
+        "high_prio|High",
+    ]
+
+
+def test_indexed_array_handles_non_sequential_indices() -> None:
+    text = """
+SiiNunit
+{
+x: .x
+{
+    items[2]: "third"
+    items[0]: "first"
+    items[1]: "second"
+}
+}
+"""
+    units = parse_sii(text)
+
+    assert units[0].properties["items"] == ["first", "second", "third"]
+
+
 def test_raises_on_missing_siinunit_header() -> None:
     text = "{\nmod_package: .x\n{\n}\n}\n"
 

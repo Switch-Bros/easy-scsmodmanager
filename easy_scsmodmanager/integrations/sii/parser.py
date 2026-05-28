@@ -50,6 +50,18 @@ class _Token:
 _STRUCTURAL = {"{": "LBRACE", "}": "RBRACE", "[": "LBRACK", "]": "RBRACK", ":": "COLON"}
 
 
+def _decode_byte_string(s: str) -> str:
+    # \xNN escapes produce individual code points 0-255. When the byte
+    # sequence is valid UTF-8 (multi-byte non-ASCII chars), recombine
+    # it. Otherwise leave the latin-1 view intact.
+    if not any(ord(c) > 127 for c in s):
+        return s
+    try:
+        return s.encode("latin-1").decode("utf-8")
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        return s
+
+
 def _tokenize(text: str) -> list[_Token]:
     tokens: list[_Token] = []
     i = 0
@@ -80,7 +92,23 @@ def _tokenize(text: str) -> list[_Token]:
             while i < n:
                 c = text[i]
                 if c == "\\" and i + 1 < n:
-                    chars.append(text[i + 1])
+                    nxt = text[i + 1]
+                    if nxt == "x" and i + 3 < n:
+                        try:
+                            byte_val = int(text[i + 2 : i + 4], 16)
+                            chars.append(chr(byte_val))
+                            i += 4
+                            continue
+                        except ValueError:
+                            pass
+                    if nxt == "n":
+                        chars.append("\n")
+                    elif nxt == "t":
+                        chars.append("\t")
+                    elif nxt == "r":
+                        chars.append("\r")
+                    else:
+                        chars.append(nxt)
                     i += 2
                     continue
                 if c == '"':
@@ -93,7 +121,7 @@ def _tokenize(text: str) -> list[_Token]:
                 i += 1
             if not terminated:
                 raise SiiParseError(f"Unterminated string at line {start_line}")
-            tokens.append(_Token("STRING", "".join(chars), start_line))
+            tokens.append(_Token("STRING", _decode_byte_string("".join(chars)), start_line))
             continue
         if ch in _STRUCTURAL:
             tokens.append(_Token(_STRUCTURAL[ch], ch, line))
@@ -148,26 +176,52 @@ class _Parser:
         self._consume("LBRACE", f"Expected '{{' after unit name '{unit_name}'")
 
         properties: dict[str, Any] = {}
+        # Indexed arrays may arrive out of order; collect them separately and
+        # merge once the unit closes so we can sort by index.
+        indexed: dict[str, dict[int, Any]] = {}
+        for_append: dict[str, list[Any]] = {}
+
         while not self._match("RBRACE"):
-            key, value = self._parse_property()
-            if key.endswith("[]"):
-                key = key[:-2]
-                properties.setdefault(key, []).append(value)
+            key, index, value = self._parse_property()
+            if index == "append":
+                for_append.setdefault(key, []).append(value)
+            elif isinstance(index, int):
+                indexed.setdefault(key, {})[index] = value
             else:
                 properties[key] = value
+
+        for key, items in for_append.items():
+            properties[key] = items
+        for key, by_index in indexed.items():
+            ordered = [by_index[i] for i in sorted(by_index)]
+            # Indexed arrays override a same-named scalar (e.g. the count
+            # property "active_mods: 5" precedes the indexed entries).
+            properties[key] = ordered
+
         return SiiUnit(unit_class=unit_class, unit_name=unit_name, properties=properties)
 
-    def _parse_property(self) -> tuple[str, Any]:
+    def _parse_property(self) -> tuple[str, int | str | None, Any]:
         key_token = self._consume("IDENT", "Expected property name")
         key = key_token.value
-        # Optional [] suffix as separate tokens
+        index: int | str | None = None
         if self._peek_is("LBRACK"):
             self._advance()
-            self._consume("RBRACK", "Expected ']' after '['")
-            key = f"{key}[]"
+            if self._peek_is("RBRACK"):
+                self._advance()
+                index = "append"
+            else:
+                idx_token = self._consume("IDENT", "Expected index inside '[]'")
+                try:
+                    index = int(idx_token.value)
+                except ValueError as exc:
+                    raise SiiParseError(
+                        f"Array index must be an integer (got '{idx_token.value}' "
+                        f"at line {idx_token.line})"
+                    ) from exc
+                self._consume("RBRACK", "Expected ']' after index")
         self._consume("COLON", f"Expected ':' after property '{key}'")
         value_token = self._consume_any(("IDENT", "STRING"), "Expected property value")
-        return key, _coerce_value(value_token)
+        return key, index, _coerce_value(value_token)
 
     def _consume(self, kind: str, message: str) -> _Token:
         if self._pos >= len(self._tokens):
