@@ -34,14 +34,17 @@ class Theme:
     TEXT_DIM = "#999999"
     TEXT_MOD_NAME = "#F5C842"  # mod name in orange-yellow
 
-    # Sizing
-    MOD_CARD_WIDTH = 240
-    MOD_CARD_HEIGHT = 200
-    ICON_WIDTH = 160
-    ICON_HEIGHT = 90
+    # Sizing - aligned with ETS2's native 276x162 mod icon dimensions
+    ICON_WIDTH = 276
+    ICON_HEIGHT = 162
     CARD_PADDING = 8
     CARD_RADIUS = 4
     BORDER_WIDTH = 2
+    MOD_CARD_WIDTH = ICON_WIDTH + 2 * CARD_PADDING + 2 * BORDER_WIDTH
+    MOD_CARD_HEIGHT = ICON_HEIGHT + 80  # icon + 2 text rows + paddings
+    MOD_GRID_COLUMNS = 3
+    ACTIVE_THUMBNAIL_WIDTH = 200
+    ACTIVE_THUMBNAIL_HEIGHT = 112
 
     # Status status text colors
     @classmethod

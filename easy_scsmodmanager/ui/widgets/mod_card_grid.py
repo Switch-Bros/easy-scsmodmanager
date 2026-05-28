@@ -90,6 +90,18 @@ class ModCardGrid(QScrollArea):
         self._selected.clear()
         self.selection_changed.emit([])
 
+    def focus_mod(self, mod: ScannedMod) -> bool:
+        """Select the card matching ``mod`` and scroll it into view.
+
+        Returns True when a matching card was found.
+        """
+        for i, card in enumerate(self._cards):
+            if card.mod.path == mod.path:
+                self._on_card_clicked(i)
+                self.ensureWidgetVisible(card)
+                return True
+        return False
+
     # ------------------------------------------------------------------ #
     # internals
     # ------------------------------------------------------------------ #

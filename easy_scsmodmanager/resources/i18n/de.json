@@ -36,6 +36,7 @@
   "status.error": "Container-Fehler",
   "status.encrypted": "Verschluesselt",
   "status.hashfs_no_reader": "HashFS-Reader fehlt",
+  "status.missing_from_disk": "fehlt auf Platte",
 
   "mod_card.no_author": "Unbekannter Ersteller",
   "mod_card.no_category": "Sonstiges",
@@ -63,6 +64,7 @@
   "status_bar.scan_done": "{total} Mods geladen ({active} aktiv, {errors} Fehler) in {elapsed:.1f}s",
   "status_bar.no_install": "Kein Game-Install gefunden. Pruefe Einstellungen.",
   "status_bar.selection": "{count} ausgewaehlt",
+  "status_bar.active_not_on_disk": "'{name}' ist im Profil aktiv aber nicht auf der Platte gefunden.",
 
   "main_window.confirm_changes": "Aenderungen bestaetigen",
   "main_window.discard_changes": "Aenderungen verwerfen",

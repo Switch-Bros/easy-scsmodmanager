@@ -36,6 +36,7 @@
   "status.error": "Container error",
   "status.encrypted": "Encrypted",
   "status.hashfs_no_reader": "HashFS reader unavailable",
+  "status.missing_from_disk": "missing from disk",
 
   "mod_card.no_author": "Unknown author",
   "mod_card.no_category": "Other",
@@ -63,6 +64,7 @@
   "status_bar.scan_done": "{total} mods loaded ({active} active, {errors} errors) in {elapsed:.1f}s",
   "status_bar.no_install": "No game install detected. Check Settings.",
   "status_bar.selection": "{count} selected",
+  "status_bar.active_not_on_disk": "'{name}' is active in the profile but not present on disk.",
 
   "main_window.confirm_changes": "Apply changes",
   "main_window.discard_changes": "Discard changes",

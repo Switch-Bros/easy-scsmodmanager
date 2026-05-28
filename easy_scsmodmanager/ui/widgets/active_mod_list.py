@@ -1,9 +1,8 @@
 """Right-hand panel listing the profile's active mods in priority order.
 
-Read-only in Phase 2 - no drag/drop, no priority buttons wired yet.
-Renders each ActiveMod with the (decoded) display name and a small
-thumbnail when the scanner has cached an icon for that mod. The mod's
-internal name lands in the tooltip together with an install hint.
+Each row uses a custom widget: a large 200x112 thumbnail on top, the
+display name below. Selection survives the custom widgets via the
+underlying QListWidget item the widget is paired with.
 """
 
 from __future__ import annotations
@@ -11,12 +10,13 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 
 from PyQt6.QtCore import QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtGui import QColor, QPainter, QPixmap
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -25,18 +25,70 @@ from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
 
-ICON_SIZE = QSize(32, 18)  # 16:9 mini-thumbnail
+THUMB_SIZE = QSize(Theme.ACTIVE_THUMBNAIL_WIDTH, Theme.ACTIVE_THUMBNAIL_HEIGHT)
+
+
+class ActiveModItem(QWidget):
+    """Single row in the active list: large thumbnail + name."""
+
+    def __init__(
+        self,
+        mod: ActiveMod,
+        icon_bytes: bytes | None,
+        *,
+        is_missing: bool,
+        parent: QWidget | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._mod = mod
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(4, 4, 4, 6)
+        root.setSpacing(4)
+
+        self._thumb = QLabel()
+        self._thumb.setFixedSize(THUMB_SIZE)
+        self._thumb.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._thumb.setStyleSheet(_thumbnail_style())
+        self._set_thumbnail(icon_bytes)
+        root.addWidget(self._thumb, 0, Qt.AlignmentFlag.AlignCenter)
+
+        self._name = QLabel(_format_label(mod))
+        self._name.setStyleSheet(f"color: {Theme.TEXT}; font-size: 11px; font-weight: 600;")
+        self._name.setWordWrap(True)
+        self._name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._name.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        root.addWidget(self._name)
+
+        if is_missing:
+            self._missing = QLabel("⚠ " + t("status.missing_from_disk"))
+            self._missing.setStyleSheet(f"color: {Theme.DANGER}; font-size: 10px;")
+            self._missing.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            root.addWidget(self._missing)
+
+    def _set_thumbnail(self, icon_bytes: bytes | None) -> None:
+        if icon_bytes:
+            pix = QPixmap()
+            if pix.loadFromData(icon_bytes):
+                self._thumb.setPixmap(
+                    pix.scaled(
+                        THUMB_SIZE,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+                return
+        self._thumb.setPixmap(_placeholder_pixmap())
 
 
 class ActiveModList(QWidget):
     """Title bar + scrollable list of active mods."""
 
     selection_changed = pyqtSignal(list)  # list[ActiveMod]
+    mod_focus_requested = pyqtSignal(object)  # ActiveMod
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._installed_names: set[str] = set()
-        self._placeholder_icon = _placeholder_icon()
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -54,7 +106,6 @@ class ActiveModList(QWidget):
         root.addLayout(header)
 
         self._list = QListWidget()
-        self._list.setIconSize(ICON_SIZE)
         self._list.setStyleSheet(f"""
             QListWidget {{
                 background-color: {Theme.SURFACE};
@@ -64,17 +115,18 @@ class ActiveModList(QWidget):
                 padding: 2px;
             }}
             QListWidget::item {{
-                padding: 4px 6px;
-                border-radius: 2px;
+                border-radius: 4px;
+                margin: 2px 0;
             }}
             QListWidget::item:selected {{
                 background-color: {Theme.PRIMARY};
-                color: {Theme.TEXT};
             }}
             """)
         self._list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self._list.itemSelectionChanged.connect(self._on_selection_changed)
-        root.addWidget(self._list)
+        self._list.itemClicked.connect(self._on_item_clicked)
+        self._list.itemActivated.connect(self._on_item_clicked)
+        root.addWidget(self._list, 1)
 
         self._empty_hint = QLabel(t("active_panel.empty"))
         self._empty_hint.setStyleSheet(
@@ -85,10 +137,6 @@ class ActiveModList(QWidget):
         self._empty_hint.hide()
         root.addWidget(self._empty_hint)
 
-    # ------------------------------------------------------------------ #
-    # public API
-    # ------------------------------------------------------------------ #
-
     def set_active_mods(
         self,
         mods: Iterable[ActiveMod],
@@ -96,23 +144,21 @@ class ActiveModList(QWidget):
         installed_names: set[str] | None = None,
         icon_for: Callable[[ActiveMod], bytes | None] | None = None,
     ) -> None:
-        """Replace the list.
-
-        ``installed_names`` is the set of mod stems present on disk - the
-        tooltip mentions missing ones. ``icon_for`` is an optional
-        callable returning cached icon bytes per ActiveMod.
-        """
-        self._installed_names = installed_names or set()
+        installed_names = installed_names or set()
         self._list.clear()
-        # Profile.active_mods stores priority 0 at the bottom; show the
-        # highest priority at the top of the list, matching the in-game UI.
         ordered = list(reversed(list(mods)))
         for mod in ordered:
-            item = QListWidgetItem(self._format_label(mod))
+            icon_bytes = icon_for(mod) if icon_for is not None else None
+            widget = ActiveModItem(
+                mod,
+                icon_bytes,
+                is_missing=mod.name not in installed_names,
+            )
+            item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, mod)
-            item.setIcon(self._icon_for_mod(mod, icon_for))
-            item.setToolTip(self._tooltip_for(mod))
+            item.setSizeHint(widget.sizeHint())
             self._list.addItem(item)
+            self._list.setItemWidget(item, widget)
 
         self._count.setText(t("active_panel.count", count=len(ordered)))
         self._empty_hint.setVisible(len(ordered) == 0)
@@ -125,54 +171,34 @@ class ActiveModList(QWidget):
             if self._list.item(i).isSelected()
         ]
 
-    # ------------------------------------------------------------------ #
-    # internals
-    # ------------------------------------------------------------------ #
-
     def _on_selection_changed(self) -> None:
         self.selection_changed.emit(self.selected_mods())
 
-    def _format_label(self, mod: ActiveMod) -> str:
-        if mod.display_name:
-            return mod.display_name
-        return mod.name
-
-    def _icon_for_mod(
-        self,
-        mod: ActiveMod,
-        icon_for: Callable[[ActiveMod], bytes | None] | None,
-    ) -> QIcon:
-        if icon_for is not None:
-            data = icon_for(mod)
-            if data:
-                pix = QPixmap()
-                if pix.loadFromData(data):
-                    return QIcon(
-                        pix.scaled(
-                            ICON_SIZE,
-                            Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation,
-                        )
-                    )
-        return self._placeholder_icon
-
-    def _tooltip_for(self, mod: ActiveMod) -> str:
-        lines = [mod.display_name or mod.name, f"id: {mod.name}"]
-        if mod.name not in self._installed_names:
-            lines.append("(currently missing from disk)")
-        return "\n".join(lines)
+    def _on_item_clicked(self, item: QListWidgetItem) -> None:
+        mod = item.data(Qt.ItemDataRole.UserRole)
+        if mod is not None:
+            self.mod_focus_requested.emit(mod)
 
 
-def _placeholder_icon() -> QIcon:
-    """A muted filled rectangle used when no per-mod icon is cached."""
-    from PyQt6.QtGui import QColor, QPainter
+def _format_label(mod: ActiveMod) -> str:
+    return mod.display_name or mod.name
 
-    pix = QPixmap(ICON_SIZE)
+
+def _thumbnail_style() -> str:
+    return (
+        f"background-color: {Theme.BACKGROUND};"
+        f"border: 1px solid {Theme.SURFACE_HOVER};"
+        "border-radius: 3px;"
+    )
+
+
+def _placeholder_pixmap() -> QPixmap:
+    pix = QPixmap(THUMB_SIZE)
     pix.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pix)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setBrush(QColor(Theme.SURFACE_HOVER))
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawRoundedRect(0, 0, ICON_SIZE.width(), ICON_SIZE.height(), 2, 2)
+    painter.drawRoundedRect(0, 0, THUMB_SIZE.width(), THUMB_SIZE.height(), 4, 4)
     painter.end()
-    return QIcon(pix)
+    return pix

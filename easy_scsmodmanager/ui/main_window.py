@@ -7,8 +7,7 @@ Layout::
     +----------------------------------------+------------------+
     |  FilterToolbar                         | ProfileHeader    |
     |  ----------------------------------    | ---------------- |
-    |  ModCardGrid (scroll)                  | ActiveModList    |
-    |                                        |                  |
+    |  ModCardGrid (3 columns, 276x162 cards)| ActiveModList    |
     |                                        |                  |
     +----------------------------------------+------------------+
     |  StatusBar: scan progress / counts / selection info       |
@@ -35,14 +34,20 @@ from PyQt6.QtWidgets import (
 from easy_scsmodmanager import __app_name__, __version__
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.game_paths import Game, GameInstall, detect_game_installs
+from easy_scsmodmanager.services.mod_matching import ActiveModMatcher
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
-from easy_scsmodmanager.services.profile_reader import Profile, discover_profiles, read_profile
+from easy_scsmodmanager.services.profile_reader import (
+    ActiveMod,
+    Profile,
+    discover_profiles,
+    read_profile,
+)
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.threads.scan_thread import ScanResult, ScanThread
 from easy_scsmodmanager.ui.widgets.active_mod_list import ActiveModList
 from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, FilterToolbar, SortKey
 from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
-from easy_scsmodmanager.ui.widgets.profile_header import ProfileHeader
+from easy_scsmodmanager.ui.widgets.profile_header import ProfileChoice, ProfileHeader
 from easy_scsmodmanager.utils.i18n import t
 
 log = logging.getLogger(__name__)
@@ -56,7 +61,10 @@ class MainWindow(QMainWindow):
         self._game = game
         self._install: GameInstall | None = None
         self._profile: Profile | None = None
+        self._profile_sii_path: Path | None = None
+        self._profile_choices: list[tuple[Path, Profile | None]] = []
         self._all_mods: list[ScannedMod] = []
+        self._matcher: ActiveModMatcher | None = None
         self._filter = FilterState()
         self._cache = ScanCache(default_cache_path())
         self._scan_thread: ScanThread | None = None
@@ -115,32 +123,32 @@ class MainWindow(QMainWindow):
         splitter.setChildrenCollapsible(False)
         splitter.setHandleWidth(6)
 
-        # Left side: filter + grid
         left = QWidget()
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(8)
         self._filter_toolbar = FilterToolbar()
         self._filter_toolbar.filter_changed.connect(self._on_filter_changed)
-        self._grid = ModCardGrid(columns=4)
+        self._grid = ModCardGrid(columns=Theme.MOD_GRID_COLUMNS)
         self._grid.selection_changed.connect(self._on_grid_selection_changed)
         left_layout.addWidget(self._filter_toolbar)
         left_layout.addWidget(self._grid, 1)
 
-        # Right side: profile header + active list
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(8)
         self._profile_header = ProfileHeader()
+        self._profile_header.profile_selected.connect(self._on_profile_chosen)
         self._active_list = ActiveModList()
+        self._active_list.mod_focus_requested.connect(self._on_active_mod_focus)
         right_layout.addWidget(self._profile_header)
         right_layout.addWidget(self._active_list, 1)
 
         splitter.addWidget(left)
         splitter.addWidget(right)
         splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 1)
+        splitter.setStretchFactor(1, 2)
 
         root.addWidget(splitter, 1)
         self.setCentralWidget(central)
@@ -154,36 +162,62 @@ class MainWindow(QMainWindow):
         if not installs:
             self.statusBar().showMessage(t("status_bar.no_install"))
             return
-        # Prefer the proton install when available because that is where
-        # most users have their workshop subscriptions linked.
         proton = next((i for i in installs if i.kind.value == "proton"), None)
         self._install = proton or installs[0]
-        self._load_profile()
+        self._load_profiles()
         self._start_scan()
 
-    def _load_profile(self) -> None:
+    def _load_profiles(self) -> None:
         if self._install is None:
             return
         paths = discover_profiles(self._install)
-        if not paths:
+        loaded: list[tuple[Path, Profile | None]] = []
+        for sii in paths:
+            try:
+                loaded.append((sii, read_profile(sii)))
+            except Exception as exc:
+                log.warning("failed to read profile %s: %s", sii, exc)
+                loaded.append((sii, None))
+        self._profile_choices = loaded
+
+        if not loaded:
             self._profile = None
+            self._profile_sii_path = None
             self._profile_header.set_profile(None)
+            self._profile_header.set_profile_choices([])
             return
-        # Pick the most recently modified profile - typically the active one.
-        path = max(paths, key=lambda p: p.stat().st_mtime)
-        try:
-            self._profile = read_profile(path)
-        except Exception as exc:
-            log.warning("failed to read profile %s: %s", path, exc)
-            self._profile = None
-            self._profile_header.set_profile(None)
-            return
-        avatar = path.parent / "online_avatar.png"
+
+        # Default: most recently modified profile.
+        sii_path = max(loaded, key=lambda p: p[0].stat().st_mtime)[0]
+        self._activate_profile(sii_path)
+
+    def _activate_profile(self, sii_path: Path) -> None:
+        profile = next((p for s, p in self._profile_choices if s == sii_path), None)
+        self._profile = profile
+        self._profile_sii_path = sii_path
+        avatar = sii_path.parent / "online_avatar.png"
         self._profile_header.set_profile(
-            self._profile,
+            profile,
             avatar_path=avatar if avatar.exists() else None,
-            meta_text=t("active_panel.count", count=len(self._profile.active_mods)),
+            meta_text=(
+                t("active_panel.count", count=len(profile.active_mods))
+                if profile is not None
+                else ""
+            ),
         )
+        self._refresh_profile_choices_menu()
+
+    def _refresh_profile_choices_menu(self) -> None:
+        choices = [
+            ProfileChoice(
+                sii_path=sii,
+                display_name=(profile.profile_name if profile else sii.parent.name),
+                active_count=(len(profile.active_mods) if profile else 0),
+                is_current=(sii == self._profile_sii_path),
+            )
+            for sii, profile in self._profile_choices
+        ]
+        self._profile_header.set_profile_choices(choices)
 
     def _start_scan(self) -> None:
         if self._install is None:
@@ -200,18 +234,16 @@ class MainWindow(QMainWindow):
 
     def _on_scan_finished(self, result: ScanResult) -> None:
         self._all_mods = result.mods
-        active_names = self._active_names()
-        installed_names = {mod.path.stem for mod in self._all_mods}
-
+        self._matcher = ActiveModMatcher(self._all_mods)
         self._refresh_grid()
-        if self._profile is not None:
-            self._active_list.set_active_mods(
-                self._profile.active_mods,
-                installed_names=installed_names,
-                icon_for=self._active_icon_for,
-            )
+        self._refresh_active_list()
 
-        active_count = sum(1 for m in self._all_mods if m.path.stem in active_names)
+        installed_actives = (
+            self._matcher.installed_active_names(list(self._profile.active_mods))
+            if self._profile is not None
+            else set()
+        )
+        active_count = len(installed_actives)
         errors = sum(1 for m in self._all_mods if m.manifest is None and m.error is not None)
         self.statusBar().showMessage(
             t(
@@ -238,32 +270,49 @@ class MainWindow(QMainWindow):
         filtered = self._apply_filter(self._all_mods, self._filter)
         self._grid.set_mods(
             filtered,
-            active_names=self._active_names(),
+            active_names=self._active_paths_set(),
             icon_for=self._icon_for,
+        )
+
+    def _refresh_active_list(self) -> None:
+        if self._profile is None or self._matcher is None:
+            self._active_list.set_active_mods([])
+            return
+        installed = self._matcher.installed_active_names(list(self._profile.active_mods))
+        self._active_list.set_active_mods(
+            self._profile.active_mods,
+            installed_names=installed,
+            icon_for=self._active_icon_for,
         )
 
     def _icon_for(self, mod: ScannedMod) -> bytes | None:
         entry = self._cache.get(mod.path)
-        if entry is None:
-            return None
-        return entry.icon_bytes
+        return entry.icon_bytes if entry else None
 
-    def _active_icon_for(self, active_mod) -> bytes | None:
-        # The cache is keyed by mod-file path; the profile only knows the
-        # stem. Look up the scanned mod whose path matches and return its
-        # cached icon bytes if any.
-        match = next((m for m in self._all_mods if m.path.stem == active_mod.name), None)
+    def _active_icon_for(self, active_mod: ActiveMod) -> bytes | None:
+        if self._matcher is None:
+            return None
+        match = self._matcher.lookup(active_mod)
         if match is None:
             return None
         entry = self._cache.get(match.path)
-        if entry is None:
-            return None
-        return entry.icon_bytes
+        return entry.icon_bytes if entry else None
 
-    def _active_names(self) -> set[str]:
-        if self._profile is None:
+    def _active_paths_set(self) -> set[str]:
+        """The set of mod-path stems that are referenced by the profile.
+
+        Used by the card grid to mark cards green. The grid uses path
+        stems for matching; the matcher resolves the broader set so
+        Workshop directory mods light up too.
+        """
+        if self._matcher is None or self._profile is None:
             return set()
-        return {m.name for m in self._profile.active_mods}
+        stems: set[str] = set()
+        for active in self._profile.active_mods:
+            match = self._matcher.lookup(active)
+            if match is not None:
+                stems.add(match.path.stem)
+        return stems
 
     def _apply_filter(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
         needle = state.search.lower().strip()
@@ -287,8 +336,6 @@ class MainWindow(QMainWindow):
         return result
 
     def _sort_key(self, mod: ScannedMod, key: SortKey) -> tuple[int, str | float]:
-        # Tuple sort with a category index so the secondary string stays
-        # comparable across all keys (mypy needs a single return type).
         if key is SortKey.NAME:
             return (0, (mod.manifest.display_name if mod.manifest else mod.path.stem).lower())
         if key is SortKey.AUTHOR:
@@ -296,7 +343,7 @@ class MainWindow(QMainWindow):
         if key is SortKey.DATE:
             return (0, mod.path.stat().st_mtime)
         if key is SortKey.STATUS:
-            return (0 if mod.path.stem in self._active_names() else 1, mod.path.name.lower())
+            return (0 if mod.path.stem in self._active_paths_set() else 1, mod.path.name.lower())
         return (0, mod.path.name.lower())
 
     # ------------------------------------------------------------------ #
@@ -312,6 +359,32 @@ class MainWindow(QMainWindow):
             self.statusBar().clearMessage()
             return
         self.statusBar().showMessage(t("status_bar.selection", count=len(mods)))
+
+    def _on_active_mod_focus(self, active_mod: ActiveMod) -> None:
+        """Clicking a row in the active list scrolls to + selects the
+        matching mod card in the left grid."""
+        if self._matcher is None:
+            return
+        match = self._matcher.lookup(active_mod)
+        if match is None:
+            self.statusBar().showMessage(
+                t("status_bar.active_not_on_disk", name=active_mod.display_name or active_mod.name)
+            )
+            return
+        if not self._grid.focus_mod(match):
+            # The mod is on disk but currently filtered out - clear the
+            # filter so it becomes visible, then try again.
+            self._filter_toolbar._search.clear()
+            self._filter = FilterState()
+            self._refresh_grid()
+            self._grid.focus_mod(match)
+
+    def _on_profile_chosen(self, choice: ProfileChoice) -> None:
+        if choice.sii_path == self._profile_sii_path:
+            return
+        self._activate_profile(choice.sii_path)
+        self._refresh_active_list()
+        self._refresh_grid()
 
     def _on_refresh(self) -> None:
         if self._install is None:
@@ -343,5 +416,4 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
 
-# Reference avoidance for unused-import linters
 _ = Path
