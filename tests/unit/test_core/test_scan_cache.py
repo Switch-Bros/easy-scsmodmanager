@@ -211,3 +211,26 @@ def test_cache_creates_parent_directory_for_db(tmp_path: Path) -> None:
 
     assert db.is_file()
     assert db.parent.is_dir()
+
+
+def test_schema_upgrade_clears_errored_entries_for_rescan(tmp_path: Path) -> None:
+    # mods that errored under an older schema (fake-lock / AEM before the
+    # readers landed) must be dropped on upgrade so they get re-scanned;
+    # successfully cached mods stay put.
+    db = tmp_path / "cache.db"
+    good = _make_scs(tmp_path / "good.scs")
+    bad = _make_scs(tmp_path / "bad.scs")
+    errored = ScannedMod(
+        path=bad, format=ScsFormat.UNKNOWN, manifest=None, error="Unknown SCS container format"
+    )
+
+    with ScanCache(db) as cache:
+        cache.put(good, _scanned(good))
+        cache.put(bad, errored)
+        # pretend this db predates the current reader work
+        cache._conn.execute("PRAGMA user_version = 3")
+        cache._conn.commit()
+
+    with ScanCache(db) as cache:
+        assert cache.get(bad) is None  # re-scan with the new readers
+        assert cache.get(good) is not None  # untouched

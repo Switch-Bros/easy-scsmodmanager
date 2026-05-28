@@ -6,7 +6,7 @@ parsed manifest + icon bytes keyed on ``(path, mtime, size)`` so the
 second scan drops to milliseconds and only re-reads files the user has
 actually changed.
 
-Schema (``user_version=2``)::
+Schema (``user_version=4``)::
 
     mod_cache(
         path TEXT PRIMARY KEY,
@@ -43,7 +43,7 @@ from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 APP_DIR_NAME = "easy-scsmodmanager"
 DB_FILE_NAME = "scan_cache.db"
 
@@ -193,6 +193,10 @@ class ScanCache:
                         fetched_at    REAL    NOT NULL
                     )
                     """)
+            if current < 4:
+                # drop rows that failed under the old code so the new readers
+                # (fake-lock zips, AEM containers) get a fresh scan
+                self._conn.execute("DELETE FROM mod_cache WHERE error IS NOT NULL")
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
