@@ -33,8 +33,9 @@ from PyQt6.QtWidgets import (
 
 from easy_scsmodmanager import __app_name__, __version__
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
+from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import Game, GameInstall, detect_game_installs
-from easy_scsmodmanager.services.mod_matching import ActiveModMatcher
+from easy_scsmodmanager.services.mod_matching import ActiveModMatcher, workshop_id_for_path
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.services.profile_reader import (
     ActiveMod,
@@ -44,6 +45,7 @@ from easy_scsmodmanager.services.profile_reader import (
 )
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.threads.scan_thread import ScanResult, ScanThread
+from easy_scsmodmanager.ui.threads.workshop_fetch_thread import WorkshopFetchThread
 from easy_scsmodmanager.ui.widgets.active_mod_list import ActiveModList
 from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, FilterToolbar, SortKey
 from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
@@ -67,7 +69,9 @@ class MainWindow(QMainWindow):
         self._matcher: ActiveModMatcher | None = None
         self._filter = FilterState()
         self._cache = ScanCache(default_cache_path())
+        self._workshop_cache = WorkshopMetaCache(self._cache.connection())
         self._scan_thread: ScanThread | None = None
+        self._workshop_thread: WorkshopFetchThread | None = None
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
         self.setMinimumSize(QSize(1280, 760))
@@ -255,6 +259,7 @@ class MainWindow(QMainWindow):
             )
         )
         self._populate_categories()
+        self._kickoff_workshop_fetch()
 
     def _on_scan_failed(self, message: str) -> None:
         self.statusBar().showMessage(message)
@@ -287,7 +292,15 @@ class MainWindow(QMainWindow):
 
     def _icon_for(self, mod: ScannedMod) -> bytes | None:
         entry = self._cache.get(mod.path)
-        return entry.icon_bytes if entry else None
+        if entry and entry.icon_bytes:
+            return entry.icon_bytes
+        # Fall back to a Steam-Workshop preview when no local icon is in
+        # the .scs - covers map mods with encrypted manifests.
+        workshop_id = workshop_id_for_path(mod.path)
+        if workshop_id is None:
+            return None
+        meta = self._workshop_cache.get(workshop_id)
+        return meta.preview_bytes if meta else None
 
     def _active_icon_for(self, active_mod: ActiveMod) -> bytes | None:
         if self._matcher is None:
@@ -295,8 +308,7 @@ class MainWindow(QMainWindow):
         match = self._matcher.lookup(active_mod)
         if match is None:
             return None
-        entry = self._cache.get(match.path)
-        return entry.icon_bytes if entry else None
+        return self._icon_for(match)
 
     def _active_paths_set(self) -> set[str]:
         """The set of mod-path stems that are referenced by the profile.
@@ -360,6 +372,53 @@ class MainWindow(QMainWindow):
             return
         self.statusBar().showMessage(t("status_bar.selection", count=len(mods)))
 
+    def _kickoff_workshop_fetch(self) -> None:
+        """Start the Steam Workshop fetcher for mods we lack local data for.
+
+        Targets workshop mods that either have no icon yet or no parsed
+        manifest at all (encrypted map mods fall in the second bucket).
+        Skips mods that already have everything from local scan.
+        """
+        if self._workshop_thread is not None and self._workshop_thread.isRunning():
+            return
+
+        workshop_ids: list[str] = []
+        seen: set[str] = set()
+        for mod in self._all_mods:
+            wid = workshop_id_for_path(mod.path)
+            if wid is None or wid in seen:
+                continue
+            entry = self._cache.get(mod.path)
+            has_icon = bool(entry and entry.icon_bytes)
+            has_manifest = mod.manifest is not None
+            if has_icon and has_manifest:
+                continue
+            seen.add(wid)
+            workshop_ids.append(wid)
+
+        if not workshop_ids:
+            return
+
+        self._workshop_thread = WorkshopFetchThread(workshop_ids, self._workshop_cache)
+        self._workshop_thread.preview_fetched.connect(self._on_workshop_preview_ready)
+        self._workshop_thread.finished_with_summary.connect(self._on_workshop_fetch_done)
+        self._workshop_thread.start()
+
+    def _on_workshop_preview_ready(self, _workshop_id: str) -> None:
+        # Bulk-refresh the grid + active list once per N updates would be
+        # nicer; for now a full refresh on every fetched preview keeps the
+        # code simple and stays cheap enough on 100-ish workshop mods.
+        self._refresh_grid()
+        self._refresh_active_list()
+
+    def _on_workshop_fetch_done(self, downloaded: int) -> None:
+        if downloaded == 0:
+            return
+        self.statusBar().showMessage(
+            t("status_bar.workshop_fetched", count=downloaded),
+            5000,
+        )
+
     def _on_active_mod_focus(self, active_mod: ActiveMod) -> None:
         """Clicking a row in the active list scrolls to + selects the
         matching mod card in the left grid."""
@@ -412,6 +471,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # noqa: N802
         if self._scan_thread is not None and self._scan_thread.isRunning():
             self._scan_thread.wait(5000)
+        if self._workshop_thread is not None and self._workshop_thread.isRunning():
+            self._workshop_thread.wait(5000)
         self._cache.close()
         super().closeEvent(event)
 

@@ -71,11 +71,13 @@ class ActiveModMatcher:
         return {a.name for a in profile_actives if self.lookup(a) is not None}
 
 
-def _workshop_id_for(path: Path) -> str | None:
-    """Detect the workshop published-file-id from a scanned mod path."""
-    # Layouts we care about:
-    #   .../workshop/content/<appid>/<workshop_id>/<file>.scs
-    #   .../workshop/content/<appid>/<workshop_id>/<slot>/manifest.sii
+def workshop_id_for_path(path: Path) -> str | None:
+    """Detect the workshop published-file-id from a scanned mod path.
+
+    Recognises ``.../workshop/content/<appid>/<workshop_id>/...``.
+    Returns the numeric workshop id as a string, or None if the path
+    does not live inside a workshop tree.
+    """
     parts = path.parts
     if "workshop" not in parts or "content" not in parts:
         return None
@@ -83,13 +85,17 @@ def _workshop_id_for(path: Path) -> str | None:
         content_idx = parts.index("content")
     except ValueError:
         return None
-    # appid sits at content_idx + 1, workshop_id at content_idx + 2.
     if content_idx + 2 >= len(parts):
         return None
     workshop_id = parts[content_idx + 2]
     if workshop_id.isdigit():
         return workshop_id
     return None
+
+
+# Backwards-compatible alias for the internal helper this module used
+# before the public rename.
+_workshop_id_for = workshop_id_for_path
 
 
 def _extract_workshop_id_from_name(name: str) -> str | None:

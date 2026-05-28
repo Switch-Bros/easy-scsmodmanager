@@ -43,7 +43,7 @@ from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 APP_DIR_NAME = "easy-scsmodmanager"
 DB_FILE_NAME = "scan_cache.db"
 
@@ -134,6 +134,11 @@ class ScanCache:
             cursor = self._conn.execute("DELETE FROM mod_cache")
         return cursor.rowcount
 
+    def connection(self) -> sqlite3.Connection:
+        """Exposes the underlying connection so sibling caches (workshop
+        metadata, future icon variants) can share it."""
+        return self._conn
+
     def close(self) -> None:
         with contextlib.suppress(sqlite3.ProgrammingError):
             self._conn.close()
@@ -176,6 +181,18 @@ class ScanCache:
                 cols = {row[1] for row in self._conn.execute("PRAGMA table_info(mod_cache)")}
                 if "description" not in cols:
                     self._conn.execute("ALTER TABLE mod_cache ADD COLUMN description TEXT")
+            if current < 3:
+                self._conn.execute("""
+                    CREATE TABLE IF NOT EXISTS workshop_meta (
+                        workshop_id   TEXT    PRIMARY KEY,
+                        title         TEXT,
+                        description   TEXT,
+                        preview_url   TEXT,
+                        preview_bytes BLOB,
+                        time_updated  INTEGER,
+                        fetched_at    REAL    NOT NULL
+                    )
+                    """)
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
