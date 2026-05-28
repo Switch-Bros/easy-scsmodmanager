@@ -33,6 +33,12 @@ def test_detects_hashfs_v2_by_magic_and_version(tmp_path: Path) -> None:
     assert detect_format(scs) == ScsFormat.HASHFS_V2
 
 
+def test_detects_aem_by_magic(tmp_path: Path) -> None:
+    scs = _write(tmp_path, "mod.scs", b"AEM!" + b"\x00" * 60)
+
+    assert detect_format(scs) == ScsFormat.AEM
+
+
 def test_returns_unknown_for_unrecognised_magic(tmp_path: Path) -> None:
     scs = _write(tmp_path, "mod.scs", b"NOPE" + b"\x00" * 60)
 

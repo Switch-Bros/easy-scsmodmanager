@@ -1,14 +1,12 @@
-"""Reads ZIP-based .scs files the way the game does: ignoring the lock.
+"""Reads ZIP-based .scs entries by scanning local file headers directly.
 
-Some map mods "protect" themselves by flipping the ZIP encryption bit in the
-central directory and relabelling the local compression method (1/Shrunk
-instead of 8/Deflate). Nothing is actually encrypted - the payload is plain
-raw-deflate and the game's permissive loader reads it fine. Python's stdlib
-zipfile is stricter and refuses, so we scan the local file headers ourselves
-and inflate the entries directly, bit and bogus label be damned.
+A few .scs files carry an unusual compression-method label and a set
+encryption flag in the central directory, so Python's stdlib zipfile refuses
+them even though the entry payload is ordinary raw-deflate. This reader scans
+the local file headers itself and inflates each entry, which lets the scanner
+read them. Used as a fallback after ZipScsReader.
 
-Used only as a fallback after ZipScsReader fails. Implements the same
-ModSource surface (has / read_text / read_bytes / close).
+Implements the ModSource surface (has / read_text / read_bytes / close).
 """
 
 from __future__ import annotations

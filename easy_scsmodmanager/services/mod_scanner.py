@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 
 from easy_scsmodmanager.core.game_paths import GameInstall
 from easy_scsmodmanager.core.models.mod_manifest import ModManifest
+from easy_scsmodmanager.integrations.scs.aem_reader import AemReader
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat, detect_format
 from easy_scsmodmanager.integrations.scs.hashfs_extractor import (
     HashFsExtractorNotAvailable,
@@ -253,7 +254,22 @@ def _scan_archive(path: Path) -> tuple[ScannedMod, bytes | None, str | None]:
         return _scan_zip(path, fmt)
     if fmt in (ScsFormat.HASHFS_V1, ScsFormat.HASHFS_V2):
         return _scan_hashfs(path, fmt)
+    if fmt == ScsFormat.AEM:
+        return _scan_aem(path, fmt)
     return _error_mod(path, fmt, "Unknown SCS container format"), None, None
+
+
+def _scan_aem(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None, str | None]:
+    # AEM! container: manifest is raw-deflate, textures/icon stored verbatim.
+    try:
+        with AemReader(scs_path) as reader:
+            bundle = read_bundle(reader)
+    except MissingManifest:
+        return _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"), None, None
+    except Exception as exc:
+        log.debug("aem read failed for %s: %s", scs_path, exc)
+        return _error_mod(scs_path, fmt, str(exc)), None, None
+    return _bundle_result(scs_path, fmt, bundle)
 
 
 def _scan_zip(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None, str | None]:
@@ -265,19 +281,18 @@ def _scan_zip(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None,
     except Exception as exc:
         log.debug("failed to read manifest from %s: %s", scs_path, exc)
         return _recover_fake_locked_zip(scs_path, fmt, str(exc))
-    return _zip_bundle_result(scs_path, fmt, bundle)
+    return _bundle_result(scs_path, fmt, bundle)
 
 
 def _recover_fake_locked_zip(
     scs_path: Path, fmt: ScsFormat, prior_error: str
 ) -> tuple[ScannedMod, bytes | None, str | None]:
-    """Second pass for zips stdlib refused.
+    """Second pass for zips the stdlib reader refused.
 
-    Most "encrypted" / manifest-missing map mods are just fake-locked deflate:
-    the encryption bit is set and the method label is bogus, but the payload is
-    plain. RawZipReader scans the local headers and inflates directly, so we get
-    the real manifest (and the icon it names). Only if that also fails do we
-    fall back to scavenging a bare preview image.
+    Some .scs carry a set encryption flag and an odd method label while the
+    payload is ordinary raw-deflate. RawZipReader scans the local headers and
+    inflates directly, giving us the manifest and the icon it names. If that
+    also fails we fall back to scavenging a preview image.
     """
     try:
         with RawZipReader(scs_path) as raw:
@@ -291,10 +306,10 @@ def _recover_fake_locked_zip(
     except Exception as exc:
         log.debug("raw-zip recovery failed for %s: %s", scs_path, exc)
         return _error_mod(scs_path, fmt, prior_error), _scavenge_zip_icon(scs_path), None
-    return _zip_bundle_result(scs_path, fmt, bundle)
+    return _bundle_result(scs_path, fmt, bundle)
 
 
-def _zip_bundle_result(
+def _bundle_result(
     scs_path: Path, fmt: ScsFormat, bundle: ManifestBundle
 ) -> tuple[ScannedMod, bytes | None, str | None]:
     return (

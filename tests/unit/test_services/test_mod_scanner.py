@@ -96,6 +96,40 @@ def _mangle_fake_lock(path: Path) -> Path:
     return path
 
 
+def _aem_mod(path: Path, manifest_text: str) -> Path:
+    # build a minimal AEM! container: manifest.sii raw-deflate, icon stored
+    import zlib
+
+    def rawdef(d: bytes) -> bytes:
+        co = zlib.compressobj(9, zlib.DEFLATED, -15)
+        return co.compress(d) + co.flush()
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    buf = bytearray()
+    for name, content, comp in (
+        ("manifest.sii", manifest_text.encode(), True),
+        ("icon.jpg", b"\xff\xd8\xff\xe0img\xff\xd9", False),
+    ):
+        nb = name.encode("ascii")
+        buf += b"AEM!" + b"\x00" * 8 + struct.pack("<I", len(nb)) + nb
+        buf += rawdef(content) if comp else content
+    path.write_bytes(bytes(buf))
+    return path
+
+
+def test_scan_mod_directory_reads_aem_container(tmp_path: Path) -> None:
+    _aem_mod(tmp_path / "protected_map.scs", _full_manifest("AEM Map", "RuMapper"))
+
+    mods = scan_mod_directory(tmp_path)
+
+    assert len(mods) == 1
+    assert mods[0].format == ScsFormat.AEM
+    assert mods[0].error is None
+    assert mods[0].manifest is not None
+    assert mods[0].manifest.display_name == "AEM Map"
+    assert mods[0].manifest.author == "RuMapper"
+
+
 def test_scan_mod_directory_recovers_fake_locked_zip(tmp_path: Path) -> None:
     scs = tmp_path / "locked_map.scs"
     with zipfile.ZipFile(scs, "w", zipfile.ZIP_DEFLATED) as zf:
