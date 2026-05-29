@@ -166,6 +166,7 @@ class MainWindow(QMainWindow):
         self._active_list = ActiveModList()
         self._active_list.mod_focus_requested.connect(self._on_active_mod_focus)
         self._active_list.order_changed.connect(self._on_active_order_changed)
+        self._active_list.mods_dropped.connect(self._on_mods_dropped)
         right_layout.addWidget(self._profile_header)
         right_layout.addWidget(self._active_list, 1)
 
@@ -421,6 +422,24 @@ class MainWindow(QMainWindow):
         self._active_list.move_to_top(
             ActiveMod(name=active_name_for(mod), display_name=self._display_name_for(mod))
         )
+
+    def _on_mods_dropped(self, paths: list[str], row: int) -> None:
+        # mods dragged from the grid get inserted at the drop position;
+        # already-active ones are skipped rather than duplicated
+        by_path = {str(mod.path): mod for mod in self._all_mods}
+        existing = {m.name for m in self._active_list.display_order()}
+        to_add: list[ActiveMod] = []
+        for path in paths:
+            mod = by_path.get(path)
+            if mod is None:
+                continue
+            name = active_name_for(mod)
+            if name in existing:
+                continue
+            existing.add(name)
+            to_add.append(ActiveMod(name=name, display_name=self._display_name_for(mod)))
+        if to_add:
+            self._active_list.insert_mods(to_add, at=row)
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:

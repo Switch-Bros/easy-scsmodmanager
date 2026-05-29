@@ -24,6 +24,7 @@ from collections.abc import Callable
 from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QMouseEvent, QPixmap
 from PyQt6.QtWidgets import (
+    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -49,6 +50,7 @@ class ModCard(QFrame):
     activated = pyqtSignal()
     favorite_toggled = pyqtSignal(bool)
     info_requested = pyqtSignal()
+    drag_started = pyqtSignal()  # left-drag moved past the threshold
 
     def __init__(
         self,
@@ -66,6 +68,7 @@ class ModCard(QFrame):
         self._is_favorite = is_favorite
         self._is_selected = False
         self._display_name_override = display_name
+        self._press_pos: object | None = None
 
         self.setObjectName("ModCard")
         self.setFixedSize(QSize(Theme.MOD_CARD_WIDTH, Theme.MOD_CARD_HEIGHT))
@@ -111,8 +114,21 @@ class ModCard(QFrame):
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
         if event is not None and event.button() == Qt.MouseButton.LeftButton:
+            self._press_pos = event.position().toPoint()
             self.clicked.emit(event.modifiers())
         super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
+        if (
+            event is not None
+            and self._press_pos is not None
+            and event.buttons() & Qt.MouseButton.LeftButton
+        ):
+            moved = (event.position().toPoint() - self._press_pos).manhattanLength()
+            if moved >= QApplication.startDragDistance():
+                self._press_pos = None
+                self.drag_started.emit()
+        super().mouseMoveEvent(event)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
         if event is not None and event.button() == Qt.MouseButton.LeftButton:

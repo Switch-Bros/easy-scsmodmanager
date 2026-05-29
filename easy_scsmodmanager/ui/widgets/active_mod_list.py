@@ -27,6 +27,56 @@ from easy_scsmodmanager.utils.i18n import t
 
 THUMB_SIZE = QSize(Theme.ACTIVE_THUMBNAIL_WIDTH, Theme.ACTIVE_THUMBNAIL_HEIGHT)
 
+# carried by a drag coming from the mod grid: newline-joined mod path strings
+MOD_DRAG_MIME = "application/x-escsmm-modpaths"
+
+
+class _ActiveListView(QListWidget):
+    """List view that turns drops into model-level reorder / insert signals.
+
+    Internal drag (rows dragged within the list) -> reorder_requested.
+    A drag from the grid carrying MOD_DRAG_MIME -> external_drop_requested.
+    We never call super().dropEvent so Qt does not move the item widgets
+    itself - the owner rebuilds the list from its model instead.
+    """
+
+    reorder_requested = pyqtSignal(list, int)  # (source rows, target row)
+    external_drop_requested = pyqtSignal(list, int)  # (mod path strings, target row)
+
+    def _target_row(self, event: object) -> int:
+        pos = event.position().toPoint()  # type: ignore[attr-defined]
+        idx = self.indexAt(pos)
+        if not idx.isValid():
+            return self.count()
+        row = idx.row()
+        # dropping on the lower half of a row means "after it"
+        if pos.y() > self.visualRect(idx).center().y():
+            row += 1
+        return row
+
+    def _accepts(self, event: object) -> bool:
+        return event.source() is self or event.mimeData().hasFormat(MOD_DRAG_MIME)  # type: ignore[attr-defined]
+
+    def dragEnterEvent(self, event: object) -> None:  # noqa: N802
+        event.accept() if self._accepts(event) else event.ignore()  # type: ignore[attr-defined]
+
+    def dragMoveEvent(self, event: object) -> None:  # noqa: N802
+        event.accept() if self._accepts(event) else event.ignore()  # type: ignore[attr-defined]
+
+    def dropEvent(self, event: object) -> None:  # noqa: N802
+        target = self._target_row(event)
+        if event.source() is self:  # type: ignore[attr-defined]
+            rows = sorted({i.row() for i in self.selectedIndexes()})
+            self.reorder_requested.emit(rows, target)
+            event.accept()  # type: ignore[attr-defined]
+        elif event.mimeData().hasFormat(MOD_DRAG_MIME):  # type: ignore[attr-defined]
+            raw = bytes(event.mimeData().data(MOD_DRAG_MIME)).decode("utf-8")  # type: ignore[attr-defined]
+            paths = [p for p in raw.split("\n") if p]
+            self.external_drop_requested.emit(paths, target)
+            event.accept()  # type: ignore[attr-defined]
+        else:
+            event.ignore()  # type: ignore[attr-defined]
+
 
 class ActiveModItem(QWidget):
     """Single row in the active list: large thumbnail + name."""
@@ -87,6 +137,7 @@ class ActiveModList(QWidget):
     selection_changed = pyqtSignal(list)  # list[ActiveMod]
     mod_focus_requested = pyqtSignal(object)  # ActiveMod
     order_changed = pyqtSignal()  # the active list was reordered/edited
+    mods_dropped = pyqtSignal(list, int)  # (mod path strings from the grid, target row)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -112,7 +163,13 @@ class ActiveModList(QWidget):
         header.addWidget(self._count)
         root.addLayout(header)
 
-        self._list = QListWidget()
+        self._list = _ActiveListView()
+        self._list.setDragEnabled(True)
+        self._list.setAcceptDrops(True)
+        self._list.setDragDropMode(QListWidget.DragDropMode.DragDrop)
+        self._list.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self._list.reorder_requested.connect(self.move_rows)
+        self._list.external_drop_requested.connect(self.mods_dropped.emit)
         self._list.setStyleSheet(f"""
             QListWidget {{
                 background-color: {Theme.SURFACE};

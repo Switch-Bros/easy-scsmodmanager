@@ -90,3 +90,53 @@ def test_double_click_grid_card_adds_mod_to_active_top(qtbot) -> None:
 
     assert window._active_list.display_order()[0].name == "newmod"
     assert window._save_btn.isEnabled() is True
+
+
+def test_drop_from_grid_inserts_mods_at_row(qtbot) -> None:
+    from pathlib import Path
+
+    from easy_scsmodmanager.core.models.mod_manifest import ModManifest
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    dropped = ScannedMod(
+        path=Path("/mod/dropme.scs"),
+        format=ScsFormat.ZIP,
+        manifest=ModManifest(display_name="Drop Me"),
+        error=None,
+    )
+    window._all_mods = [dropped]
+    window._active_list.set_active_mods([ActiveMod("existing", "Existing")])
+
+    window._on_mods_dropped(["/mod/dropme.scs"], 0)  # drop at display top
+
+    assert window._active_list.display_order()[0].name == "dropme"
+    assert window._active_list.display_order()[0].display_name == "Drop Me"
+
+
+def test_drop_skips_already_active_mod(qtbot) -> None:
+    from pathlib import Path
+
+    from easy_scsmodmanager.core.models.mod_manifest import ModManifest
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    mod = ScannedMod(
+        path=Path("/mod/already.scs"),
+        format=ScsFormat.ZIP,
+        manifest=ModManifest(display_name="Already"),
+        error=None,
+    )
+    window._all_mods = [mod]
+    window._active_list.set_active_mods([ActiveMod("already", "Already")])
+
+    window._on_mods_dropped(["/mod/already.scs"], 0)
+
+    names = [m.name for m in window._active_list.display_order()]
+    assert names.count("already") == 1  # not duplicated

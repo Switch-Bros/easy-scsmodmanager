@@ -10,12 +10,14 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QMimeData, Qt, pyqtSignal
+from PyQt6.QtGui import QDrag
 from PyQt6.QtWidgets import QGridLayout, QScrollArea, QSizePolicy, QWidget
 
 from easy_scsmodmanager.services.mod_matching import active_name_for
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
+from easy_scsmodmanager.ui.widgets.active_mod_list import MOD_DRAG_MIME
 from easy_scsmodmanager.ui.widgets.mod_card import ModCard
 
 
@@ -78,6 +80,7 @@ class ModCardGrid(QScrollArea):
             card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
             card.activated.connect(lambda i=idx: self._on_card_activated(i))
             card.info_requested.connect(lambda m=mod: self.info_requested.emit(m))
+            card.drag_started.connect(lambda i=idx: self._start_drag(i))
             self._cards.append(card)
             self._grid.addWidget(card, i // self._columns, i % self._columns)
         # Push the cards top-left, do not let the grid stretch them.
@@ -166,3 +169,16 @@ class ModCardGrid(QScrollArea):
 
     def _on_card_activated(self, index: int) -> None:
         self.card_activated.emit(self._cards[index].mod)
+
+    def _start_drag(self, index: int) -> None:
+        # drag the whole selection; if the grabbed card is not selected,
+        # make it the selection first
+        if index not in self._selected:
+            self._set_single(index)
+            self.selection_changed.emit(self.selected_mods())
+        paths = "\n".join(str(mod.path) for mod in self.selected_mods())
+        mime = QMimeData()
+        mime.setData(MOD_DRAG_MIME, paths.encode("utf-8"))
+        drag = QDrag(self)
+        drag.setMimeData(mime)
+        drag.exec(Qt.DropAction.CopyAction)
