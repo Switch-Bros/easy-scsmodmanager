@@ -168,6 +168,9 @@ class ActiveModList(QWidget):
         self._list.setAcceptDrops(True)
         self._list.setDragDropMode(QListWidget.DragDropMode.DragDrop)
         self._list.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self._list.setDropIndicatorShown(True)  # the line showing where it lands
+        self._list.setAutoScroll(True)  # scroll when dragging near the edges
+        self._list.setAutoScrollMargin(48)
         self._list.reorder_requested.connect(self.move_rows)
         self._list.external_drop_requested.connect(self.mods_dropped.emit)
         self._list.setStyleSheet(f"""
@@ -250,7 +253,19 @@ class ActiveModList(QWidget):
         self._rerender()
         self.order_changed.emit()
 
+    def focus_active(self, name: str) -> bool:
+        """Select + scroll to the active row with ``name``. False if absent."""
+        for i in range(self._list.count()):
+            item = self._list.item(i)
+            mod = item.data(Qt.ItemDataRole.UserRole)
+            if mod is not None and mod.name == name:
+                self._list.setCurrentItem(item)
+                self._list.scrollToItem(item)
+                return True
+        return False
+
     def _rerender(self) -> None:
+        scroll = self._list.verticalScrollBar().value()
         self._list.clear()
         for mod in self._mods:
             icon_bytes = self._icon_for(mod) if self._icon_for is not None else None
@@ -268,6 +283,8 @@ class ActiveModList(QWidget):
         self._count.setText(t("active_panel.count", count=len(self._mods)))
         self._empty_hint.setVisible(len(self._mods) == 0)
         self._list.setVisible(len(self._mods) > 0)
+        # keep the viewport where it was; move_to_top re-scrolls explicitly
+        self._list.verticalScrollBar().setValue(scroll)
 
     def selected_mods(self) -> list[ActiveMod]:
         return [

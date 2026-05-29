@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
 from easy_scsmodmanager.services.profile_reader import ActiveMod
@@ -93,3 +94,17 @@ def test_internal_reorder_signal_moves_rows(qtbot: QtBot) -> None:
     w._list.reorder_requested.emit([1, 2], 0)
 
     assert [m.name for m in w.display_order()] == ["c", "b", "d", "a"]
+
+
+def test_focus_active_selects_matching_row(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b", "c"])
+
+    assert w.focus_active("b") is True
+    current = w._list.currentItem().data(Qt.ItemDataRole.UserRole)
+    assert current.name == "b"
+
+
+def test_focus_active_returns_false_for_unknown(qtbot: QtBot) -> None:
+    w = _list(qtbot, ["a", "b"])
+
+    assert w.focus_active("nope") is False

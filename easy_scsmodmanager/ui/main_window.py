@@ -409,6 +409,9 @@ class MainWindow(QMainWindow):
             self.statusBar().clearMessage()
             return
         self.statusBar().showMessage(t("status_bar.selection", count=len(mods)))
+        # clicking a single card jumps to its row on the right if it's active
+        if len(mods) == 1:
+            self._active_list.focus_active(active_name_for(mods[0]))
 
     def _on_mod_info_requested(self, mod: ScannedMod) -> None:
         ModInfoDialog(mod, parent=self, display_name=self._display_name_for(mod)).exec()
