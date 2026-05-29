@@ -14,3 +14,6 @@ def setup_logging() -> None:
         datefmt="%H:%M:%S",
         stream=sys.stderr,
     )
+    # httpx/httpcore log every request at INFO; too chatty for the workshop fetch
+    for noisy in ("httpx", "httpcore", "urllib3"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
