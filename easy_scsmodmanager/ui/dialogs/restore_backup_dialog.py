@@ -64,7 +64,6 @@ class RestoreBackupDialog(QDialog):
             QListWidget::item:selected {{ background-color: {Theme.PRIMARY}; }}
             """)
         self._list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        self._list.itemSelectionChanged.connect(self._on_selection_changed)
         for entry in backups:
             item = QListWidgetItem(f"{entry.label}   ({disk_usage_human(entry.size_bytes)})")
             item.setData(Qt.ItemDataRole.UserRole, entry)
@@ -97,6 +96,9 @@ class RestoreBackupDialog(QDialog):
         button_row.addWidget(self._buttons)
         root.addLayout(button_row)
 
+        # connect only now that the buttons exist - setCurrentRow above would
+        # otherwise fire _on_selection_changed before _restore_btn is built
+        self._list.itemSelectionChanged.connect(self._on_selection_changed)
         self._update_buttons_state()
 
     @property
