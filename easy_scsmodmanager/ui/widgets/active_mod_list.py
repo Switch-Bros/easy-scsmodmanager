@@ -86,9 +86,16 @@ class ActiveModList(QWidget):
 
     selection_changed = pyqtSignal(list)  # list[ActiveMod]
     mod_focus_requested = pyqtSignal(object)  # ActiveMod
+    order_changed = pyqtSignal()  # the active list was reordered/edited
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+
+        # display order: index 0 is the top of the list (highest priority).
+        # profile order is the reverse (index 0 = bottom of the load order).
+        self._mods: list[ActiveMod] = []
+        self._icon_for: Callable[[ActiveMod], bytes | None] | None = None
+        self._installed_names: set[str] = set()
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -144,15 +151,55 @@ class ActiveModList(QWidget):
         installed_names: set[str] | None = None,
         icon_for: Callable[[ActiveMod], bytes | None] | None = None,
     ) -> None:
-        installed_names = installed_names or set()
+        self._installed_names = installed_names or set()
+        self._icon_for = icon_for
+        # store top-priority first; the incoming list is profile order
+        self._mods = list(reversed(list(mods)))
+        self._rerender()
+
+    def display_order(self) -> list[ActiveMod]:
+        """Mods top-to-bottom as shown (top = highest priority)."""
+        return list(self._mods)
+
+    def ordered_active_mods(self) -> list[ActiveMod]:
+        """Mods in profile order (index 0 = bottom) for the profile writer."""
+        return list(reversed(self._mods))
+
+    def remove_mod(self, mod: ActiveMod) -> None:
+        self._mods = [m for m in self._mods if m.name != mod.name]
+        self._rerender()
+        self.order_changed.emit()
+
+    def move_to_top(self, mod: ActiveMod) -> None:
+        self._mods = [m for m in self._mods if m.name != mod.name]
+        self._mods.insert(0, mod)
+        self._rerender()
+        self.order_changed.emit()
+
+    def insert_mods(self, mods: list[ActiveMod], at: int) -> None:
+        at = max(0, min(at, len(self._mods)))
+        self._mods = self._mods[:at] + list(mods) + self._mods[at:]
+        self._rerender()
+        self.order_changed.emit()
+
+    def move_rows(self, rows: list[int], target: int) -> None:
+        picked = sorted(set(rows))
+        moving = [self._mods[r] for r in picked]
+        remaining = [m for i, m in enumerate(self._mods) if i not in set(picked)]
+        insert_at = target - sum(1 for r in picked if r < target)
+        insert_at = max(0, min(insert_at, len(remaining)))
+        self._mods = remaining[:insert_at] + moving + remaining[insert_at:]
+        self._rerender()
+        self.order_changed.emit()
+
+    def _rerender(self) -> None:
         self._list.clear()
-        ordered = list(reversed(list(mods)))
-        for mod in ordered:
-            icon_bytes = icon_for(mod) if icon_for is not None else None
+        for mod in self._mods:
+            icon_bytes = self._icon_for(mod) if self._icon_for is not None else None
             widget = ActiveModItem(
                 mod,
                 icon_bytes,
-                is_missing=mod.name not in installed_names,
+                is_missing=mod.name not in self._installed_names,
             )
             item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, mod)
@@ -160,9 +207,9 @@ class ActiveModList(QWidget):
             self._list.addItem(item)
             self._list.setItemWidget(item, widget)
 
-        self._count.setText(t("active_panel.count", count=len(ordered)))
-        self._empty_hint.setVisible(len(ordered) == 0)
-        self._list.setVisible(len(ordered) > 0)
+        self._count.setText(t("active_panel.count", count=len(self._mods)))
+        self._empty_hint.setVisible(len(self._mods) == 0)
+        self._list.setVisible(len(self._mods) > 0)
 
     def selected_mods(self) -> list[ActiveMod]:
         return [
