@@ -140,3 +140,17 @@ def test_drop_skips_already_active_mod(qtbot) -> None:
 
     names = [m.name for m in window._active_list.display_order()]
     assert names.count("already") == 1  # not duplicated
+
+
+def test_restore_reachable_when_profile_failed_to_parse(qtbot, tmp_path, monkeypatch) -> None:
+    # the whole point of restore is to recover a profile that no longer parses
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    window._profile_sii_path = tmp_path / "profile.sii"
+    window._profile = None  # corrupt / unparseable
+
+    monkeypatch.setattr("easy_scsmodmanager.ui.main_window.list_backups", lambda p: [])
+    window._on_restore_requested()
+
+    # reached the "no backups" branch (status set) instead of silently returning
+    assert window.statusBar().currentMessage() != ""

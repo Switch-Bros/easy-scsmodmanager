@@ -52,6 +52,7 @@ from easy_scsmodmanager.services.profile_backup import (
 from easy_scsmodmanager.services.profile_reader import (
     ActiveMod,
     Profile,
+    decode_profile_dir_name,
     discover_profiles,
     read_profile,
 )
@@ -562,17 +563,19 @@ class MainWindow(QMainWindow):
         )
 
     def _on_restore_requested(self) -> None:
-        if self._profile_sii_path is None or self._profile is None:
+        # must work even when the profile no longer parses - that's exactly
+        # when a user needs to restore; fall back to the decoded dir name
+        if self._profile_sii_path is None:
             return
         backups = list_backups(self._profile_sii_path)
         if not backups:
             self.statusBar().showMessage(t("status_bar.no_backups"), 5000)
             return
-        dialog = RestoreBackupDialog(
-            self._profile.profile_name or self._profile.dir_name,
-            backups,
-            parent=self,
-        )
+        if self._profile is not None:
+            name = self._profile.profile_name or self._profile.dir_name
+        else:
+            name = decode_profile_dir_name(self._profile_sii_path.parent.name)
+        dialog = RestoreBackupDialog(name, backups, parent=self)
         if dialog.exec() != dialog.DialogCode.Accepted or dialog.selected is None:
             return
         try:
