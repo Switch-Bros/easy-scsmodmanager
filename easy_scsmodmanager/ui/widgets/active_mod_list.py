@@ -84,9 +84,13 @@ class _ActiveListView(QListWidget):
         return event.source() is self or event.mimeData().hasFormat(MOD_DRAG_MIME)  # type: ignore[attr-defined]
 
     def dragEnterEvent(self, event: object) -> None:  # noqa: N802
+        super().dragEnterEvent(event)
         event.accept() if self._accepts(event) else event.ignore()  # type: ignore[attr-defined]
 
     def dragMoveEvent(self, event: object) -> None:  # noqa: N802
+        # let the base view run its edge auto-scroll + draw the drop indicator,
+        # then keep our own accept/ignore decision
+        super().dragMoveEvent(event)
         event.accept() if self._accepts(event) else event.ignore()  # type: ignore[attr-defined]
 
     def dropEvent(self, event: object) -> None:  # noqa: N802
