@@ -91,6 +91,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
         self.setMinimumSize(QSize(1280, 760))
+        self.resize(QSize(1382, 1125))  # open roomy; the WM clamps to the screen
         self.setStyleSheet(f"QMainWindow {{ background-color: {Theme.BACKGROUND}; }}")
 
         self._build_menu_bar()
