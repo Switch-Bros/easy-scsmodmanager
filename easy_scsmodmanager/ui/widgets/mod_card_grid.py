@@ -59,9 +59,9 @@ class ModCardGrid(QScrollArea):
     ) -> None:
         """Replace the displayed cards.
 
-        ``active_names`` is the set of mod stem names from the active
-        profile - used to colour status. ``icon_for`` is an optional
-        callable ``ScannedMod -> bytes | None`` to look up cached icons.
+        ``active_names`` is the set of active_mods names from the profile -
+        used to colour status. ``icon_for`` is an optional callable
+        ``ScannedMod -> bytes | None`` to look up cached icons.
         """
         self._clear()
         active_names = active_names or set()
@@ -69,7 +69,7 @@ class ModCardGrid(QScrollArea):
             icon = icon_for(mod) if icon_for is not None else None
             card = ModCard(
                 mod,
-                is_active=mod.path.stem in active_names,
+                is_active=active_name_for(mod) in active_names,
                 icon_bytes=icon,
             )
             idx = len(self._cards)

@@ -302,7 +302,7 @@ class MainWindow(QMainWindow):
         filtered = self._apply_filter(self._all_mods, self._filter)
         self._grid.set_mods(
             filtered,
-            active_names=self._active_paths_set(),
+            active_names=self._active_names_set(),
             icon_for=self._icon_for,
         )
 
@@ -310,7 +310,7 @@ class MainWindow(QMainWindow):
         if self._profile is None or self._matcher is None:
             self._active_list.set_active_mods([])
             return
-        installed = self._matcher.installed_active_names(list(self._profile.active_mods))
+        installed = {active_name_for(m) for m in self._all_mods}
         self._active_list.set_active_mods(
             self._profile.active_mods,
             installed_names=installed,
@@ -337,21 +337,16 @@ class MainWindow(QMainWindow):
             return None
         return self._icon_for(match)
 
-    def _active_paths_set(self) -> set[str]:
-        """The set of mod-path stems that are referenced by the profile.
+    def _active_names_set(self) -> set[str]:
+        """The active_mods names referenced by the profile.
 
-        Used by the card grid to mark cards green. The grid uses path
-        stems for matching; the matcher resolves the broader set so
-        Workshop directory mods light up too.
+        The grid matches each card via active_name_for, so workshop mods
+        light up only for their own id instead of every mod sharing the
+        ``universal`` stem.
         """
-        if self._matcher is None or self._profile is None:
+        if self._profile is None:
             return set()
-        stems: set[str] = set()
-        for active in self._profile.active_mods:
-            match = self._matcher.lookup(active)
-            if match is not None:
-                stems.add(match.path.stem)
-        return stems
+        return {active.name for active in self._profile.active_mods}
 
     def _apply_filter(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
         needle = state.search.lower().strip()

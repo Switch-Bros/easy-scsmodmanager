@@ -180,3 +180,21 @@ def test_set_active_names_updates_card_active_state(qtbot: QtBot) -> None:
 
     assert grid.cards()[0].is_active is True
     assert grid.cards()[1].is_active is False
+
+
+def test_set_mods_active_state_does_not_confuse_workshop_stems(qtbot: QtBot) -> None:
+    # two workshop mods, both with stem "universal" but different ids:
+    # only the one whose active_name is listed may light up.
+    base = "/games/SteamLib/steamapps/workshop/content/227300"
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+    grid.set_mods(
+        [
+            _mod("Mod A", path=f"{base}/111/universal.scs"),
+            _mod("Mod B", path=f"{base}/222/universal.scs"),
+        ],
+        active_names={"mod_workshop_package.000000000000006F"},  # 111 == 0x6F
+    )
+
+    assert grid.cards()[0].is_active is True
+    assert grid.cards()[1].is_active is False
