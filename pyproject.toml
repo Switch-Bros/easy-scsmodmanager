@@ -63,6 +63,8 @@ easy_scsmodmanager = [
     "resources/i18n/*.json",
     "resources/images/*",
     "resources/icons/*",
+    "resources/fonts/*",
+    "resources/screenshots/*",
 ]
 
 [tool.black]

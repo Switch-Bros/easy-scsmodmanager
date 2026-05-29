@@ -8,7 +8,8 @@ repos:
       - id: check-json
       - id: check-toml
       - id: check-added-large-files
-        args: ["--maxkb=1024"]
+        args: ["--maxkb=2048"]  # Screenshots und Grid-Bilder koennen gross sein
+        exclude: NotoColorEmoji\.ttf$
       - id: check-merge-conflict
       - id: mixed-line-ending
         args: ["--fix=lf"]
