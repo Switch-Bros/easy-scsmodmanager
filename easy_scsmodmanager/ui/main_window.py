@@ -34,7 +34,7 @@ from PyQt6.QtWidgets import (
 )
 
 from easy_scsmodmanager import __app_name__, __version__
-from easy_scsmodmanager.core.category_overrides import CategoryOverrides
+from easy_scsmodmanager.core.category_overrides import CategoryOverrides, default_overrides_path
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import (
@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
         self._filter = FilterState()
         self._cache = ScanCache(default_cache_path())
         self._workshop_cache = WorkshopMetaCache(self._cache.connection())
-        self._overrides = CategoryOverrides(default_cache_path().parent / "overrides.db")
+        self._overrides = CategoryOverrides(default_overrides_path())
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
 
@@ -673,6 +673,7 @@ class MainWindow(QMainWindow):
         if self._workshop_thread is not None and self._workshop_thread.isRunning():
             self._workshop_thread.wait(5000)
         self._cache.close()
+        self._overrides.close()
         super().closeEvent(event)
 
 

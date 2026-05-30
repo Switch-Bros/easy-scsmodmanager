@@ -6,8 +6,20 @@ user's manual corrections. mod_key is the mod's path stem.
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
+
+
+def default_overrides_path() -> Path:
+    """``$XDG_DATA_HOME/easy-scsmodmanager/overrides.db`` or HOME fallback.
+
+    Deliberately under data, not cache: wiping the scan cache must never drop
+    a user's manual category corrections.
+    """
+    xdg = os.environ.get("XDG_DATA_HOME")
+    base = Path(xdg) if xdg else Path(os.environ.get("HOME", "~")).expanduser() / ".local" / "share"
+    return base / "easy-scsmodmanager" / "overrides.db"
 
 
 class CategoryOverrides:
@@ -37,3 +49,6 @@ class CategoryOverrides:
     def clear(self, mod_key: str) -> None:
         self._con.execute("DELETE FROM category_override WHERE mod_key = ?", (mod_key,))
         self._con.commit()
+
+    def close(self) -> None:
+        self._con.close()
