@@ -37,6 +37,7 @@ from easy_scsmodmanager import __app_name__, __version__
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import Game, GameInstall, detect_game_installs
+from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
@@ -290,18 +291,10 @@ class MainWindow(QMainWindow):
                 elapsed=result.elapsed_seconds,
             )
         )
-        self._populate_categories()
         self._kickoff_workshop_fetch()
 
     def _on_scan_failed(self, message: str) -> None:
         self.statusBar().showMessage(message)
-
-    def _populate_categories(self) -> None:
-        cats: set[str] = set()
-        for mod in self._all_mods:
-            if mod.manifest is not None:
-                cats.update(mod.manifest.categories)
-        self._filter_toolbar.set_categories(sorted(cats))
 
     def _refresh_grid(self) -> None:
         filtered = self._apply_filter(self._all_mods, self._filter)
@@ -373,12 +366,13 @@ class MainWindow(QMainWindow):
         for mod in mods:
             display = (mod.manifest.display_name if mod.manifest else mod.path.stem).lower()
             author = (mod.manifest.author if mod.manifest else "").lower()
-            cats = list(mod.manifest.categories) if mod.manifest else []
+            cats = canonical_categories(mod.manifest.categories if mod.manifest else [])
+            cat_names = [t(i18n_key(c)).lower() for c in cats]
             if needle and not (
                 needle in display
                 or needle in author
                 or needle in mod.path.name.lower()
-                or any(needle in c.lower() for c in cats)
+                or any(needle in n for n in cat_names)
             ):
                 continue
             if state.category is not None and state.category not in cats:

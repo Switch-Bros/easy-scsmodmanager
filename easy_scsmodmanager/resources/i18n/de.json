@@ -30,6 +30,25 @@
   "filter.category.all": "Alle Kategorien",
   "filter.help": "Hilfe",
 
+  "category.truck": "Lkw",
+  "category.trailer": "Auflieger",
+  "category.interior": "Interieur",
+  "category.tuning_parts": "Aufrüstteile",
+  "category.ai_traffic": "KI-Verkehr",
+  "category.sound": "Sounds",
+  "category.paint_job": "Lackierungen",
+  "category.cargo_pack": "Fracht",
+  "category.map": "Szenerien (Maps)",
+  "category.ui": "UI",
+  "category.weather_setup": "Wettergestaltung",
+  "category.physics": "Physik",
+  "category.graphics": "Grafik",
+  "category.models": "Modelle",
+  "category.movers": "Mover",
+  "category.walkers": "Walker",
+  "category.prefabs": "Prefabs",
+  "category.other": "Sonstiges",
+
   "status.active": "Aktiv",
   "status.inactive": "Inaktiv",
   "status.incompatible": "Inkompatibel",
@@ -39,7 +58,6 @@
   "status.missing_from_disk": "fehlt auf Platte",
 
   "mod_card.no_author": "Unbekannter Ersteller",
-  "mod_card.no_category": "Sonstiges",
   "mod_card.favorite_tooltip": "Als Favorit markieren",
   "mod_card.info_tooltip": "Mod-Details anzeigen",
 

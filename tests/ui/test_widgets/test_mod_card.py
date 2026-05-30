@@ -5,11 +5,13 @@ from pathlib import Path
 from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
+from easy_scsmodmanager.core.mod_categories import i18n_key
 from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.widgets.mod_card import ModCard
+from easy_scsmodmanager.utils.i18n import t
 
 
 def _scanned(
@@ -30,7 +32,26 @@ def test_renders_manifest_name_and_author(qtbot: QtBot) -> None:
 
     assert "Real Train Sounds" in card._name_label.text()
     assert "Cip" in card._author_label.text()
-    assert card._category.text() == "SOUND"
+    # Raw tag "sound" is shown via its official, localized game name.
+    assert card._category.text() == t(i18n_key("sound")).upper()
+
+
+def test_multiple_categories_joined_with_slash(qtbot: QtBot) -> None:
+    mod = _scanned(manifest=ModManifest(display_name="x", categories=("tuning_parts", "interior")))
+    card = ModCard(mod)
+    qtbot.addWidget(card)
+
+    expected = " / ".join(t(i18n_key(c)) for c in ("tuning_parts", "interior")).upper()
+    assert card._category.text() == expected
+    assert "/" in card._category.text()
+
+
+def test_unknown_category_falls_back_to_other(qtbot: QtBot) -> None:
+    mod = _scanned(manifest=ModManifest(display_name="x", categories=("donbass_map",)))
+    card = ModCard(mod)
+    qtbot.addWidget(card)
+
+    assert card._category.text() == t(i18n_key("other")).upper()
 
 
 def test_falls_back_to_filename_when_no_manifest(qtbot: QtBot) -> None:

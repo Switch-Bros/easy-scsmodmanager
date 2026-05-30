@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
@@ -92,8 +93,9 @@ class ModInfoDialog(QDialog):
             parts.append(f"{t('dialog.info.author')}: {man.author}")
         if man.package_version:
             parts.append(f"{t('dialog.info.version')}: {man.package_version}")
-        if man.categories:
-            parts.append(f"{t('dialog.info.category')}: {', '.join(man.categories)}")
+        cats = canonical_categories(man.categories)
+        names = ", ".join(t(i18n_key(c)) for c in cats)
+        parts.append(f"{t('dialog.info.category')}: {names}")
         return "   |   ".join(parts)
 
     def _description_or_fallback(self) -> str:
