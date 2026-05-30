@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import zipfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -26,12 +26,14 @@ from easy_scsmodmanager.core.game_paths import GameInstall
 from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.aem_reader import AemReader
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat, detect_format
+from easy_scsmodmanager.integrations.scs.file_listing import list_archive_files
 from easy_scsmodmanager.integrations.scs.hashfs_reader import open_hashfs
 from easy_scsmodmanager.integrations.scs.manifest_bundle import (
     ManifestBundle,
     MissingManifest,
     read_bundle,
 )
+from easy_scsmodmanager.integrations.scs.map_detect import contains_map
 from easy_scsmodmanager.integrations.scs.mod_source import DirectoryModSource
 from easy_scsmodmanager.integrations.scs.raw_zip_reader import RawZipReader
 from easy_scsmodmanager.integrations.scs.workshop_versions import (
@@ -57,6 +59,7 @@ class ScannedMod:
     manifest: ModManifest | None
     error: str | None
     description: str | None = None
+    is_map: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +215,7 @@ def _scan_directory(directory: Path) -> tuple[ScannedMod, bytes | None, str | No
     try:
         with DirectoryModSource(directory) as source:
             bundle = read_bundle(source)
+            is_map = contains_map(list_archive_files(source))
     except MissingManifest as exc:
         return _error_mod(directory, ScsFormat.UNKNOWN, str(exc)), None, None
     except Exception as exc:
@@ -224,6 +228,7 @@ def _scan_directory(directory: Path) -> tuple[ScannedMod, bytes | None, str | No
             manifest=bundle.manifest,
             error=None,
             description=bundle.description_text,
+            is_map=is_map,
         ),
         bundle.icon_bytes,
         bundle.description_text,
@@ -257,24 +262,24 @@ def _scan_aem(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None,
     try:
         with AemReader(scs_path) as reader:
             bundle = read_bundle(reader)
+            return _bundle_result_with_map(scs_path, fmt, bundle, reader)
     except MissingManifest:
         return _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"), None, None
     except Exception as exc:
         log.debug("aem read failed for %s: %s", scs_path, exc)
         return _error_mod(scs_path, fmt, str(exc)), None, None
-    return _bundle_result(scs_path, fmt, bundle)
 
 
 def _scan_zip(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None, str | None]:
     try:
         with ZipScsReader(scs_path) as reader:
             bundle = read_bundle(reader)
+            return _bundle_result_with_map(scs_path, fmt, bundle, reader)
     except MissingManifest:
         return _recover_fake_locked_zip(scs_path, fmt, f"missing {MANIFEST_ENTRY}")
     except Exception as exc:
         log.debug("failed to read manifest from %s: %s", scs_path, exc)
         return _recover_fake_locked_zip(scs_path, fmt, str(exc))
-    return _bundle_result(scs_path, fmt, bundle)
 
 
 def _recover_fake_locked_zip(
@@ -290,6 +295,7 @@ def _recover_fake_locked_zip(
     try:
         with RawZipReader(scs_path) as raw:
             bundle = read_bundle(raw)
+            return _bundle_result_with_map(scs_path, fmt, bundle, raw)
     except MissingManifest:
         return (
             _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"),
@@ -299,7 +305,6 @@ def _recover_fake_locked_zip(
     except Exception as exc:
         log.debug("raw-zip recovery failed for %s: %s", scs_path, exc)
         return _error_mod(scs_path, fmt, prior_error), _scavenge_zip_icon(scs_path), None
-    return _bundle_result(scs_path, fmt, bundle)
 
 
 def _bundle_result(
@@ -316,6 +321,14 @@ def _bundle_result(
         bundle.icon_bytes,
         bundle.description_text,
     )
+
+
+def _bundle_result_with_map(
+    scs_path: Path, fmt: ScsFormat, bundle: ManifestBundle, source: object
+) -> tuple[ScannedMod, bytes | None, str | None]:
+    is_map = contains_map(list_archive_files(source))
+    mod, icon, desc = _bundle_result(scs_path, fmt, bundle)
+    return replace(mod, is_map=is_map), icon, desc
 
 
 _ZIP_ICON_CANDIDATES = (
@@ -364,12 +377,12 @@ def _scan_hashfs(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | No
     try:
         with open_hashfs(scs_path) as reader:
             bundle = read_bundle(reader)
+            return _bundle_result_with_map(scs_path, fmt, bundle, reader)
     except MissingManifest:
         return _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"), None, None
     except Exception as exc:
         log.debug("hashfs read failed for %s: %s", scs_path, exc)
         return _error_mod(scs_path, fmt, str(exc)), None, None
-    return _bundle_result(scs_path, fmt, bundle)
 
 
 def _error_mod(path: Path, fmt: ScsFormat, message: str) -> ScannedMod:
