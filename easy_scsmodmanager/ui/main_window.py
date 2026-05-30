@@ -50,6 +50,7 @@ from easy_scsmodmanager.core.game_paths import (
     game_install_from_override,
 )
 from easy_scsmodmanager.core.load_order import group_repr_token
+from easy_scsmodmanager.core.map_base_mods import is_map_base
 from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.services.mod_matching import (
@@ -105,6 +106,7 @@ class MainWindow(QMainWindow):
         self._workshop_cache = WorkshopMetaCache(self._cache.connection())
         self._overrides = CategoryOverrides(default_overrides_path())
         self._group_overrides = CategoryOverrides(default_group_overrides_path())
+        self._map_base_names = SettingsStore().get_map_base_names()
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
 
@@ -398,6 +400,8 @@ class MainWindow(QMainWindow):
         go = self._group_overrides.get(active_mod.name)
         if go:
             return (group_repr_token(go),)
+        if is_map_base(active_mod.name, active_mod.display_name or "", self._map_base_names):
+            return ("map_base",)
         if self._matcher is None:
             return ("other",)
         match = self._matcher.lookup(active_mod)
