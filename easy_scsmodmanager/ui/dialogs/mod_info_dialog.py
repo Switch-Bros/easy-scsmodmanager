@@ -16,6 +16,7 @@ from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_ke
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
+from easy_scsmodmanager.utils.scs_markup import scs_markup_to_html
 
 
 class ModInfoDialog(QDialog):
@@ -55,7 +56,7 @@ class ModInfoDialog(QDialog):
 
         self._description = QTextEdit()
         self._description.setReadOnly(True)
-        self._description.setPlainText(self._description_or_fallback())
+        self._description.setHtml(scs_markup_to_html(self._description_or_fallback()))
         self._description.setStyleSheet(
             f"background-color: {Theme.SURFACE}; color: {Theme.TEXT}; "
             f"border: {Theme.BORDER_WIDTH}px solid {Theme.SURFACE}; border-radius: 4px;"
