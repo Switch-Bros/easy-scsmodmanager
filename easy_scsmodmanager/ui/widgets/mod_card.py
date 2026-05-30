@@ -34,6 +34,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
@@ -166,8 +167,7 @@ class ModCard(QFrame):
             on_click=self.info_requested.emit,
         )
 
-        category_label = self._primary_category() or t("mod_card.no_category")
-        self._category = QLabel(category_label.upper())
+        self._category = QLabel(self._category_label().upper())
         self._category.setObjectName("CardCategory")
         self._category.setStyleSheet(
             f"color: {Theme.TEXT_DIM}; font-size: 10px; letter-spacing: 0.5px;"
@@ -286,10 +286,9 @@ class ModCard(QFrame):
             return self._mod.manifest.author
         return t("mod_card.no_author")
 
-    def _primary_category(self) -> str | None:
-        if self._mod.manifest is None or not self._mod.manifest.categories:
-            return None
-        return self._mod.manifest.categories[0]
+    def _category_label(self) -> str:
+        raw = self._mod.manifest.categories if self._mod.manifest else []
+        return " / ".join(t(i18n_key(c)) for c in canonical_categories(raw))
 
     def _on_favorite_clicked(self) -> None:
         self._is_favorite = not self._is_favorite

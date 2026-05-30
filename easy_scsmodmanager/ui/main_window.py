@@ -36,7 +36,16 @@ from PyQt6.QtWidgets import (
 from easy_scsmodmanager import __app_name__, __version__
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
-from easy_scsmodmanager.core.game_paths import Game, GameInstall, detect_game_installs
+from easy_scsmodmanager.core.game_paths import (
+    Game,
+    GameInstall,
+    InstallKind,
+    detect_game_installs,
+    find_game_install_dir,
+    game_install_from_override,
+)
+from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
+from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
@@ -57,8 +66,10 @@ from easy_scsmodmanager.services.profile_reader import (
     read_profile,
 )
 from easy_scsmodmanager.services.profile_writer import save_active_mods
+from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
 from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
 from easy_scsmodmanager.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
+from easy_scsmodmanager.ui.dialogs.settings_dialog import SettingsDialog
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.threads.scan_thread import ScanResult, ScanThread
 from easy_scsmodmanager.ui.threads.workshop_fetch_thread import WorkshopFetchThread
@@ -118,11 +129,20 @@ class MainWindow(QMainWindow):
         clear_cache.triggered.connect(self._on_clear_cache)
         file_menu.addAction(clear_cache)
 
+        settings = QAction(t("menu.file.settings"), self)
+        settings.triggered.connect(self._on_open_settings)
+        file_menu.addAction(settings)
+
         file_menu.addSeparator()
         quit_action = QAction(t("menu.file.quit"), self)
         quit_action.setShortcut("Ctrl+Q")
         quit_action.triggered.connect(QApplication.instance().quit)
         file_menu.addAction(quit_action)
+
+        tools_menu = menu_bar.addMenu(t("menu.tools"))
+        extract = QAction(t("menu.tools.extract"), self)
+        extract.triggered.connect(self._on_open_extract)
+        tools_menu.addAction(extract)
 
         help_menu = menu_bar.addMenu(t("menu.help"))
         about = QAction(t("menu.help.about"), self)
@@ -193,14 +213,36 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _detect_install_and_scan(self) -> None:
-        installs = detect_game_installs(self._game)
-        if not installs:
+        self._install = self._resolve_install()
+        if self._install is None:
             self.statusBar().showMessage(t("status_bar.no_install"))
             return
-        proton = next((i for i in installs if i.kind.value == "proton"), None)
-        self._install = proton or installs[0]
         self._load_profiles()
         self._start_scan()
+
+    def _resolve_install(self) -> GameInstall | None:
+        """A manual override from Settings wins; otherwise auto-detect."""
+        store = SettingsStore()
+        documents = store.get_documents_override(self._game)
+        if documents is not None:
+            workshop = store.get_workshop_override(self._game)
+            return game_install_from_override(self._game, documents, workshop)
+        installs = detect_game_installs(self._game)
+        if not installs:
+            return None
+        proton = next((i for i in installs if i.kind is InstallKind.PROTON), None)
+        return proton or installs[0]
+
+    def _on_open_settings(self) -> None:
+        dialog = SettingsDialog(SettingsStore(), self)
+        if dialog.exec():
+            # Re-detect from scratch: a path override may have changed.
+            self._detect_install_and_scan()
+
+    def _on_open_extract(self) -> None:
+        store = SettingsStore()
+        install_dir = store.get_install_override(self._game) or find_game_install_dir(self._game)
+        ExtractDialog(install_dir, self).exec()
 
     def _load_profiles(self) -> None:
         if self._install is None:
@@ -290,18 +332,10 @@ class MainWindow(QMainWindow):
                 elapsed=result.elapsed_seconds,
             )
         )
-        self._populate_categories()
         self._kickoff_workshop_fetch()
 
     def _on_scan_failed(self, message: str) -> None:
         self.statusBar().showMessage(message)
-
-    def _populate_categories(self) -> None:
-        cats: set[str] = set()
-        for mod in self._all_mods:
-            if mod.manifest is not None:
-                cats.update(mod.manifest.categories)
-        self._filter_toolbar.set_categories(sorted(cats))
 
     def _refresh_grid(self) -> None:
         filtered = self._apply_filter(self._all_mods, self._filter)
@@ -373,12 +407,13 @@ class MainWindow(QMainWindow):
         for mod in mods:
             display = (mod.manifest.display_name if mod.manifest else mod.path.stem).lower()
             author = (mod.manifest.author if mod.manifest else "").lower()
-            cats = list(mod.manifest.categories) if mod.manifest else []
+            cats = canonical_categories(mod.manifest.categories if mod.manifest else [])
+            cat_names = [t(i18n_key(c)).lower() for c in cats]
             if needle and not (
                 needle in display
                 or needle in author
                 or needle in mod.path.name.lower()
-                or any(needle in c.lower() for c in cats)
+                or any(needle in n for n in cat_names)
             ):
                 continue
             if state.category is not None and state.category not in cats:

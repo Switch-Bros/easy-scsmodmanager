@@ -26,13 +26,7 @@ from easy_scsmodmanager.core.game_paths import GameInstall
 from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.aem_reader import AemReader
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat, detect_format
-from easy_scsmodmanager.integrations.scs.hashfs_extractor import (
-    HashFsExtractorNotAvailable,
-    extract_manifest_files,
-)
-from easy_scsmodmanager.integrations.scs.hashfs_extractor import (
-    is_available as hashfs_extractor_available,
-)
+from easy_scsmodmanager.integrations.scs.hashfs_reader import open_hashfs
 from easy_scsmodmanager.integrations.scs.manifest_bundle import (
     ManifestBundle,
     MissingManifest,
@@ -46,7 +40,6 @@ from easy_scsmodmanager.integrations.scs.workshop_versions import (
     read_versions_sii,
 )
 from easy_scsmodmanager.integrations.scs.zip_reader import ZipScsReader
-from easy_scsmodmanager.integrations.sii.parser import parse_sii
 
 if TYPE_CHECKING:
     from easy_scsmodmanager.core.db.scan_cache import ScanCache
@@ -367,37 +360,16 @@ def _scavenge_zip_icon(scs_path: Path) -> bytes | None:
 
 
 def _scan_hashfs(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None, str | None]:
-    if not hashfs_extractor_available():
-        return (
-            _error_mod(scs_path, fmt, "HashFS reader requires sk-zk/Extractor (not available)"),
-            None,
-            None,
-        )
+    # Pure-Python HashFS reader (v1 + v2) - no external binary, works in every build.
     try:
-        extracted = extract_manifest_files(scs_path)
-    except HashFsExtractorNotAvailable as exc:
-        return _error_mod(scs_path, fmt, str(exc)), None, None
+        with open_hashfs(scs_path) as reader:
+            bundle = read_bundle(reader)
+    except MissingManifest:
+        return _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"), None, None
     except Exception as exc:
-        log.debug("hashfs extract failed for %s: %s", scs_path, exc)
+        log.debug("hashfs read failed for %s: %s", scs_path, exc)
         return _error_mod(scs_path, fmt, str(exc)), None, None
-
-    if extracted.manifest_text is None:
-        return (
-            _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"),
-            extracted.icon_bytes,
-            None,
-        )
-    try:
-        units = parse_sii(extracted.manifest_text)
-        manifest = ModManifest.from_sii_units(units)
-    except Exception as exc:
-        log.debug("hashfs manifest parse failed for %s: %s", scs_path, exc)
-        return _error_mod(scs_path, fmt, str(exc)), extracted.icon_bytes, None
-    return (
-        ScannedMod(path=scs_path, format=fmt, manifest=manifest, error=None, description=None),
-        extracted.icon_bytes,
-        None,
-    )
+    return _bundle_result(scs_path, fmt, bundle)
 
 
 def _error_mod(path: Path, fmt: ScsFormat, message: str) -> ScannedMod:

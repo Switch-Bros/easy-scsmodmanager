@@ -25,9 +25,8 @@
 </p>
 
 <!-- Hero Screenshot -->
-<!-- TODO: replace with 01_en_main_window.webp once the English screenshot exists -->
 <p align="center">
-  <img src="easy_scsmodmanager/resources/screenshots/01_de_main_window.webp" alt="Easy SCSModManager - Main Window" width="900">
+  <img src="easy_scsmodmanager/resources/screenshots/01_en_main_window.webp" alt="Easy SCSModManager - Main Window" width="900">
 </p>
 
 
@@ -88,7 +87,9 @@ Requires Python 3.12+ and PyQt6. Standalone Linux AppImage and Windows builds ar
 
 <h2 align="center">📜 License</h2>
 
-[GPL-3.0-or-later](LICENSE) - Copyright © 2026 Switch Bros.
+<p align="center">
+  <a href="LICENSE">GPL-3.0-or-later</a> - Copyright © 2026 Switch Bros.
+</p>
 
 <p align="center">
   <picture>

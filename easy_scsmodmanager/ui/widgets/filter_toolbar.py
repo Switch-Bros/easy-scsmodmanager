@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from easy_scsmodmanager.core.mod_categories import OFFICIAL_CATEGORIES, i18n_key
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
 
@@ -99,7 +100,10 @@ class FilterToolbar(QWidget):
 
         row.addWidget(QLabel(t("filter.category.label")))
         self._category = QComboBox()
+        # Fixed, game-ordered list - never derived from the mods themselves.
         self._category.addItem(t("filter.category.all"), None)
+        for token in OFFICIAL_CATEGORIES:
+            self._category.addItem(t(i18n_key(token)), token)
         self._category.currentIndexChanged.connect(self._on_category_changed)
         row.addWidget(self._category, 1)
 
@@ -110,20 +114,6 @@ class FilterToolbar(QWidget):
     @property
     def state(self) -> FilterState:
         return self._state
-
-    def set_categories(self, categories: list[str]) -> None:
-        """Replace the category dropdown options. Always keeps 'All'."""
-        previous = self._state.category
-        self._category.blockSignals(True)
-        self._category.clear()
-        self._category.addItem(t("filter.category.all"), None)
-        for category in sorted(set(categories)):
-            self._category.addItem(category, category)
-        # restore previous if still present
-        if previous is not None:
-            idx = self._category.findData(previous)
-            self._category.setCurrentIndex(max(idx, 0))
-        self._category.blockSignals(False)
 
     # ------------------------------------------------------------------ #
     # internals

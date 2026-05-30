@@ -61,6 +61,7 @@ exclude = ["tests*"]
 [tool.setuptools.package-data]
 easy_scsmodmanager = [
     "resources/i18n/*.json",
+    "resources/i18n/*/main.json",
     "resources/images/*",
     "resources/icons/*",
     "resources/fonts/*",

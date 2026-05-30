@@ -37,6 +37,7 @@ class InstallKind(Enum):
     PROTON = "proton"
     WINDOWS = "windows"
     MACOS = "macos"
+    MANUAL = "manual"  # user-provided path override (Settings dialog)
 
 
 GAME_APP_ID: dict[Game, int] = {
@@ -103,6 +104,45 @@ def windows_documents(game: Game) -> Path:
 def macos_documents(game: Game) -> Path:
     home = Path(os.environ.get("HOME", "~")).expanduser()
     return home / "Library" / "Application Support" / GAME_DIRECTORY_NAME[game]
+
+
+def find_game_install_dir(
+    game: Game,
+    steam_libraries: list[Path] | None = None,
+) -> Path | None:
+    """Locate the game's install directory (the one holding base.scs, def.scs).
+
+    This is ``steamapps/common/<game>`` inside a Steam library - distinct from
+    the documents directory (which holds mod/ and profiles/). Used by the SCS
+    extractor to offer the game's own archives.
+    """
+    if steam_libraries is None:
+        steam_libraries = discover_steam_libraries()
+    for lib in steam_libraries:
+        candidate = lib / "steamapps" / "common" / GAME_DIRECTORY_NAME[game]
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def game_install_from_override(
+    game: Game,
+    documents_dir: Path,
+    workshop_dir: Path | None = None,
+) -> GameInstall:
+    """Build a GameInstall from a user-set documents dir, skipping detection.
+
+    Used when auto-detection misses the install (e.g. ETS2 moved to a
+    non-default home dir on Windows). profiles_dir / mod_dir derive from
+    documents_dir as usual. The path is trusted as-is; existence is the
+    caller's concern.
+    """
+    return GameInstall(
+        game=game,
+        kind=InstallKind.MANUAL,
+        documents_dir=documents_dir,
+        workshop_dir=workshop_dir,
+    )
 
 
 def detect_game_installs(
