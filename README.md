@@ -87,7 +87,9 @@ Requires Python 3.12+ and PyQt6. Standalone Linux AppImage and Windows builds ar
 
 <h2 align="center">📜 License</h2>
 
-[GPL-3.0-or-later](LICENSE) - Copyright © 2026 Switch Bros.
+<p align="center">
+  <a href="LICENSE">GPL-3.0-or-later</a> - Copyright © 2026 Switch Bros.
+</p>
 
 <p align="center">
   <picture>

@@ -87,7 +87,9 @@ Benötigt Python 3.12+ und PyQt6. Eigenständige Linux-AppImage- und Windows-Bui
 
 <h2 align="center">📜 Lizenz</h2>
 
-[GPL-3.0-or-later](LICENSE) - Copyright © 2026 Switch Bros.
+<p align="center">
+  <a href="LICENSE">GPL-3.0-or-later</a> - Copyright © 2026 Switch Bros.
+</p>
 
 <p align="center">
   <picture>
