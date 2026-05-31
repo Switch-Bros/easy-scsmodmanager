@@ -161,6 +161,9 @@
   "map_combo.missing_title": "Import not possible",
   "map_combo.missing_body": "You are missing the following maps from this combo:",
   "map_combo.import_scanning": "Rescanning mods before import...",
+  "map_combo.outdated_title": "Update available",
+  "map_combo.outdated_body": "Import done. These maps were built with a newer version:",
+  "map_combo.outdated_row": "• {name}: you have {local}, the combo used {combo}",
 
   "conflict.tooltip_header": "Overlaps with other active mods (load order decides):",
   "conflict.tooltip_row": "• {mod} (e.g. {file})",

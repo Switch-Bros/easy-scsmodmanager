@@ -62,6 +62,7 @@ from easy_scsmodmanager.services.map_combo import (
     MapComboEntry,
     MapComboError,
     missing,
+    outdated,
     parse,
     reorder,
     serialize,
@@ -598,9 +599,28 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".json"):
             path += ".json"
-        entries = [MapComboEntry(name=m.name, display_name=m.display_name) for m in block]
+        versions = self._local_versions()
+        entries = [
+            MapComboEntry(
+                name=m.name,
+                display_name=m.display_name,
+                package_version=versions.get(m.name, ""),
+            )
+            for m in block
+        ]
         Path(path).write_text(serialize(entries), encoding="utf-8")
         self.statusBar().showMessage(t("map_combo.exported", count=len(entries)))
+
+    def _local_versions(self) -> dict[str, str]:
+        """active.name -> local package_version, for combo version checks."""
+        result: dict[str, str] = {}
+        if self._profile is None or self._matcher is None:
+            return result
+        for active in self._profile.active_mods:
+            match = self._matcher.lookup(active)
+            if match is not None and match.manifest and match.manifest.package_version:
+                result[active.name] = match.manifest.package_version
+        return result
 
     def _on_import_combo(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -640,6 +660,27 @@ class MainWindow(QMainWindow):
             return
         self._active_list.apply_combo_order(reorder(block, combo))
         self.statusBar().showMessage(t("map_combo.imported", count=len(combo)))
+        self._warn_outdated_combo(combo)
+
+    def _warn_outdated_combo(self, combo: list[MapComboEntry]) -> None:
+        """After import, hint (never block) about maps the combo built newer."""
+        stale = outdated(combo, self._local_versions())
+        if not stale:
+            return
+        rows = "\n".join(
+            t(
+                "map_combo.outdated_row",
+                name=entry.display_name or entry.name,
+                local=local,
+                combo=entry.package_version,
+            )
+            for entry, local in stale
+        )
+        QMessageBox.information(
+            self,
+            t("map_combo.outdated_title"),
+            f"{t('map_combo.outdated_body')}\n\n{rows}",
+        )
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:

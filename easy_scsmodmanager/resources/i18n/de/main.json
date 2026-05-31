@@ -161,6 +161,9 @@
   "map_combo.missing_title": "Import nicht möglich",
   "map_combo.missing_body": "Dir fehlen folgende Maps aus dieser Combo:",
   "map_combo.import_scanning": "Suche Mods neu ein vor dem Import...",
+  "map_combo.outdated_title": "Update verfügbar",
+  "map_combo.outdated_body": "Import erledigt. Diese Maps wurden mit einer neueren Version gebaut:",
+  "map_combo.outdated_row": "• {name}: du hast {local}, die Combo nutzte {combo}",
 
   "conflict.tooltip_header": "Überschneidung mit anderen aktiven Mods (Load-Order entscheidet):",
   "conflict.tooltip_row": "• {mod} (z.B. {file})",
