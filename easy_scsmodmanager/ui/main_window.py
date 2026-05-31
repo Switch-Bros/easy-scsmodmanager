@@ -519,8 +519,11 @@ class MainWindow(QMainWindow):
             self._active_list.insert_or_move(to_place, at=row)
 
     def _on_move_to_group(self, mod: ActiveMod, group_id: str) -> None:
+        # Pin the effective group first so the relocation sees the new group,
+        # then physically move the mod into that block (the override alone left
+        # it sitting in place, which read as "nothing happened").
         self._group_overrides.set(mod.name, group_id)
-        self._refresh_active_list()
+        self._active_list.move_mod_to_group(mod, group_id)
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:

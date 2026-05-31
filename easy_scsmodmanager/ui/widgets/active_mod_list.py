@@ -26,7 +26,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from easy_scsmodmanager.core.load_order import GROUPS, group_label_keys
+from easy_scsmodmanager.core.load_order import (
+    GROUPS,
+    group_index_for_token,
+    group_label_keys,
+    group_repr_token,
+)
 from easy_scsmodmanager.core.load_order_layout import SpacerRow, build_rows
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.theme import Theme
@@ -147,6 +152,12 @@ class _SpacerItem(QWidget):
             root.addWidget(lbl)
         root.addStretch(1)
 
+    def sizeHint(self) -> QSize:  # noqa: N802
+        # setFixedHeight does not feed into the layout's sizeHint, so the list
+        # item would reserve only the label height and the spacer would overlap
+        # its neighbour. Pin the hint to the fixed height we actually draw.
+        return QSize(super().sizeHint().width(), _SPACER_HEIGHT)
+
 
 class ActiveModItem(QWidget):
     """Single row in the active list: large thumbnail + name."""
@@ -189,6 +200,9 @@ class ActiveModItem(QWidget):
             root.addWidget(self._missing)
 
         if misplaced:
+            # a bare QWidget only paints its own QSS border when told to style
+            # its background; without this the left border never shows.
+            self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             self.setObjectName("misplaced_mod_item")
             self.setStyleSheet(
                 f"#misplaced_mod_item {{ border-left: 3px solid {_MISPLACED_COLOUR}; }}"
@@ -367,6 +381,25 @@ class ActiveModList(QWidget):
         insert_at = target - sum(1 for r in picked if r < target)
         insert_at = max(0, min(insert_at, len(remaining)))
         self._mods = remaining[:insert_at] + moving + remaining[insert_at:]
+        self._rerender()
+        self.order_changed.emit()
+
+    def move_mod_to_group(self, mod: ActiveMod, group_id: str) -> None:
+        """Physically relocate ``mod`` to the end of group ``group_id``'s block.
+
+        It lands just before the first mod whose group sorts later, so it sits
+        at the bottom of its target block. The relative order of every other
+        mod is left untouched. Pair with a group override set by the caller so
+        the mod's effective group matches where it now sits.
+        """
+        target_idx = group_index_for_token(group_repr_token(group_id))
+        remaining = [m for m in self._mods if m.name != mod.name]
+        insert_at = len(remaining)
+        for i, other in enumerate(remaining):
+            if group_index_for_token(self._primary_token(other)) > target_idx:
+                insert_at = i
+                break
+        self._mods = remaining[:insert_at] + [mod] + remaining[insert_at:]
         self._rerender()
         self.order_changed.emit()
 

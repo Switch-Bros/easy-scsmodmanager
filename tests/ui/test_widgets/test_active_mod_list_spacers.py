@@ -4,7 +4,11 @@ from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
 from easy_scsmodmanager.services.profile_reader import ActiveMod
-from easy_scsmodmanager.ui.widgets.active_mod_list import ActiveModList
+from easy_scsmodmanager.ui.widgets.active_mod_list import (
+    _SPACER_HEIGHT,
+    ActiveModList,
+    _SpacerItem,
+)
 
 
 def _mods(*names: str) -> list[ActiveMod]:
@@ -70,3 +74,44 @@ def test_is_misplaced_false_for_unknown_name(qtbot: QtBot) -> None:
     qtbot.addWidget(w)
     w.set_active_mods([])
     assert w.is_misplaced("phantom") is False
+
+
+def test_spacer_item_reserves_full_height(qtbot: QtBot) -> None:
+    """sizeHint must equal the fixed height, else list items overlap."""
+    spacer = _SpacerItem("sound")
+    qtbot.addWidget(spacer)
+    assert spacer.sizeHint().height() == _SPACER_HEIGHT
+
+
+def test_move_to_group_relocates_misplaced_mod_upward(qtbot: QtBot) -> None:
+    """A sound mod stranded below a truck mod moves up into the sound block
+    and stops being misplaced."""
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    cat: dict[str, tuple[str, ...]] = {"trk": ("truck",), "snd": ("sound",)}
+    # display order top-first = [trk, snd]; snd (sound, idx 2) below trk
+    # (truck, idx 10) is misplaced.
+    w.set_active_mods(_mods("snd", "trk"), category_for=lambda m: cat[m.name])
+    assert w.is_misplaced("snd") is True
+
+    snd = next(m for m in w.display_order() if m.name == "snd")
+    w.move_mod_to_group(snd, "sound")
+
+    assert [m.name for m in w.display_order()] == ["snd", "trk"]
+    assert w.is_misplaced("snd") is False
+
+
+def test_move_to_group_relocates_mod_downward(qtbot: QtBot) -> None:
+    """Moving a mod to a later group drops it to the bottom of that block."""
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    cat: dict[str, tuple[str, ...]] = {"snd": ("sound",), "trk": ("truck",)}
+    # display top-first = [snd, trk], already in order.
+    w.set_active_mods(_mods("trk", "snd"), category_for=lambda m: cat[m.name])
+    assert [m.name for m in w.display_order()] == ["snd", "trk"]
+
+    snd = next(m for m in w.display_order() if m.name == "snd")
+    w.move_mod_to_group(snd, "trucks")
+
+    # snd now sits after the truck mod (end of the trucks block).
+    assert [m.name for m in w.display_order()] == ["trk", "snd"]
