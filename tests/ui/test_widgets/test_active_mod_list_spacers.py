@@ -5,6 +5,8 @@ from pytestqt.qtbot import QtBot
 
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.widgets.active_mod_list import (
+    _MAPS_GROUP_ID,
+    _SPACER_GROUP_ROLE,
     _SPACER_HEIGHT,
     ActiveModList,
     _SpacerItem,
@@ -115,3 +117,36 @@ def test_move_to_group_relocates_mod_downward(qtbot: QtBot) -> None:
 
     # snd now sits after the truck mod (end of the trucks block).
     assert [m.name for m in w.display_order()] == ["trk", "snd"]
+
+
+def _maps_list(qtbot: QtBot) -> ActiveModList:
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    cat: dict[str, tuple[str, ...]] = {"snd": ("sound",), "m1": ("map",), "m2": ("map",)}
+    # display top-first = [snd, m1, m2]
+    w.set_active_mods(_mods("m2", "m1", "snd"), category_for=lambda m: cat[m.name])
+    return w
+
+
+def test_maps_block_returns_only_map_mods_in_order(qtbot: QtBot) -> None:
+    w = _maps_list(qtbot)
+    assert [m.name for m in w.maps_block()] == ["m1", "m2"]
+
+
+def test_apply_combo_order_reorders_block_only(qtbot: QtBot) -> None:
+    w = _maps_list(qtbot)
+    block = w.maps_block()
+    reversed_block = list(reversed(block))
+    w.apply_combo_order(reversed_block)
+    # the non-map mod keeps its slot, only the maps block flipped
+    assert [m.name for m in w.display_order()] == ["snd", "m2", "m1"]
+
+
+def test_maps_spacer_carries_group_id(qtbot: QtBot) -> None:
+    w = _maps_list(qtbot)
+    roles = [
+        w._list.item(i).data(_SPACER_GROUP_ROLE)
+        for i in range(w._list.count())
+        if w._list.item(i).data(_SPACER_GROUP_ROLE) is not None
+    ]
+    assert _MAPS_GROUP_ID in roles

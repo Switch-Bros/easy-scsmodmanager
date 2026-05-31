@@ -52,6 +52,13 @@ WHEEL_DURATION_MS = 200
 # every group header is as tall as the 3-line map_base block (+10px top/bottom)
 _SPACER_HEIGHT = 80
 
+# spacer rows carry their group id here so the context menu can recognise the
+# maps header (mod rows keep their ActiveMod under the default UserRole).
+_SPACER_GROUP_ROLE = Qt.ItemDataRole.UserRole + 1
+
+# group id of the maps block, reused for combo export/import + block lookups
+_MAPS_GROUP_ID = "maps"
+
 
 class _ActiveListView(QListWidget):
     """List view that turns drops into model-level reorder / insert signals.
@@ -233,6 +240,8 @@ class ActiveModList(QWidget):
     order_changed = pyqtSignal()  # the active list was reordered/edited
     mods_dropped = pyqtSignal(list, int)  # (mod path strings from the grid, target row)
     move_to_group_requested = pyqtSignal(object, str)  # (ActiveMod, group_id)
+    export_combo_requested = pyqtSignal()  # right-click on the maps spacer
+    import_combo_requested = pyqtSignal()  # right-click on the maps spacer
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -427,6 +436,8 @@ class ActiveModList(QWidget):
             return
         mod = item.data(Qt.ItemDataRole.UserRole)
         if mod is None:
+            if item.data(_SPACER_GROUP_ROLE) == _MAPS_GROUP_ID:
+                self._show_maps_spacer_menu(pos)
             return
         menu = QMenu()
         submenu = menu.addMenu(t("active_panel.move_to_group"))
@@ -448,6 +459,46 @@ class ActiveModList(QWidget):
         viewport = self._list.viewport()
         if viewport is not None:
             menu.exec(viewport.mapToGlobal(pos))
+
+    def _show_maps_spacer_menu(self, pos: object) -> None:
+        menu = QMenu()
+        export = menu.addAction(t("map_combo.export"))
+        if export is not None:
+            export.triggered.connect(self.export_combo_requested.emit)
+        importer = menu.addAction(t("map_combo.import"))
+        if importer is not None:
+            importer.triggered.connect(self.import_combo_requested.emit)
+        viewport = self._list.viewport()
+        if viewport is not None:
+            menu.exec(viewport.mapToGlobal(pos))
+
+    def maps_block(self) -> list[ActiveMod]:
+        """Mods that sit in the Maps group, in display order (top to bottom)."""
+        maps_idx = group_index_for_token(group_repr_token(_MAPS_GROUP_ID))
+        return [m for m in self._mods if group_index_for_token(self._primary_token(m)) == maps_idx]
+
+    def apply_combo_order(self, ordered: list[ActiveMod]) -> None:
+        """Replace the maps block with ``ordered`` (already in combo order).
+
+        The maps block is contiguous at the bottom of the load order, so we drop
+        the reordered run in at the position of the first maps mod and keep every
+        non-maps mod exactly where it was.
+        """
+        block_names = {m.name for m in ordered}
+        result: list[ActiveMod] = []
+        inserted = False
+        for m in self._mods:
+            if m.name in block_names:
+                if not inserted:
+                    result.extend(ordered)
+                    inserted = True
+            else:
+                result.append(m)
+        if not inserted:
+            result.extend(ordered)
+        self._mods = result
+        self._rerender()
+        self.order_changed.emit()
 
     def focus_active(self, name: str) -> bool:
         """Select + scroll to the active row with ``name``. False if absent."""
@@ -483,6 +534,7 @@ class ActiveModList(QWidget):
                 item = QListWidgetItem()
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled)
                 item.setData(Qt.ItemDataRole.UserRole, None)
+                item.setData(_SPACER_GROUP_ROLE, row.group_id)
                 item.setSizeHint(spacer_widget.sizeHint())
                 self._list.addItem(item)
                 self._list.setItemWidget(item, spacer_widget)

@@ -24,6 +24,7 @@ from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import (
     QApplication,
+    QFileDialog,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
@@ -53,6 +54,14 @@ from easy_scsmodmanager.core.load_order import group_repr_token
 from easy_scsmodmanager.core.map_base_mods import is_map_base
 from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
+from easy_scsmodmanager.services.map_combo import (
+    MapComboEntry,
+    MapComboError,
+    missing,
+    parse,
+    reorder,
+    serialize,
+)
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
@@ -200,6 +209,8 @@ class MainWindow(QMainWindow):
         self._active_list.order_changed.connect(self._on_active_order_changed)
         self._active_list.mods_dropped.connect(self._on_mods_dropped)
         self._active_list.move_to_group_requested.connect(self._on_move_to_group)
+        self._active_list.export_combo_requested.connect(self._on_export_combo)
+        self._active_list.import_combo_requested.connect(self._on_import_combo)
         right_layout.addWidget(self._profile_header)
         right_layout.addWidget(self._active_list, 1)
 
@@ -527,6 +538,46 @@ class MainWindow(QMainWindow):
         # it sitting in place, which read as "nothing happened").
         self._group_overrides.set(mod.name, group_id)
         self._active_list.move_mod_to_group(mod, group_id)
+
+    def _on_export_combo(self) -> None:
+        block = self._active_list.maps_block()
+        if not block:
+            QMessageBox.information(self, t("map_combo.empty_title"), t("map_combo.empty_body"))
+            return
+        path, _ = QFileDialog.getSaveFileName(
+            self, t("map_combo.save_caption"), "", t("map_combo.file_filter")
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".json"):
+            path += ".json"
+        entries = [MapComboEntry(name=m.name, display_name=m.display_name) for m in block]
+        Path(path).write_text(serialize(entries), encoding="utf-8")
+        self.statusBar().showMessage(t("map_combo.exported", count=len(entries)))
+
+    def _on_import_combo(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, t("map_combo.open_caption"), "", t("map_combo.file_filter")
+        )
+        if not path:
+            return
+        try:
+            combo = parse(Path(path).read_text(encoding="utf-8"))
+        except (MapComboError, OSError):
+            QMessageBox.warning(self, t("map_combo.invalid_title"), t("map_combo.invalid_body"))
+            return
+        block = self._active_list.maps_block()
+        gaps = missing(combo, {m.name for m in block})
+        if gaps:
+            names = "\n".join(f"- {e.display_name or e.name}" for e in gaps)
+            QMessageBox.warning(
+                self,
+                t("map_combo.missing_title"),
+                f"{t('map_combo.missing_body')}\n\n{names}",
+            )
+            return
+        self._active_list.apply_combo_order(reorder(block, combo))
+        self.statusBar().showMessage(t("map_combo.imported", count=len(combo)))
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:
