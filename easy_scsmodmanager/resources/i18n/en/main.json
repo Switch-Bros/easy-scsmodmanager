@@ -164,6 +164,8 @@
 
   "conflict.tooltip_header": "Overlaps with other active mods (load order decides):",
   "conflict.tooltip_row": "• {mod} (e.g. {file})",
+
+  "compat.incompatible_tooltip": "The mod says it is not built for your game version. You can still use it at your own risk.",
   "map_combo.exported": "MapCombo exported: {count} maps",
   "map_combo.imported": "MapCombo imported: {count} maps reordered",
 

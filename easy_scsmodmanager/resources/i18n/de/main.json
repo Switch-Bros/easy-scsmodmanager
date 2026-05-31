@@ -164,6 +164,8 @@
 
   "conflict.tooltip_header": "Überschneidung mit anderen aktiven Mods (Load-Order entscheidet):",
   "conflict.tooltip_row": "• {mod} (z.B. {file})",
+
+  "compat.incompatible_tooltip": "Laut Mod nicht für deine Spielversion gebaut. Nutzung auf eigenes Risiko möglich.",
   "map_combo.exported": "MapCombo exportiert: {count} Maps",
   "map_combo.imported": "MapCombo importiert: {count} Maps neu angeordnet",
 

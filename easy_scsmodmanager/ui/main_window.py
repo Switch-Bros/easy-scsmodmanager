@@ -50,10 +50,12 @@ from easy_scsmodmanager.core.game_paths import (
     find_game_install_dir,
     game_install_from_override,
 )
+from easy_scsmodmanager.core.game_version import read_game_version
 from easy_scsmodmanager.core.load_order import group_repr_token
 from easy_scsmodmanager.core.map_base_mods import is_map_base
 from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
+from easy_scsmodmanager.core.version_compat import CompatStatus, compat_status
 from easy_scsmodmanager.integrations.scs.content_category import content_category
 from easy_scsmodmanager.services.conflict_detect import ModConflict, find_conflicts
 from easy_scsmodmanager.services.map_combo import (
@@ -118,6 +120,7 @@ class MainWindow(QMainWindow):
         self._overrides = CategoryOverrides(default_overrides_path())
         self._group_overrides = CategoryOverrides(default_group_overrides_path())
         self._map_base_names = SettingsStore().get_map_base_names()
+        self._game_version: str | None = None
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
         # a MapCombo waiting to be applied once a fresh scan completes
@@ -245,6 +248,7 @@ class MainWindow(QMainWindow):
         if self._install is None:
             self.statusBar().showMessage(t("status_bar.no_install"))
             return
+        self._game_version = read_game_version(self._install.documents_dir)
         self._load_profiles()
         self._start_scan()
 
@@ -378,7 +382,12 @@ class MainWindow(QMainWindow):
             icon_for=self._icon_for,
             name_for=self._display_name_for,
             categories_for=self._effective_for,
+            compat_for=self._compat_for,
         )
+
+    def _compat_for(self, mod: ScannedMod) -> CompatStatus:
+        cvs = mod.manifest.compatible_versions if mod.manifest else ()
+        return compat_status(self._game_version, cvs)
 
     def _refresh_active_list(self) -> None:
         if self._profile is None or self._matcher is None:

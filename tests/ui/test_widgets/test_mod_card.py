@@ -23,6 +23,28 @@ def _scanned(
     return ScannedMod(path=path, format=fmt, manifest=manifest, error=error)
 
 
+def test_incompatible_mod_sets_warning_tooltip(qtbot: QtBot) -> None:
+    from easy_scsmodmanager.core.version_compat import CompatStatus
+
+    mod = _scanned(
+        manifest=ModManifest(display_name="Old Map", author="X", compatible_versions=("1.58.*",))
+    )
+    card = ModCard(mod, compat_for=lambda m: CompatStatus.INCOMPATIBLE)
+    qtbot.addWidget(card)
+    assert card.toolTip() == t("compat.incompatible_tooltip")
+    assert card._is_incompatible() is True
+
+
+def test_compatible_mod_has_no_warning_tooltip(qtbot: QtBot) -> None:
+    from easy_scsmodmanager.core.version_compat import CompatStatus
+
+    mod = _scanned(manifest=ModManifest(display_name="Fresh", author="X"))
+    card = ModCard(mod, compat_for=lambda m: CompatStatus.UNSPECIFIED)
+    qtbot.addWidget(card)
+    assert card.toolTip() == ""
+    assert card._is_incompatible() is False
+
+
 def test_renders_manifest_name_and_author(qtbot: QtBot) -> None:
     mod = _scanned(
         manifest=ModManifest(display_name="Real Train Sounds", author="Cip", categories=("sound",))
