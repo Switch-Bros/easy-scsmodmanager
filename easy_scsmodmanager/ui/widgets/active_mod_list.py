@@ -52,6 +52,10 @@ WHEEL_DURATION_MS = 200
 # every group header is as tall as the 3-line map_base block (+10px top/bottom)
 _SPACER_HEIGHT = 80
 
+# fixed height for the name label (room for two 11px lines) so every card is
+# the same height regardless of whether the name wraps to one line or two
+_NAME_HEIGHT = 34
+
 # spacer rows carry their group id here so the context menu can recognise the
 # maps header (mod rows keep their ActiveMod under the default UserRole).
 _SPACER_GROUP_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -197,7 +201,10 @@ class ActiveModItem(QWidget):
         self._name.setStyleSheet(f"color: {Theme.TEXT}; font-size: 11px; font-weight: 600;")
         self._name.setWordWrap(True)
         self._name.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._name.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        # fixed two-line height keeps every card the same size; a one-line name
+        # is vertically centred, a long name fills both lines.
+        self._name.setFixedHeight(_NAME_HEIGHT)
+        self._name.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         root.addWidget(self._name)
 
         if is_missing:
