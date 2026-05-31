@@ -6,6 +6,8 @@ from pytestqt.qtbot import QtBot
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.widgets.active_mod_list import (
     _MAPS_GROUP_ID,
+    _SPACER_FONT_PX_MULTILINE,
+    _SPACER_FONT_PX_SINGLE,
     _SPACER_GROUP_ROLE,
     _SPACER_HEIGHT,
     ActiveModList,
@@ -83,6 +85,26 @@ def test_spacer_item_reserves_full_height(qtbot: QtBot) -> None:
     spacer = _SpacerItem("sound")
     qtbot.addWidget(spacer)
     assert spacer.sizeHint().height() == _SPACER_HEIGHT
+
+
+def test_single_line_spacer_uses_large_font(qtbot: QtBot) -> None:
+    from PyQt6.QtWidgets import QLabel
+
+    spacer = _SpacerItem("sound")
+    qtbot.addWidget(spacer)
+    lbls = spacer.findChildren(QLabel)
+    assert len(lbls) == 1
+    assert f"font-size: {_SPACER_FONT_PX_SINGLE}px" in lbls[0].styleSheet()
+
+
+def test_map_base_spacer_uses_compact_font_and_three_lines(qtbot: QtBot) -> None:
+    from PyQt6.QtWidgets import QLabel
+
+    spacer = _SpacerItem("map_base")
+    qtbot.addWidget(spacer)
+    lbls = spacer.findChildren(QLabel)
+    assert len(lbls) == 3  # world / background / loading
+    assert all(f"font-size: {_SPACER_FONT_PX_MULTILINE}px" in lbl.styleSheet() for lbl in lbls)
 
 
 def test_move_to_group_relocates_misplaced_mod_upward(qtbot: QtBot) -> None:

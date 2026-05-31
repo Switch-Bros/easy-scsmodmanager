@@ -52,6 +52,11 @@ WHEEL_DURATION_MS = 200
 # every group header is as tall as the 3-line map_base block (+10px top/bottom)
 _SPACER_HEIGHT = 80
 
+# spacer font size: the multi-line map_base header stays compact so its three
+# lines fit; single-line group headers get a large, easily readable size.
+_SPACER_FONT_PX_MULTILINE = 14
+_SPACER_FONT_PX_SINGLE = 30
+
 # fixed height for the name label (room for two 11px lines) so every card is
 # the same height regardless of whether the name wraps to one line or two
 _NAME_HEIGHT = 34
@@ -151,12 +156,14 @@ class _SpacerItem(QWidget):
         root.setContentsMargins(8, 10, 8, 10)
         root.setSpacing(2)
         root.addStretch(1)
-        for key in group_label_keys(group_id):
+        keys = group_label_keys(group_id)
+        font_px = _SPACER_FONT_PX_MULTILINE if len(keys) > 1 else _SPACER_FONT_PX_SINGLE
+        for key in keys:
             lbl = QLabel(t(key))
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             lbl.setStyleSheet(
                 f"color: {Theme.ACCENT};"
-                "font-size: 14px;"
+                f"font-size: {font_px}px;"
                 "font-weight: bold;"
                 "letter-spacing: 1px;"
             )
