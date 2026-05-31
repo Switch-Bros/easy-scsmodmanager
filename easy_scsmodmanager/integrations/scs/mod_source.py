@@ -57,6 +57,15 @@ class DirectoryModSource:
             raise FileNotFoundError(path)
         return target.read_bytes()
 
+    def list_files(self, prefix: str = "") -> list[str]:
+        out: list[str] = []
+        for p in self._root.rglob("*"):
+            if p.is_file():
+                rel = p.relative_to(self._root).as_posix()
+                if rel.startswith(prefix):
+                    out.append(rel)
+        return out
+
     def close(self) -> None:
         # No handle held - nothing to release.
         return None

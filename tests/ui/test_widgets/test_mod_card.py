@@ -5,7 +5,7 @@ from pathlib import Path
 from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
-from easy_scsmodmanager.core.mod_categories import i18n_key
+from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
@@ -161,3 +161,16 @@ def test_no_category_uses_localized_fallback(qtbot: QtBot) -> None:
     qtbot.addWidget(card)
 
     assert card._category.text() != ""
+
+
+def test_is_map_mod_shows_maps_badge(qtbot):
+    mod = _scanned(manifest=ModManifest(display_name="Donbass", categories=("other",)))
+    object.__setattr__(mod, "is_map", True)  # ScannedMod is frozen
+    card = ModCard(
+        mod,
+        categories_for=lambda m: effective_categories(
+            m.manifest.categories, is_map=m.is_map, override=None
+        ),
+    )
+    qtbot.addWidget(card)
+    assert card._category.text() == t(i18n_key("map")).upper()

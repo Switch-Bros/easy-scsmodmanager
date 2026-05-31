@@ -9,16 +9,19 @@ back as ``None``; setting ``None`` clears the key.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 
 from PyQt6.QtCore import QSettings
 
 from easy_scsmodmanager.core.game_paths import Game
+from easy_scsmodmanager.core.map_base_mods import DEFAULT_MAP_BASE_NAMES
 
 ORG = "Switch-Bros"
 APP = "easy-scsmodmanager"
 
 _KEY_LANGUAGE = "language"
+_KEY_MAP_BASE_NAMES = "map_base_names"
 
 
 def _documents_key(game: Game) -> str:
@@ -65,6 +68,17 @@ class SettingsStore:
 
     def set_install_override(self, game: Game, path: Path | None) -> None:
         _put(self._s, _install_key(game), str(path) if path else None)
+
+    def get_map_base_names(self) -> tuple[str, ...]:
+        raw = _clean(self._s.value(_KEY_MAP_BASE_NAMES))
+        if not raw:
+            return DEFAULT_MAP_BASE_NAMES
+        parts = [p.strip() for p in raw.split("\n")]
+        return tuple(p for p in parts if p)
+
+    def set_map_base_names(self, names: Iterable[str]) -> None:
+        joined = "\n".join(n.strip() for n in names if n.strip())
+        _put(self._s, _KEY_MAP_BASE_NAMES, joined or None)
 
 
 def _clean(value: object) -> str | None:

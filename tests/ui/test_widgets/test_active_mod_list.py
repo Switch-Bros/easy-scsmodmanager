@@ -79,7 +79,13 @@ def test_order_changed_emitted_on_mutation(qtbot: QtBot) -> None:
 
 def test_double_click_removes_the_mod(qtbot: QtBot) -> None:
     w = _list(qtbot, ["a", "b", "c"])
-    top_item = w._list.item(0)  # display top = "c"
+    # item(0) may now be a spacer row; find the first actual mod item.
+    top_item = next(
+        w._list.item(i)
+        for i in range(w._list.count())
+        if w._list.item(i).data(Qt.ItemDataRole.UserRole) is not None
+    )
+    assert top_item.data(Qt.ItemDataRole.UserRole).name == "c"  # display top = "c"
 
     with qtbot.waitSignal(w.order_changed, timeout=500):
         w._on_item_double_clicked(top_item)
@@ -90,8 +96,17 @@ def test_double_click_removes_the_mod(qtbot: QtBot) -> None:
 def test_internal_reorder_signal_moves_rows(qtbot: QtBot) -> None:
     w = _list(qtbot, ["a", "b", "c", "d"])  # display top->bottom: d, c, b, a
 
-    # the list view signals a reorder of display rows 1,2 ("c","b") to the top
-    w._list.reorder_requested.emit([1, 2], 0)
+    # reorder_requested carries widget-row indices; spacers precede the mods.
+    # Find the widget rows for "c" and "b" and the row of "d" as target.
+    from PyQt6.QtCore import Qt as _Qt
+
+    row_of = {
+        w._list.item(i).data(_Qt.ItemDataRole.UserRole).name: i
+        for i in range(w._list.count())
+        if w._list.item(i).data(_Qt.ItemDataRole.UserRole) is not None
+    }
+    # emit: move "c" and "b" to before "d" (= the top mod position)
+    w._list.reorder_requested.emit([row_of["c"], row_of["b"]], row_of["d"])
 
     assert [m.name for m in w.display_order()] == ["c", "b", "d", "a"]
 

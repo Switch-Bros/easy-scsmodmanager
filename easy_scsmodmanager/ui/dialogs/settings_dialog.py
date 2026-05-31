@@ -19,14 +19,17 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
+    QListWidget,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from easy_scsmodmanager.core.game_paths import Game
+from easy_scsmodmanager.core.map_base_mods import DEFAULT_MAP_BASE_NAMES
 from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import available_languages, current_language, t
@@ -105,6 +108,8 @@ class SettingsDialog(QDialog):
         root.addWidget(self._heading("settings.paths.install_heading"))
         self._add_rows(root, INSTALL)
 
+        self._build_map_base_section(root)
+
         buttons = QDialogButtonBox()
         buttons.addButton(t("dialog.settings.save"), QDialogButtonBox.ButtonRole.AcceptRole)
         buttons.addButton(t("dialog.settings.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
@@ -156,6 +161,51 @@ class SettingsDialog(QDialog):
         self._paths[(game, kind)] = None
         self._edits[(game, kind)].setText("")
 
+    def _build_map_base_section(self, root: QVBoxLayout) -> None:
+        root.addWidget(self._heading("settings.map_base.heading"))
+        hint = QLabel(t("settings.map_base.hint"))
+        hint.setStyleSheet(f"color: {Theme.TEXT_DIM};")
+        hint.setWordWrap(True)
+        root.addWidget(hint)
+
+        self._map_base_list = QListWidget()
+        self._map_base_list.setMaximumHeight(140)
+        for name in self._store.get_map_base_names():
+            self._map_base_list.addItem(name)
+        root.addWidget(self._map_base_list)
+
+        buttons = QHBoxLayout()
+        add = QPushButton(t("settings.map_base.add"))
+        add.clicked.connect(self._on_map_base_add)
+        remove = QPushButton(t("settings.map_base.remove"))
+        remove.clicked.connect(self._on_map_base_remove)
+        reset = QPushButton(t("settings.map_base.reset"))
+        reset.clicked.connect(self._on_map_base_reset)
+        buttons.addWidget(add)
+        buttons.addWidget(remove)
+        buttons.addStretch(1)
+        buttons.addWidget(reset)
+        root.addLayout(buttons)
+
+    def _on_map_base_add(self) -> None:
+        text, ok = QInputDialog.getText(
+            self, t("settings.map_base.add_title"), t("settings.map_base.add_label")
+        )
+        if ok and text.strip():
+            self._map_base_list.addItem(text.strip())
+
+    def _on_map_base_remove(self) -> None:
+        for item in self._map_base_list.selectedItems():
+            self._map_base_list.takeItem(self._map_base_list.row(item))
+
+    def _on_map_base_reset(self) -> None:
+        self._map_base_list.clear()
+        for name in DEFAULT_MAP_BASE_NAMES:
+            self._map_base_list.addItem(name)
+
+    def _map_base_names(self) -> list[str]:
+        return [self._map_base_list.item(i).text() for i in range(self._map_base_list.count())]
+
     def selected_language(self) -> str:
         return str(self._lang_combo.currentData())
 
@@ -163,4 +213,5 @@ class SettingsDialog(QDialog):
         self._store.set_language(self._lang_combo.currentData())
         for game, kind, _ in _PATH_FIELDS:
             self._save(game, kind, self._paths[(game, kind)])
+        self._store.set_map_base_names(self._map_base_names())
         super().accept()

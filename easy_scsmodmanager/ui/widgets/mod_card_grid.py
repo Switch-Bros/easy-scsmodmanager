@@ -59,12 +59,15 @@ class ModCardGrid(QScrollArea):
         active_names: set[str] | None = None,
         icon_for: Callable[[ScannedMod], bytes | None] | None = None,
         name_for: Callable[[ScannedMod], str] | None = None,
+        categories_for: Callable[[ScannedMod], tuple[str, ...]] | None = None,
     ) -> None:
         """Replace the displayed cards.
 
         ``active_names`` is the set of active_mods names from the profile -
         used to colour status. ``icon_for`` is an optional callable
         ``ScannedMod -> bytes | None`` to look up cached icons.
+        ``categories_for`` overrides the category badge per mod (e.g. to use
+        effective categories instead of the raw manifest categories).
         """
         self._clear()
         active_names = active_names or set()
@@ -75,6 +78,7 @@ class ModCardGrid(QScrollArea):
                 is_active=active_name_for(mod) in active_names,
                 icon_bytes=icon,
                 display_name=name_for(mod) if name_for is not None else None,
+                categories_for=categories_for,
             )
             idx = len(self._cards)
             card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))

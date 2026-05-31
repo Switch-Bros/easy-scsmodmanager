@@ -6,7 +6,7 @@ parsed manifest + icon bytes keyed on ``(path, mtime, size)`` so the
 second scan drops to milliseconds and only re-reads files the user has
 actually changed.
 
-Schema (``user_version=4``)::
+Schema (``user_version=5``)::
 
     mod_cache(
         path TEXT PRIMARY KEY,
@@ -17,6 +17,7 @@ Schema (``user_version=4``)::
         error TEXT,
         icon_bytes BLOB,
         description TEXT,
+        is_map INTEGER NOT NULL DEFAULT 0,
         scanned_at REAL NOT NULL
     )
 
@@ -43,7 +44,7 @@ from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 APP_DIR_NAME = "easy-scsmodmanager"
 DB_FILE_NAME = "scan_cache.db"
 
@@ -104,8 +105,8 @@ class ScanCache:
                 """
                 INSERT INTO mod_cache (
                     path, mtime, size, format, manifest_json,
-                    error, icon_bytes, description, scanned_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    error, icon_bytes, description, is_map, scanned_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(path) DO UPDATE SET
                     mtime         = excluded.mtime,
                     size          = excluded.size,
@@ -114,6 +115,7 @@ class ScanCache:
                     error         = excluded.error,
                     icon_bytes    = excluded.icon_bytes,
                     description   = excluded.description,
+                    is_map        = excluded.is_map,
                     scanned_at    = excluded.scanned_at
                 """,
                 (
@@ -125,6 +127,7 @@ class ScanCache:
                     mod.error,
                     icon_bytes,
                     description,
+                    int(mod.is_map),
                     time.time(),
                 ),
             )
@@ -203,6 +206,12 @@ class ScanCache:
                 # drop rows that failed under the old code so the new readers
                 # (fake-lock zips, AEM containers) get a fresh scan
                 self._conn.execute("DELETE FROM mod_cache WHERE error IS NOT NULL")
+            if current < 5:
+                cols = {row[1] for row in self._conn.execute("PRAGMA table_info(mod_cache)")}
+                if "is_map" not in cols:
+                    self._conn.execute(
+                        "ALTER TABLE mod_cache ADD COLUMN is_map INTEGER NOT NULL DEFAULT 0"
+                    )
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
@@ -243,12 +252,17 @@ def _row_to_entry(row: sqlite3.Row, scs_path: Path) -> CachedEntry:
         description = row["description"]
     except (IndexError, KeyError):
         description = None
+    try:
+        is_map = bool(row["is_map"])
+    except (IndexError, KeyError):
+        is_map = False
     mod = ScannedMod(
         path=scs_path,
         format=ScsFormat(row["format"]),
         manifest=_manifest_from_json(row["manifest_json"]),
         error=row["error"],
         description=description,
+        is_map=is_map,
     )
     icon_bytes = row["icon_bytes"]
     return CachedEntry(

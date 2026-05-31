@@ -34,6 +34,11 @@ from PyQt6.QtWidgets import (
 )
 
 from easy_scsmodmanager import __app_name__, __version__
+from easy_scsmodmanager.core.category_overrides import (
+    CategoryOverrides,
+    default_group_overrides_path,
+    default_overrides_path,
+)
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
 from easy_scsmodmanager.core.game_paths import (
@@ -44,7 +49,9 @@ from easy_scsmodmanager.core.game_paths import (
     find_game_install_dir,
     game_install_from_override,
 )
-from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
+from easy_scsmodmanager.core.load_order import group_repr_token
+from easy_scsmodmanager.core.map_base_mods import is_map_base
+from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
@@ -97,6 +104,9 @@ class MainWindow(QMainWindow):
         self._filter = FilterState()
         self._cache = ScanCache(default_cache_path())
         self._workshop_cache = WorkshopMetaCache(self._cache.connection())
+        self._overrides = CategoryOverrides(default_overrides_path())
+        self._group_overrides = CategoryOverrides(default_group_overrides_path())
+        self._map_base_names = SettingsStore().get_map_base_names()
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
 
@@ -189,6 +199,7 @@ class MainWindow(QMainWindow):
         self._active_list.mod_focus_requested.connect(self._on_active_mod_focus)
         self._active_list.order_changed.connect(self._on_active_order_changed)
         self._active_list.mods_dropped.connect(self._on_mods_dropped)
+        self._active_list.move_to_group_requested.connect(self._on_move_to_group)
         right_layout.addWidget(self._profile_header)
         right_layout.addWidget(self._active_list, 1)
 
@@ -236,6 +247,9 @@ class MainWindow(QMainWindow):
     def _on_open_settings(self) -> None:
         dialog = SettingsDialog(SettingsStore(), self)
         if dialog.exec():
+            # the map-base name list may have changed: re-read it so auto
+            # detection in the active list uses the new terms.
+            self._map_base_names = SettingsStore().get_map_base_names()
             # Re-detect from scratch: a path override may have changed.
             self._detect_install_and_scan()
 
@@ -344,6 +358,7 @@ class MainWindow(QMainWindow):
             active_names=self._active_names_set(),
             icon_for=self._icon_for,
             name_for=self._display_name_for,
+            categories_for=self._effective_for,
         )
 
     def _refresh_active_list(self) -> None:
@@ -355,6 +370,7 @@ class MainWindow(QMainWindow):
             self._profile.active_mods,
             installed_names=installed,
             icon_for=self._active_icon_for,
+            category_for=self._category_for_active,
         )
 
     def _icon_for(self, mod: ScannedMod) -> bytes | None:
@@ -376,6 +392,25 @@ class MainWindow(QMainWindow):
         if match is None:
             return None
         return self._icon_for(match)
+
+    def _category_for_active(self, active_mod: ActiveMod) -> tuple[str, ...]:
+        """Effective category of an active mod, via its matched ScannedMod.
+
+        Group overrides take priority: if the user pinned this mod to a specific
+        load-order group the override token is returned directly, bypassing the
+        scanner match entirely.
+        """
+        go = self._group_overrides.get(active_mod.name)
+        if go:
+            return (group_repr_token(go),)
+        if is_map_base(active_mod.name, active_mod.display_name or "", self._map_base_names):
+            return ("map_base",)
+        if self._matcher is None:
+            return ("other",)
+        match = self._matcher.lookup(active_mod)
+        if match is None:
+            return ("other",)
+        return self._effective_for(match)
 
     def _active_display_map(self) -> dict[str, str]:
         if self._profile is None:
@@ -401,13 +436,19 @@ class MainWindow(QMainWindow):
             return set()
         return {active.name for active in self._profile.active_mods}
 
+    def _effective_for(self, mod: ScannedMod) -> tuple[str, ...]:
+        cats = mod.manifest.categories if mod.manifest else ()
+        return effective_categories(
+            cats, is_map=mod.is_map, override=self._overrides.get(mod.path.stem)
+        )
+
     def _apply_filter(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
         needle = state.search.lower().strip()
         result: list[ScannedMod] = []
         for mod in mods:
             display = (mod.manifest.display_name if mod.manifest else mod.path.stem).lower()
             author = (mod.manifest.author if mod.manifest else "").lower()
-            cats = canonical_categories(mod.manifest.categories if mod.manifest else [])
+            cats = self._effective_for(mod)
             cat_names = [t(i18n_key(c)).lower() for c in cats]
             if needle and not (
                 needle in display
@@ -479,6 +520,13 @@ class MainWindow(QMainWindow):
             to_place.append(ActiveMod(name=name, display_name=self._display_name_for(mod)))
         if to_place:
             self._active_list.insert_or_move(to_place, at=row)
+
+    def _on_move_to_group(self, mod: ActiveMod, group_id: str) -> None:
+        # Pin the effective group first so the relocation sees the new group,
+        # then physically move the mod into that block (the override alone left
+        # it sitting in place, which read as "nothing happened").
+        self._group_overrides.set(mod.name, group_id)
+        self._active_list.move_mod_to_group(mod, group_id)
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:
@@ -664,6 +712,8 @@ class MainWindow(QMainWindow):
         if self._workshop_thread is not None and self._workshop_thread.isRunning():
             self._workshop_thread.wait(5000)
         self._cache.close()
+        self._overrides.close()
+        self._group_overrides.close()
         super().closeEvent(event)
 
 

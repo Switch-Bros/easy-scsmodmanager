@@ -61,6 +61,7 @@ class ModCard(QFrame):
         icon_bytes: bytes | None = None,
         is_favorite: bool = False,
         display_name: str | None = None,
+        categories_for: Callable[[ScannedMod], tuple[str, ...]] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -69,6 +70,7 @@ class ModCard(QFrame):
         self._is_favorite = is_favorite
         self._is_selected = False
         self._display_name_override = display_name
+        self._categories_for = categories_for
         self._press_pos: object | None = None
 
         self.setObjectName("ModCard")
@@ -287,8 +289,12 @@ class ModCard(QFrame):
         return t("mod_card.no_author")
 
     def _category_label(self) -> str:
-        raw = self._mod.manifest.categories if self._mod.manifest else []
-        return " / ".join(t(i18n_key(c)) for c in canonical_categories(raw))
+        if self._categories_for is not None:
+            tokens = self._categories_for(self._mod)
+        else:
+            raw = self._mod.manifest.categories if self._mod.manifest else []
+            tokens = canonical_categories(raw)
+        return " / ".join(t(i18n_key(c)) for c in tokens)
 
     def _on_favorite_clicked(self) -> None:
         self._is_favorite = not self._is_favorite

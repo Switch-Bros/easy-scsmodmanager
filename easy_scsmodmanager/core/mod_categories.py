@@ -63,3 +63,17 @@ def canonical_categories(raw: Iterable[str]) -> tuple[str, ...]:
         if token not in result:
             result.append(token)
     return tuple(result) if result else (OTHER,)
+
+
+def effective_categories(
+    manifest_categories: tuple[str, ...],
+    *,
+    is_map: bool,
+    override: str | None,
+) -> tuple[str, ...]:
+    """Trustworthy category: override > map-by-content > manifest."""
+    if override is not None:
+        return (override,) if override in _KNOWN else (OTHER,)
+    if is_map:
+        return ("map",)
+    return canonical_categories(manifest_categories)

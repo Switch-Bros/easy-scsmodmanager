@@ -47,3 +47,12 @@ def test_override_clear(store: SettingsStore, tmp_path: Path) -> None:
     store.set_documents_override(Game.ETS2, tmp_path)
     store.set_documents_override(Game.ETS2, None)
     assert store.get_documents_override(Game.ETS2) is None
+
+
+def test_map_base_names_default_and_round_trip(tmp_path: Path) -> None:
+    from easy_scsmodmanager.core.map_base_mods import DEFAULT_MAP_BASE_NAMES
+
+    s = SettingsStore(QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat))
+    assert s.get_map_base_names() == DEFAULT_MAP_BASE_NAMES
+    s.set_map_base_names(["Foo", "Bar"])
+    assert s.get_map_base_names() == ("Foo", "Bar")
