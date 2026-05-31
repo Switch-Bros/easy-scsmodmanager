@@ -218,6 +218,10 @@ class ScanCache:
                 cols = {row[1] for row in self._conn.execute("PRAGMA table_info(mod_cache)")}
                 if "def_files" not in cols:
                     self._conn.execute("ALTER TABLE mod_cache ADD COLUMN def_files TEXT")
+                # existing rows have no def_files yet; drop them so the next scan
+                # re-reads each archive and fills the list (powers conflicts +
+                # the physics content signal). One-off slower scan after upgrade.
+                self._conn.execute("DELETE FROM mod_cache WHERE def_files IS NULL")
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 

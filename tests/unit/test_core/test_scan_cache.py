@@ -170,6 +170,22 @@ def test_def_files_round_trip_through_cache(tmp_path: Path) -> None:
     assert entry.mod.def_files == ("def/vehicle/physics.sii", "def/climate.sii")
 
 
+def test_schema6_upgrade_drops_rows_lacking_def_files(tmp_path: Path) -> None:
+    # a row written before schema 6 has no def_files; the upgrade must drop it
+    # so the next scan re-reads the archive and captures its def list
+    db = tmp_path / "cache.db"
+    scs = _make_scs(tmp_path / "mod.scs")
+
+    with ScanCache(db) as cache:
+        cache.put(scs, _scanned(scs))
+        cache._conn.execute("UPDATE mod_cache SET def_files = NULL")
+        cache._conn.execute("PRAGMA user_version = 5")
+        cache._conn.commit()
+
+    with ScanCache(db) as cache:
+        assert cache.get(scs) is None  # dropped -> will be rescanned
+
+
 def test_def_files_default_empty_for_legacy_rows(tmp_path: Path) -> None:
     db = tmp_path / "cache.db"
     scs = _make_scs(tmp_path / "mod.scs")
