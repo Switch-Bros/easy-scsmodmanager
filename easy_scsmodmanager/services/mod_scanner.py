@@ -42,6 +42,7 @@ from easy_scsmodmanager.integrations.scs.workshop_versions import (
     read_versions_sii,
 )
 from easy_scsmodmanager.integrations.scs.zip_reader import ZipScsReader
+from easy_scsmodmanager.services.mod_identity import mod_name_for_path
 
 if TYPE_CHECKING:
     from easy_scsmodmanager.core.db.scan_cache import ScanCache
@@ -60,6 +61,17 @@ class ScannedMod:
     error: str | None
     description: str | None = None
     is_map: bool = False
+
+    @property
+    def mod_name(self) -> str:
+        """Stable identity (the ``active_mods[]`` token), derived from the path.
+
+        Computed rather than stored: it is fully determined by the path, so a
+        cache column would be redundant and could go stale if the derivation
+        changes. Use this everywhere a mod must be matched across sessions
+        (conflicts, combo export/import).
+        """
+        return mod_name_for_path(self.path)
 
 
 # ---------------------------------------------------------------------------

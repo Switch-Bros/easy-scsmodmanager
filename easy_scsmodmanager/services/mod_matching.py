@@ -21,10 +21,18 @@ so the GUI does not pay O(N) per row.
 
 from __future__ import annotations
 
-from pathlib import Path
-
+from easy_scsmodmanager.services.mod_identity import mod_name_for_path, workshop_id_for_path
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+# re-exported for callers that have always imported it from here
+__all__ = [
+    "ActiveModMatcher",
+    "active_name_for",
+    "mod_name_for_path",
+    "resolve_display_name",
+    "workshop_id_for_path",
+]
 
 
 class ActiveModMatcher:
@@ -71,30 +79,8 @@ class ActiveModMatcher:
         return {a.name for a in profile_actives if self.lookup(a) is not None}
 
 
-def workshop_id_for_path(path: Path) -> str | None:
-    """Detect the workshop published-file-id from a scanned mod path.
-
-    Recognises ``.../workshop/content/<appid>/<workshop_id>/...``.
-    Returns the numeric workshop id as a string, or None if the path
-    does not live inside a workshop tree.
-    """
-    parts = path.parts
-    if "workshop" not in parts or "content" not in parts:
-        return None
-    try:
-        content_idx = parts.index("content")
-    except ValueError:
-        return None
-    if content_idx + 2 >= len(parts):
-        return None
-    workshop_id = parts[content_idx + 2]
-    if workshop_id.isdigit():
-        return workshop_id
-    return None
-
-
 # Backwards-compatible alias for the internal helper this module used
-# before the public rename.
+# before the public rename. workshop_id_for_path now lives in mod_identity.
 _workshop_id_for = workshop_id_for_path
 
 
@@ -123,13 +109,10 @@ def resolve_display_name(
 def active_name_for(mod: ScannedMod) -> str:
     """The name this mod takes in active_mods[] - inverse of lookup().
 
-    Workshop mods become ``mod_workshop_package.<16-char upper hex>`` of the
-    published-file-id; everything else uses the file/directory stem.
+    Single source of truth: the mod's own stable identity (computed from its
+    path). Kept as a function for the many call sites that already use it.
     """
-    ws_id = workshop_id_for_path(mod.path)
-    if ws_id is not None:
-        return f"mod_workshop_package.{int(ws_id):016X}"
-    return mod.path.stem
+    return mod.mod_name
 
 
 def _extract_workshop_id_from_name(name: str) -> str | None:
