@@ -35,6 +35,7 @@ from PyQt6.QtWidgets import (
 )
 
 from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
+from easy_scsmodmanager.core.version_compat import CompatStatus
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
@@ -62,6 +63,7 @@ class ModCard(QFrame):
         is_favorite: bool = False,
         display_name: str | None = None,
         categories_for: Callable[[ScannedMod], tuple[str, ...]] | None = None,
+        compat_for: Callable[[ScannedMod], CompatStatus] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -71,6 +73,7 @@ class ModCard(QFrame):
         self._is_selected = False
         self._display_name_override = display_name
         self._categories_for = categories_for
+        self._compat_for = compat_for
         self._press_pos: object | None = None
 
         self.setObjectName("ModCard")
@@ -79,7 +82,15 @@ class ModCard(QFrame):
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         self._build_layout(icon_bytes)
+        if self._is_incompatible():
+            self.setToolTip(t("compat.incompatible_tooltip"))
         self._apply_style()
+
+    def _is_incompatible(self) -> bool:
+        return (
+            self._compat_for is not None
+            and self._compat_for(self._mod) is CompatStatus.INCOMPATIBLE
+        )
 
     # ------------------------------------------------------------------ #
     # public API
@@ -302,7 +313,13 @@ class ModCard(QFrame):
         self.favorite_toggled.emit(self._is_favorite)
 
     def _apply_style(self) -> None:
-        border_color = Theme.PRIMARY if self._is_selected else Theme.SURFACE
+        if self._is_selected:
+            border_color = Theme.PRIMARY
+        elif self._is_incompatible():
+            # mirror the game: only compatible_versions mismatch reds a mod
+            border_color = Theme.DANGER
+        else:
+            border_color = Theme.SURFACE
         background = Theme.SURFACE_SELECTED if self._is_selected else Theme.SURFACE
         self.setStyleSheet(f"""
             #ModCard {{

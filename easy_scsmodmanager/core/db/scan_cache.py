@@ -44,7 +44,7 @@ from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 APP_DIR_NAME = "easy-scsmodmanager"
 DB_FILE_NAME = "scan_cache.db"
 
@@ -105,8 +105,8 @@ class ScanCache:
                 """
                 INSERT INTO mod_cache (
                     path, mtime, size, format, manifest_json,
-                    error, icon_bytes, description, is_map, scanned_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    error, icon_bytes, description, is_map, def_files, scanned_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(path) DO UPDATE SET
                     mtime         = excluded.mtime,
                     size          = excluded.size,
@@ -116,6 +116,7 @@ class ScanCache:
                     icon_bytes    = excluded.icon_bytes,
                     description   = excluded.description,
                     is_map        = excluded.is_map,
+                    def_files     = excluded.def_files,
                     scanned_at    = excluded.scanned_at
                 """,
                 (
@@ -128,6 +129,7 @@ class ScanCache:
                     icon_bytes,
                     description,
                     int(mod.is_map),
+                    json.dumps(list(mod.def_files)),
                     time.time(),
                 ),
             )
@@ -212,6 +214,14 @@ class ScanCache:
                     self._conn.execute(
                         "ALTER TABLE mod_cache ADD COLUMN is_map INTEGER NOT NULL DEFAULT 0"
                     )
+            if current < 6:
+                cols = {row[1] for row in self._conn.execute("PRAGMA table_info(mod_cache)")}
+                if "def_files" not in cols:
+                    self._conn.execute("ALTER TABLE mod_cache ADD COLUMN def_files TEXT")
+                # existing rows have no def_files yet; drop them so the next scan
+                # re-reads each archive and fills the list (powers conflicts +
+                # the physics content signal). One-off slower scan after upgrade.
+                self._conn.execute("DELETE FROM mod_cache WHERE def_files IS NULL")
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
@@ -256,6 +266,11 @@ def _row_to_entry(row: sqlite3.Row, scs_path: Path) -> CachedEntry:
         is_map = bool(row["is_map"])
     except (IndexError, KeyError):
         is_map = False
+    try:
+        raw_defs = row["def_files"]
+        def_files = tuple(json.loads(raw_defs)) if raw_defs else ()
+    except (IndexError, KeyError):
+        def_files = ()
     mod = ScannedMod(
         path=scs_path,
         format=ScsFormat(row["format"]),
@@ -263,6 +278,7 @@ def _row_to_entry(row: sqlite3.Row, scs_path: Path) -> CachedEntry:
         error=row["error"],
         description=description,
         is_map=is_map,
+        def_files=def_files,
     )
     icon_bytes = row["icon_bytes"]
     return CachedEntry(

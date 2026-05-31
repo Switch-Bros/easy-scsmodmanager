@@ -11,18 +11,21 @@ and reorders a maps block. The dialog layer is a thin shell over it.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 
+from easy_scsmodmanager.core.version_compare import compare_versions
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 
 FORMAT_ID = "easy-scsmodmanager-mapcombo"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2  # v2 adds per-entry package_version; v1 files still load
 
 
 @dataclass(frozen=True)
 class MapComboEntry:
     name: str
     display_name: str
+    package_version: str = ""  # the version the combo was built with (v2)
 
 
 class MapComboError(ValueError):
@@ -34,13 +37,24 @@ def serialize(entries: list[MapComboEntry]) -> str:
     payload = {
         "format": FORMAT_ID,
         "version": FORMAT_VERSION,
-        "maps": [{"name": e.name, "display_name": e.display_name} for e in entries],
+        "maps": [
+            {
+                "name": e.name,
+                "display_name": e.display_name,
+                "package_version": e.package_version,
+            }
+            for e in entries
+        ],
     }
     return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
 def parse(text: str) -> list[MapComboEntry]:
-    """Parse a MapCombo file. Raises MapComboError on anything unexpected."""
+    """Parse a MapCombo file (v1 or v2). Raises MapComboError on bad input.
+
+    v1 files have no ``package_version`` per entry; it defaults to empty, so
+    the version check simply treats those as "not comparable".
+    """
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -55,7 +69,11 @@ def parse(text: str) -> list[MapComboEntry]:
         if not isinstance(item, dict) or "name" not in item:
             raise MapComboError("malformed map entry")
         entries.append(
-            MapComboEntry(name=str(item["name"]), display_name=str(item.get("display_name", "")))
+            MapComboEntry(
+                name=str(item["name"]),
+                display_name=str(item.get("display_name", "")),
+                package_version=str(item.get("package_version", "")),
+            )
         )
     return entries
 
@@ -63,6 +81,30 @@ def parse(text: str) -> list[MapComboEntry]:
 def missing(combo: list[MapComboEntry], installed_names: set[str]) -> list[MapComboEntry]:
     """Combo entries whose mod is not installed, in combo order."""
     return [e for e in combo if e.name not in installed_names]
+
+
+def outdated(
+    combo: list[MapComboEntry], installed_versions: Mapping[str, str]
+) -> list[tuple[MapComboEntry, str]]:
+    """Combo entries whose version is NEWER than the locally installed one.
+
+    ``installed_versions`` maps mod_name -> local package_version. Returns
+    ``(entry, local_version)`` only when both versions parse and the combo's
+    is strictly newer. Unparseable versions are skipped (no false "update"
+    claim). Missing mods are handled by :func:`missing`, not here. A HINT
+    only - never blocks the import.
+    """
+    result: list[tuple[MapComboEntry, str]] = []
+    for entry in combo:
+        if not entry.package_version:
+            continue
+        local = installed_versions.get(entry.name)
+        if not local:
+            continue
+        verdict = compare_versions(local, entry.package_version)
+        if verdict is not None and verdict < 0:
+            result.append((entry, local))
+    return result
 
 
 def reorder(maps_block: list[ActiveMod], combo: list[MapComboEntry]) -> list[ActiveMod]:

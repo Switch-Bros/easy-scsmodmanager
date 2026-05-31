@@ -70,10 +70,17 @@ def effective_categories(
     *,
     is_map: bool,
     override: str | None,
+    content_category: str | None = None,
 ) -> tuple[str, ...]:
-    """Trustworthy category: override > map-by-content > manifest."""
+    """Trustworthy category: override > content-category > map-by-content > manifest.
+
+    ``content_category`` is the verified-from-content token (currently only
+    ``physics``); None when the content gives no confident signal.
+    """
     if override is not None:
         return (override,) if override in _KNOWN else (OTHER,)
+    if content_category is not None:
+        return (content_category,) if content_category in _KNOWN else (OTHER,)
     if is_map:
         return ("map",)
     return canonical_categories(manifest_categories)

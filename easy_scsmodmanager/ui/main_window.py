@@ -50,14 +50,19 @@ from easy_scsmodmanager.core.game_paths import (
     find_game_install_dir,
     game_install_from_override,
 )
+from easy_scsmodmanager.core.game_version import read_game_version
 from easy_scsmodmanager.core.load_order import group_repr_token
 from easy_scsmodmanager.core.map_base_mods import is_map_base
 from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.settings_store import SettingsStore
+from easy_scsmodmanager.core.version_compat import CompatStatus, compat_status
+from easy_scsmodmanager.integrations.scs.content_category import content_category
+from easy_scsmodmanager.services.conflict_detect import ModConflict, find_conflicts
 from easy_scsmodmanager.services.map_combo import (
     MapComboEntry,
     MapComboError,
     missing,
+    outdated,
     parse,
     reorder,
     serialize,
@@ -116,10 +121,13 @@ class MainWindow(QMainWindow):
         self._overrides = CategoryOverrides(default_overrides_path())
         self._group_overrides = CategoryOverrides(default_group_overrides_path())
         self._map_base_names = SettingsStore().get_map_base_names()
+        self._game_version: str | None = None
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
         # a MapCombo waiting to be applied once a fresh scan completes
         self._pending_combo: list[MapComboEntry] | None = None
+        # active.name -> mods it shares a def file with (recomputed per scan)
+        self._conflicts: dict[str, list[ModConflict]] = {}
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
         self.setMinimumSize(QSize(1280, 760))
@@ -241,6 +249,7 @@ class MainWindow(QMainWindow):
         if self._install is None:
             self.statusBar().showMessage(t("status_bar.no_install"))
             return
+        self._game_version = read_game_version(self._install.documents_dir)
         self._load_profiles()
         self._start_scan()
 
@@ -374,19 +383,51 @@ class MainWindow(QMainWindow):
             icon_for=self._icon_for,
             name_for=self._display_name_for,
             categories_for=self._effective_for,
+            compat_for=self._compat_for,
         )
+
+    def _compat_for(self, mod: ScannedMod) -> CompatStatus:
+        cvs = mod.manifest.compatible_versions if mod.manifest else ()
+        return compat_status(self._game_version, cvs)
 
     def _refresh_active_list(self) -> None:
         if self._profile is None or self._matcher is None:
             self._active_list.set_active_mods([])
             return
         installed = {active_name_for(m) for m in self._all_mods}
+        self._compute_conflicts()
         self._active_list.set_active_mods(
             self._profile.active_mods,
             installed_names=installed,
             icon_for=self._active_icon_for,
             category_for=self._category_for_active,
+            conflict_for=self._conflict_for,
         )
+
+    def _compute_conflicts(self) -> None:
+        """Recompute which active mods overwrite the same def files."""
+        self._conflicts = {}
+        if self._profile is None or self._matcher is None:
+            return
+        active_defs: dict[str, tuple[str, ...]] = {}
+        for active in self._profile.active_mods:
+            match = self._matcher.lookup(active)
+            if match is not None and match.def_files:
+                active_defs[active.name] = match.def_files
+        self._conflicts = find_conflicts(active_defs)
+
+    def _conflict_for(self, active_mod: ActiveMod) -> str:
+        """Tooltip listing the active mods this one shares def files with."""
+        conflicts = self._conflicts.get(active_mod.name)
+        if not conflicts:
+            return ""
+        names = self._active_display_map()
+        lines = [t("conflict.tooltip_header")]
+        for c in conflicts[:8]:
+            other = names.get(c.other, c.other)
+            sample = c.shared[0] if c.shared else ""
+            lines.append(t("conflict.tooltip_row", mod=other, file=sample))
+        return "\n".join(lines)
 
     def _icon_for(self, mod: ScannedMod) -> bytes | None:
         entry = self._cache.get(mod.path)
@@ -454,7 +495,10 @@ class MainWindow(QMainWindow):
     def _effective_for(self, mod: ScannedMod) -> tuple[str, ...]:
         cats = mod.manifest.categories if mod.manifest else ()
         return effective_categories(
-            cats, is_map=mod.is_map, override=self._overrides.get(mod.path.stem)
+            cats,
+            is_map=mod.is_map,
+            override=self._overrides.get(mod.path.stem),
+            content_category=content_category(mod.def_files),
         )
 
     def _apply_filter(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
@@ -555,9 +599,28 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".json"):
             path += ".json"
-        entries = [MapComboEntry(name=m.name, display_name=m.display_name) for m in block]
+        versions = self._local_versions()
+        entries = [
+            MapComboEntry(
+                name=m.name,
+                display_name=m.display_name,
+                package_version=versions.get(m.name, ""),
+            )
+            for m in block
+        ]
         Path(path).write_text(serialize(entries), encoding="utf-8")
         self.statusBar().showMessage(t("map_combo.exported", count=len(entries)))
+
+    def _local_versions(self) -> dict[str, str]:
+        """active.name -> local package_version, for combo version checks."""
+        result: dict[str, str] = {}
+        if self._profile is None or self._matcher is None:
+            return result
+        for active in self._profile.active_mods:
+            match = self._matcher.lookup(active)
+            if match is not None and match.manifest and match.manifest.package_version:
+                result[active.name] = match.manifest.package_version
+        return result
 
     def _on_import_combo(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
@@ -597,6 +660,27 @@ class MainWindow(QMainWindow):
             return
         self._active_list.apply_combo_order(reorder(block, combo))
         self.statusBar().showMessage(t("map_combo.imported", count=len(combo)))
+        self._warn_outdated_combo(combo)
+
+    def _warn_outdated_combo(self, combo: list[MapComboEntry]) -> None:
+        """After import, hint (never block) about maps the combo built newer."""
+        stale = outdated(combo, self._local_versions())
+        if not stale:
+            return
+        rows = "\n".join(
+            t(
+                "map_combo.outdated_row",
+                name=entry.display_name or entry.name,
+                local=local,
+                combo=entry.package_version,
+            )
+            for entry, local in stale
+        )
+        QMessageBox.information(
+            self,
+            t("map_combo.outdated_title"),
+            f"{t('map_combo.outdated_body')}\n\n{rows}",
+        )
 
     def _on_save_clicked(self) -> None:
         if self._profile_sii_path is None:

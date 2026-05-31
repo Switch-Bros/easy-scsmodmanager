@@ -6,6 +6,8 @@ from pytestqt.qtbot import QtBot
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.widgets.active_mod_list import (
     _MAPS_GROUP_ID,
+    _SPACER_FONT_PX_MULTILINE,
+    _SPACER_FONT_PX_SINGLE,
     _SPACER_GROUP_ROLE,
     _SPACER_HEIGHT,
     ActiveModList,
@@ -85,6 +87,26 @@ def test_spacer_item_reserves_full_height(qtbot: QtBot) -> None:
     assert spacer.sizeHint().height() == _SPACER_HEIGHT
 
 
+def test_single_line_spacer_uses_large_font(qtbot: QtBot) -> None:
+    from PyQt6.QtWidgets import QLabel
+
+    spacer = _SpacerItem("sound")
+    qtbot.addWidget(spacer)
+    lbls = spacer.findChildren(QLabel)
+    assert len(lbls) == 1
+    assert f"font-size: {_SPACER_FONT_PX_SINGLE}px" in lbls[0].styleSheet()
+
+
+def test_map_base_spacer_uses_compact_font_and_three_lines(qtbot: QtBot) -> None:
+    from PyQt6.QtWidgets import QLabel
+
+    spacer = _SpacerItem("map_base")
+    qtbot.addWidget(spacer)
+    lbls = spacer.findChildren(QLabel)
+    assert len(lbls) == 3  # world / background / loading
+    assert all(f"font-size: {_SPACER_FONT_PX_MULTILINE}px" in lbl.styleSheet() for lbl in lbls)
+
+
 def test_move_to_group_relocates_misplaced_mod_upward(qtbot: QtBot) -> None:
     """A sound mod stranded below a truck mod moves up into the sound block
     and stops being misplaced."""
@@ -140,6 +162,37 @@ def test_apply_combo_order_reorders_block_only(qtbot: QtBot) -> None:
     w.apply_combo_order(reversed_block)
     # the non-map mod keeps its slot, only the maps block flipped
     assert [m.name for m in w.display_order()] == ["snd", "m2", "m1"]
+
+
+def test_conflict_marks_name_and_sets_tooltip(qtbot: QtBot) -> None:
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    w.set_active_mods(
+        _mods("a"),
+        category_for=lambda m: ("truck",),
+        conflict_for=lambda m: "shares def/x with B" if m.name == "a" else "",
+    )
+    for i in range(w._list.count()):
+        item = w._list.item(i)
+        if item.data(Qt.ItemDataRole.UserRole) is not None:
+            widget = w._list.itemWidget(item)
+            assert widget.toolTip() == "shares def/x with B"
+            assert widget._name.text().startswith("⚠")
+            return
+    raise AssertionError("no mod row found")
+
+
+def test_no_conflict_leaves_name_plain(qtbot: QtBot) -> None:
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    w.set_active_mods(_mods("a"), category_for=lambda m: ("truck",), conflict_for=lambda m: "")
+    for i in range(w._list.count()):
+        item = w._list.item(i)
+        if item.data(Qt.ItemDataRole.UserRole) is not None:
+            widget = w._list.itemWidget(item)
+            assert not widget._name.text().startswith("⚠")
+            return
+    raise AssertionError("no mod row found")
 
 
 def test_maps_spacer_carries_group_id(qtbot: QtBot) -> None:

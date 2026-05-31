@@ -14,6 +14,7 @@ from PyQt6.QtCore import QMimeData, Qt, pyqtSignal
 from PyQt6.QtGui import QDrag
 from PyQt6.QtWidgets import QGridLayout, QScrollArea, QSizePolicy, QWidget
 
+from easy_scsmodmanager.core.version_compat import CompatStatus
 from easy_scsmodmanager.services.mod_matching import active_name_for
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
@@ -60,6 +61,7 @@ class ModCardGrid(QScrollArea):
         icon_for: Callable[[ScannedMod], bytes | None] | None = None,
         name_for: Callable[[ScannedMod], str] | None = None,
         categories_for: Callable[[ScannedMod], tuple[str, ...]] | None = None,
+        compat_for: Callable[[ScannedMod], CompatStatus] | None = None,
     ) -> None:
         """Replace the displayed cards.
 
@@ -79,6 +81,7 @@ class ModCardGrid(QScrollArea):
                 icon_bytes=icon,
                 display_name=name_for(mod) if name_for is not None else None,
                 categories_for=categories_for,
+                compat_for=compat_for,
             )
             idx = len(self._cards)
             card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
