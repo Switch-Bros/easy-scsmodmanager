@@ -160,6 +160,7 @@
   "map_combo.invalid_body": "Diese Datei ist keine gültige MapCombo.",
   "map_combo.missing_title": "Import nicht möglich",
   "map_combo.missing_body": "Dir fehlen folgende Maps aus dieser Combo:",
+  "map_combo.import_scanning": "Suche Mods neu ein vor dem Import...",
   "map_combo.exported": "MapCombo exportiert: {count} Maps",
   "map_combo.imported": "MapCombo importiert: {count} Maps neu angeordnet",
 

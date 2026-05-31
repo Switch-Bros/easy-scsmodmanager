@@ -118,6 +118,8 @@ class MainWindow(QMainWindow):
         self._map_base_names = SettingsStore().get_map_base_names()
         self._scan_thread: ScanThread | None = None
         self._workshop_thread: WorkshopFetchThread | None = None
+        # a MapCombo waiting to be applied once a fresh scan completes
+        self._pending_combo: list[MapComboEntry] | None = None
 
         self.setWindowTitle(f"{__app_name__} {__version__}")
         self.setMinimumSize(QSize(1280, 760))
@@ -358,6 +360,8 @@ class MainWindow(QMainWindow):
             )
         )
         self._kickoff_workshop_fetch()
+        if self._pending_combo is not None:
+            self._apply_pending_combo()
 
     def _on_scan_failed(self, message: str) -> None:
         self.statusBar().showMessage(message)
@@ -565,6 +569,21 @@ class MainWindow(QMainWindow):
             combo = parse(Path(path).read_text(encoding="utf-8"))
         except (MapComboError, OSError):
             QMessageBox.warning(self, t("map_combo.invalid_title"), t("map_combo.invalid_body"))
+            return
+        # rescan first so the maps block reflects the current disk state, then
+        # apply the combo from the scan-finished callback. Without this the
+        # missing-maps check runs against stale scan data.
+        self._pending_combo = combo
+        if self._install is not None:
+            self.statusBar().showMessage(t("map_combo.import_scanning"))
+            self._start_scan()
+        else:
+            self._apply_pending_combo()
+
+    def _apply_pending_combo(self) -> None:
+        combo = self._pending_combo
+        self._pending_combo = None
+        if combo is None:
             return
         block = self._active_list.maps_block()
         gaps = missing(combo, {m.name for m in block})

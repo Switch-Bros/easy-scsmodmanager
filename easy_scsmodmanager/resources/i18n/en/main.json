@@ -160,6 +160,7 @@
   "map_combo.invalid_body": "This file is not a valid MapCombo.",
   "map_combo.missing_title": "Import not possible",
   "map_combo.missing_body": "You are missing the following maps from this combo:",
+  "map_combo.import_scanning": "Rescanning mods before import...",
   "map_combo.exported": "MapCombo exported: {count} maps",
   "map_combo.imported": "MapCombo imported: {count} maps reordered",
 
