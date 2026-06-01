@@ -1,0 +1,42 @@
+# Builds the tar.gz and .deb packages.
+# Can be triggered manually, called by other workflows, or on release.
+name: Build Packages
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  release:
+    types: [published]
+
+jobs:
+  build-tarball:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install build tools
+        run: pip install build installer setuptools wheel
+      - name: Build tar.gz
+        run: bash packaging/tarball/build-tarball.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EasySCSModManager-tarball
+          path: dist/EasySCSModManager-*-linux-x86_64.tar.gz
+
+  build-deb:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install build tools
+        run: pip install build installer setuptools wheel
+      - name: Build .deb
+        run: bash packaging/deb/build-deb.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EasySCSModManager-deb
+          path: dist/easy-scsmodmanager_*.deb
