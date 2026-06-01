@@ -1,0 +1,82 @@
+# Builds a portable AppImage using PyInstaller + linuxdeploy.
+# Can be triggered manually, called by other workflows, or on release.
+name: Build AppImage
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libxcb-xinerama0 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 \
+            libxcb-xkb1 libxcb-cursor0 libxkbcommon-x11-0 libgl1 fuse libfuse2
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install .
+          pip install pyinstaller==6.11.1
+
+      - name: Build with PyInstaller
+        run: pyinstaller EasySCSModManager.spec --noconfirm
+
+      - name: Create AppDir structure
+        run: |
+          APPID=io.github.switch_bros.EasySCSModManager
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/512x512/apps
+          mkdir -p AppDir/usr/share/metainfo
+          cp -r dist/EasySCSModManager/* AppDir/usr/bin/
+          # Symlink so the desktop file's Exec= resolves
+          ln -sf EasySCSModManager AppDir/usr/bin/easy-scsmodmanager
+          cp easy_scsmodmanager/resources/$APPID.desktop AppDir/usr/share/applications/
+          cp easy_scsmodmanager/resources/icon.png AppDir/usr/share/icons/hicolor/512x512/apps/$APPID.png
+          cp easy_scsmodmanager/resources/$APPID.metainfo.xml AppDir/usr/share/metainfo/
+          cp easy_scsmodmanager/resources/$APPID.desktop AppDir/
+          cp easy_scsmodmanager/resources/icon.png AppDir/$APPID.png
+
+      - name: Download linuxdeploy
+        run: |
+          wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          chmod +x linuxdeploy-x86_64.AppImage
+
+      - name: Build AppImage
+        run: |
+          APPID=io.github.switch_bros.EasySCSModManager
+          export OUTPUT="EasySCSModManager-x86_64.AppImage"
+          # Bundle libxcb-cursor.so.0 - Qt 6.5+ needs it for the xcb platform
+          # plugin, and older Debian/Ubuntu/Mint do not ship it by default.
+          XCB_CURSOR=$(ldconfig -p | awk '/libxcb-cursor\.so\.0/ {print $NF; exit}')
+          test -f "$XCB_CURSOR" || { echo "libxcb-cursor.so.0 missing"; exit 1; }
+          ARCH=x86_64 ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --desktop-file AppDir/$APPID.desktop \
+            --icon-file AppDir/$APPID.png \
+            --library "$XCB_CURSOR" \
+            --output appimage
+          if [ ! -f "$OUTPUT" ]; then
+            mv EasySCSModManager-*.AppImage "$OUTPUT" 2>/dev/null || true
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EasySCSModManager-AppImage
+          path: EasySCSModManager-x86_64.AppImage
