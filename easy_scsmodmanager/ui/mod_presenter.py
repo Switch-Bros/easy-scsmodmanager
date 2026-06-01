@@ -33,11 +33,12 @@ from easy_scsmodmanager.utils.i18n import t
 
 
 class ModPresenter:
-    def __init__(self, *, cache, workshop_cache, overrides, group_overrides) -> None:
+    def __init__(self, *, cache, workshop_cache, overrides, group_overrides, favorites) -> None:
         self._cache = cache
         self._workshop_cache = workshop_cache
         self._overrides = overrides
         self._group_overrides = group_overrides
+        self._favorites = favorites
         # per-scan context, pushed in via set_context()
         self._matcher: ActiveModMatcher | None = None
         self._profile: Profile | None = None
@@ -68,6 +69,9 @@ class ModPresenter:
         if self._profile is None:
             return set()
         return {active.name for active in self._profile.active_mods}
+
+    def is_favorite(self, mod: ScannedMod) -> bool:
+        return self._favorites.is_favorite(mod.mod_name)
 
     def _active_display_map(self) -> dict[str, str]:
         if self._profile is None:
@@ -198,6 +202,8 @@ class ModPresenter:
         result: list[ScannedMod] = []
         for mod in mods:
             if state.workshop_only and workshop_id_for_path(mod.path) is None:
+                continue
+            if state.favorites_only and not self.is_favorite(mod):
                 continue
             # Search the name the user actually sees on the card, not a second
             # divergent source - a workshop "...Dashboard" lives in its title.

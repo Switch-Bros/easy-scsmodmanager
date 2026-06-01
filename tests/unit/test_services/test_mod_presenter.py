@@ -21,6 +21,13 @@ class _NullCache:
         return None
 
 
+class _NoFavorites:
+    """Favourites store that holds nothing."""
+
+    def is_favorite(self, _mod_key: str) -> bool:
+        return False
+
+
 def _mod(path: str) -> ScannedMod:
     return ScannedMod(path=Path(path), format=ScsFormat.ZIP, manifest=None, error=None)
 
@@ -31,6 +38,7 @@ def _presenter() -> ModPresenter:
         workshop_cache=_NullCache(),
         overrides=_NullCache(),
         group_overrides=_NullCache(),
+        favorites=_NoFavorites(),
     )
 
 
@@ -71,6 +79,28 @@ def test_display_name_prefers_profile_active_display() -> None:
     )
 
     assert presenter.display_name_for(mod) == "Pretty Name"
+
+
+def test_favorites_only_keeps_just_favourites(tmp_path) -> None:
+    from easy_scsmodmanager.core.favorites_store import FavoritesStore
+    from easy_scsmodmanager.ui.mod_presenter import ModPresenter
+
+    favorites = FavoritesStore(tmp_path / "fav.db")
+    favorites.set_favorite("liked", True)
+    presenter = ModPresenter(
+        cache=_NullCache(),
+        workshop_cache=_NullCache(),
+        overrides=_NullCache(),
+        group_overrides=_NullCache(),
+        favorites=favorites,
+    )
+    presenter.set_context(matcher=None, profile=None, game_version=None, map_base_names=())
+    liked = _mod("/mod/liked.scs")
+    other = _mod("/mod/other.scs")
+
+    result = presenter.filter_and_sort([liked, other], FilterState(favorites_only=True))
+
+    assert result == [liked]
 
 
 def test_workshop_only_keeps_just_workshop_mods() -> None:

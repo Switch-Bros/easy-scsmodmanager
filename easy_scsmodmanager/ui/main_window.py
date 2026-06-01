@@ -39,6 +39,7 @@ from easy_scsmodmanager.core.category_overrides import (
 )
 from easy_scsmodmanager.core.db.scan_cache import ScanCache, default_cache_path
 from easy_scsmodmanager.core.db.workshop_meta_cache import WorkshopMetaCache
+from easy_scsmodmanager.core.favorites_store import FavoritesStore, default_favorites_path
 from easy_scsmodmanager.core.game_paths import (
     Game,
     GameInstall,
@@ -104,6 +105,7 @@ class MainWindow(QMainWindow):
         self._workshop_cache = WorkshopMetaCache(self._cache.connection())
         self._overrides = CategoryOverrides(default_overrides_path())
         self._group_overrides = CategoryOverrides(default_group_overrides_path())
+        self._favorites = FavoritesStore(default_favorites_path())
         self._map_base_names = SettingsStore().get_map_base_names()
         self._game_version: str | None = None
         self._scan_thread: ScanThread | None = None
@@ -113,6 +115,7 @@ class MainWindow(QMainWindow):
             workshop_cache=self._workshop_cache,
             overrides=self._overrides,
             group_overrides=self._group_overrides,
+            favorites=self._favorites,
         )
         self._workshop = WorkshopFetchController(
             cache=self._cache,
@@ -158,6 +161,7 @@ class MainWindow(QMainWindow):
         self._grid.selection_changed.connect(self._on_grid_selection_changed)
         self._grid.info_requested.connect(self._on_mod_info_requested)
         self._grid.card_activated.connect(self._on_mod_activated)
+        self._grid.favorite_toggled.connect(self._on_favorite_toggled)
         left_layout.addWidget(self._filter_toolbar)
         left_layout.addWidget(self._grid, 1)
 
@@ -398,6 +402,7 @@ class MainWindow(QMainWindow):
             name_for=self._presenter.display_name_for,
             categories_for=self._presenter.effective_for,
             compat_for=self._presenter.compat_for,
+            is_favorite_for=self._presenter.is_favorite,
         )
 
     def _refresh_active_list(self) -> None:
@@ -431,6 +436,13 @@ class MainWindow(QMainWindow):
 
     def _on_mod_info_requested(self, mod: ScannedMod) -> None:
         ModInfoDialog(mod, parent=self, display_name=self._presenter.display_name_for(mod)).exec()
+
+    def _on_favorite_toggled(self, mod: ScannedMod, is_favorite: bool) -> None:
+        self._favorites.set_favorite(mod.mod_name, is_favorite)
+        # only the favourites filter changes which cards are shown; otherwise the
+        # card already flipped its own star, so no rebuild is needed
+        if self._filter.favorites_only:
+            self._refresh_grid()
 
     def _on_active_order_changed(self) -> None:
         self._save_btn.setEnabled(True)
@@ -583,6 +595,7 @@ class MainWindow(QMainWindow):
             self._scan_thread.wait(5000)
         self._workshop.shutdown(5000)
         self._cache.close()
+        self._favorites.close()
         self._overrides.close()
         self._group_overrides.close()
         super().closeEvent(event)

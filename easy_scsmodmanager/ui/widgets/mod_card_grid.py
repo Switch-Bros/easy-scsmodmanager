@@ -28,6 +28,7 @@ class ModCardGrid(QScrollArea):
     selection_changed = pyqtSignal(list)  # list[ScannedMod]
     card_activated = pyqtSignal(object)  # ScannedMod
     info_requested = pyqtSignal(object)  # ScannedMod
+    favorite_toggled = pyqtSignal(object, bool)  # (ScannedMod, is_favorite)
 
     def __init__(self, columns: int = 3, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -62,6 +63,7 @@ class ModCardGrid(QScrollArea):
         name_for: Callable[[ScannedMod], str] | None = None,
         categories_for: Callable[[ScannedMod], tuple[str, ...]] | None = None,
         compat_for: Callable[[ScannedMod], CompatStatus] | None = None,
+        is_favorite_for: Callable[[ScannedMod], bool] | None = None,
     ) -> None:
         """Replace the displayed cards.
 
@@ -82,11 +84,13 @@ class ModCardGrid(QScrollArea):
                 display_name=name_for(mod) if name_for is not None else None,
                 categories_for=categories_for,
                 compat_for=compat_for,
+                is_favorite=is_favorite_for(mod) if is_favorite_for is not None else False,
             )
             idx = len(self._cards)
             card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
             card.activated.connect(lambda i=idx: self._on_card_activated(i))
             card.info_requested.connect(lambda m=mod: self.info_requested.emit(m))
+            card.favorite_toggled.connect(lambda fav, m=mod: self.favorite_toggled.emit(m, fav))
             card.drag_started.connect(lambda i=idx: self._start_drag(i))
             self._cards.append(card)
             self._grid.addWidget(card, i // self._columns, i % self._columns)
