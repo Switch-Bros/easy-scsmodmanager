@@ -1,0 +1,47 @@
+# Builds a standalone Windows .exe with PyInstaller (one-file, windowed).
+# Can be triggered manually, called by other workflows, or on release.
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Python dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+          pip install pyinstaller==6.11.1
+
+      - name: Build EXE
+        shell: bash
+        run: |
+          # one-file windowed build; ';' is the Windows add-data separator.
+          # collect-all pulls the dynamic crypto/http deps PyInstaller can't trace.
+          pyinstaller --onefile --windowed --noconfirm \
+            --name EasySCSModManager \
+            --icon easy_scsmodmanager/resources/icon.ico \
+            --add-data "easy_scsmodmanager;easy_scsmodmanager" \
+            --collect-all Crypto \
+            --collect-all httpx \
+            --hidden-import vdf \
+            easy_scsmodmanager/__main__.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EasySCSModManager-Windows-EXE
+          path: dist/EasySCSModManager.exe

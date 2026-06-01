@@ -67,6 +67,7 @@ easy_scsmodmanager = [
     "resources/screenshots/*",
     "resources/icon.png",
     "resources/icon.svg",
+    "resources/icon.ico",
     "resources/*.desktop",
     "resources/*.metainfo.xml",
 ]
