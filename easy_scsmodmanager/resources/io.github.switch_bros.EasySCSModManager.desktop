@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Easy SCSModManager
+Comment=Mod and profile manager for Euro Truck Simulator 2 and American Truck Simulator
+Comment[de]=Mod- und Profil-Manager für Euro Truck Simulator 2 und American Truck Simulator
+Exec=easy-scsmodmanager
+Icon=io.github.switch_bros.EasySCSModManager
+Terminal=false
+Categories=Game;Utility;
+Keywords=ets2;ats;euro truck;american truck;mods;mod manager;load order;scs;
+StartupNotify=true
+StartupWMClass=io.github.switch_bros.EasySCSModManager
