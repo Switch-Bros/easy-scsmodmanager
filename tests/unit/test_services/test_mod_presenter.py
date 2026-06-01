@@ -71,3 +71,14 @@ def test_display_name_prefers_profile_active_display() -> None:
     )
 
     assert presenter.display_name_for(mod) == "Pretty Name"
+
+
+def test_workshop_only_keeps_just_workshop_mods() -> None:
+    presenter = _presenter()
+    workshop = _mod("/lib/steamapps/workshop/content/227300/123/universal.scs")
+    local = _mod("/games/ETS2/mod/local_mod.scs")
+    presenter.set_context(matcher=None, profile=None, game_version=None, map_base_names=())
+
+    result = presenter.filter_and_sort([workshop, local], FilterState(workshop_only=True))
+
+    assert result == [workshop]

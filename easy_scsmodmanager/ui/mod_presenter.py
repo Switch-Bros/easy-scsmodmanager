@@ -197,6 +197,8 @@ class ModPresenter:
     def filter_and_sort(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
         result: list[ScannedMod] = []
         for mod in mods:
+            if state.workshop_only and workshop_id_for_path(mod.path) is None:
+                continue
             # Search the name the user actually sees on the card, not a second
             # divergent source - a workshop "...Dashboard" lives in its title.
             display = self.display_name_for(mod)
