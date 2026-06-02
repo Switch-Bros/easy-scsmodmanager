@@ -8,15 +8,16 @@
 
 <h1 align="center">🚚 Easy SCSModManager</h1>
 
-[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-E67E22?style=plastic&logo=python&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
+[![Python 3.13+](https://img.shields.io/badge/Python-3.13%2B-E67E22?style=plastic&logo=python&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Plattform](https://img.shields.io/badge/Plattform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Spiele](https://img.shields.io/badge/Spiele-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-276%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-475%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
 
 > **Ein richtiger Mod-Manager für Euro Truck Simulator 2 und American Truck Simulator.**
-> Mods durchstöbern, die aktive Ladereihenfolge per echtem Drag and Drop sortieren und direkt ins Profil zurückschreiben - mit automatischen Backups.
+> Mods durchstöbern wie im Spiel, die Ladereihenfolge per echtem Drag and Drop sortieren und direkt ins Profil zurückschreiben - mit den Komfort-Funktionen, die das Spiel selbst nie hatte.
 
 <p align="center">
   <a href="README.md">
@@ -32,7 +33,7 @@
 
 <h3 align="center">💛 Projekt unterstützen</h3>
 
-Wenn dir dieser Manager Zeit beim Sortieren deiner Mod-Liste spart, kannst du die Entwicklung unterstützen. Jeder Beitrag - egal wie klein - hält das Projekt am Leben.
+Wenn dir dieser Manager das Zurechtklicken einer 300-Mod-Liste Zeile für Zeile erspart, kannst du die Entwicklung unterstützen. Jeder Beitrag - egal wie klein - hält das Projekt am Leben.
 
 <p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
@@ -55,34 +56,177 @@ Wenn dir dieser Manager Zeit beim Sortieren deiner Mod-Liste spart, kannst du di
 </p>
 
 
-<h2 align="center">✨ Was die App kann</h2>
+<h2 align="center">✨ Funktionen</h2>
 
-- **Findet jeden deiner Mods** - liest deinen lokalen `mod/`-Ordner und deine Steam-Workshop-Abos für ETS2 und ATS, unter Linux und Windows
-- **Browser im ETS2-Stil** - Karten-Raster mit Vorschaubildern, Suche, Sortierung und Mehrfachauswahl (Strg / Shift)
-- **Echtes Drag and Drop** - Mods zwischen Bibliothek und aktiver Liste ziehen, die Ladereihenfolge per Ziehen umsortieren, mit sanftem Scrollen und klarer Einfügemarkierung
-- **Schreibt deine Reihenfolge zurück** - speichert die aktive Mod-Liste direkt in deine `profile.sii`, damit das Spiel genau mit deiner Reihenfolge startet
-- **Automatische Backups** - vor jedem Speichern kann ein Backup angelegt werden, und du stellst jedes frühere Profil mit einem Klick wieder her
+<h3 align="center">🚚 Jeder Mod, den du hast - <i>auch die sperrigen</i></h3>
+
+Easy SCSModManager liest deinen lokalen `mod/`-Ordner und deine Steam-Workshop-Abos für ETS2 und ATS und zeigt alles in einem Karten-Raster, das aussieht wie der Mod-Manager im Spiel - nur besser.
+
+- **Jedes Container-Format** - einfache `.scs`, ZIP-basierte `.scs`, HashFS v1 und v2 (mit reinem Python-Reader dekodiert, ohne externe Tools) und entpackte Mod-Ordner
+- **Liest die Daten, die auch der In-Game-Browser zeigt** - Name, Icon und Beschreibung direkt aus der `manifest.sii` jedes Mods, sodass auch ein Workshop-Mod namens `universal.scs` seinen echten Namen zeigt
+- **Workshop-Vorschau** - hat ein Mod kein lesbares lokales Icon, springt das Steam-Workshop-Vorschaubild ein
+- **Suche, Sortierung und Filter** - Volltextsuche über Name, Ersteller und Kategorie, Sortierung nach Name oder Installationsdatum, Filter nach Kategorie, nur Workshop oder nur Favoriten
+- **Mehrfachauswahl** mit Strg / Shift, um ganze Stapel auf einmal zu aktivieren oder zu deaktivieren
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="easy_scsmodmanager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="easy_scsmodmanager/resources/images/readme_divider_light.webp">
+    <img src="easy_scsmodmanager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">🖱️ Ladereihenfolge per Drag and Drop - <i>der ganze Grund für die App</i></h3>
+
+Der Mod-Manager im Spiel lässt dich einen Mod nur Zeile für Zeile nach oben oder unten schieben. Bei 300 Mods heißt das: einen Mod in die Mitte der Liste bekommen = 150-mal *nach oben* klicken. Easy SCSModManager ersetzt das durch echtes Drag and Drop: zur Stelle scrollen, Mod reinziehen, fertig.
+
+- **Ziehen zwischen den Panels** - Mods aus der Bibliothek in die aktive Liste ziehen und zurück
+- **Umsortieren per Ziehen** - die aktive Ladereihenfolge direkt umordnen, mit sanftem Auto-Scrollen und klarer Einfügemarkierung
+- **Nach Load-Order-Abschnitt gruppiert** - die aktive Liste ist in Ladereihenfolge-Gruppen unterteilt (Finanzen, Sound, Trucks, Trailer, Maps usw.) mit klaren Überschriften, sodass ein Mod in der Nähe seinesgleichen landet
+- **Fehlplatzierungs-Markierung** - ein Mod in der falschen Gruppe wird markiert, mit Rechtsklick-*Verschieben nach*, um ihn dahin zu pinnen, wo er hingehört
+- **Schreibt direkt in die `profile.sii`** - deine Reihenfolge wird im Klartext ins Profil gespeichert (das Format, das das Spiel ohne Signaturprüfung liest), damit ETS2/ATS genau mit deiner Reihenfolge startet
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="easy_scsmodmanager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="easy_scsmodmanager/resources/images/readme_divider_light.webp">
+    <img src="easy_scsmodmanager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">🗺️ Map-Combos - <i>teile ein Setup, kein Screenshot</i></h3>
+
+Map-Combo-Ersteller reichen ihre Ladereihenfolge meist als Screenshot oder getippte Liste herum, die dann jeder von Hand nachklickt. Easy SCSModManager macht daraus eine Datei. **Rechtsklick auf die Maps-Gruppenüberschrift** in der aktiven Liste exportiert oder importiert eine Combo.
+
+- **Export** des Map-Blocks deiner Ladereihenfolge in eine kleine JSON-Datei zum Teilen
+- **Import** einer Combo: die App scannt zuerst neu und setzt dann deine Maps in genau die Reihenfolge des Erstellers - deine Trucks, Sounds und alles andere bleiben unangetastet
+- **Fehlende-Map-Prüfung** - braucht die Combo eine Map, die du nicht hast, listet ein Dialog genau diese Maps mit Namen auf, damit du weißt, was du noch besorgen musst
+- **Update-Hinweis** - hast du eine Map, aber die Combo wurde mit einer neueren Version gebaut (du hast RusMap 2.2, die Combo nutzte 2.4), sagt die App es dir - als Hinweis, nie als Blockade
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="easy_scsmodmanager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="easy_scsmodmanager/resources/images/readme_divider_light.webp">
+    <img src="easy_scsmodmanager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">⚠️ Kompatibilität und Konflikte - <i>Ärger sehen, bevor das Spiel abstürzt</i></h3>
+
+- **Kompatibilitäts-Prüfung** - Mods werden gegen die erkannte Spielversion geprüft, genau so wie es das Spiel macht: markiert wird nur ein Mod, dessen `manifest.sii` tatsächlich eine inkompatible Version angibt. Ein Mod ohne Versionsangabe wird nie fälschlich markiert - der 1.58-Mod, den du bewusst auf 1.59 fährst, bleibt also in Ruhe
+- **Konflikt-Hinweise** - überschreiben zwei aktive Mods dieselbe `def/`-Datei, weist die App darauf hin (welche Mods, welche Datei), damit du sie bewusst anordnest. Es ist ein Hinweis, keine Blockade - bei Maps ist eine Überschneidung oft gewollt und die Ladereihenfolge entscheidet den Sieger
+- **Filterung generischer Overrides** - Dateien, die fast jede Map anfasst, werden ausgefiltert, damit die echten Konflikte nicht im Rauschen untergehen
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="easy_scsmodmanager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="easy_scsmodmanager/resources/images/readme_divider_light.webp">
+    <img src="easy_scsmodmanager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">🎮 Beide Spiele, ein Fenster - <i>ETS2 und ATS nebeneinander</i></h3>
+
+- **Spiel-Umschalter** - wechsle zwischen Euro Truck Simulator 2 und American Truck Simulator aus einem Fenster; nur installierte Spiele sind wählbar, und deine Wahl wird für den nächsten Start gemerkt
+- **Automatische Erkennung** - findet deine Installation und Profile automatisch unter Linux (nativ und Proton) und Windows, oder setze die Pfade selbst in den Einstellungen
+- **Favoriten** - markiere die Mods, die du wieder nutzt, und filtere auf nur Favoriten
 - **Profil-Verwaltung** - wechsle zwischen deinen Profilen und sieh, welche Mods jedes nutzt
-- **Beide Spiele, eine App** - ETS2 und ATS von Anfang an, mit Spiel-Umschalter in der Oberfläche
+- **Backup und Wiederherstellung** - vor jedem Speichern kann ein Backup angelegt werden, und jedes frühere Profil ist einen Klick von der Wiederherstellung entfernt
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="easy_scsmodmanager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="easy_scsmodmanager/resources/images/readme_divider_light.webp">
+    <img src="easy_scsmodmanager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">🌍 Zweisprachig und nativ - <i>für Linux und Windows gebaut</i></h3>
+
+Vollständige Oberfläche auf **Englisch 🇬🇧** und **Deutsch 🇩🇪** mit kompletter i18n - keine hartkodierten Strings. Gebaut mit **PyQt6** und der mitgelieferten Inter-Schrift, damit es überall gleich aussieht.
+
+- **Linux und Windows** von Anfang an - native und Proton-Installationen werden beide erkannt
+- **Steam-Deck-tauglich** - läuft im Desktop-Modus
+- **Fünf Distributions-Formate** - AppImage, Windows-EXE, .deb, tar.gz und AUR
 
 
-<h2 align="center">🛣️ Geplant</h2>
+<h2 align="center">📦 Herunterladen & Installieren</h2>
 
-- Konflikt-Erkennung über def-Datei-Überschneidungen
-- Mod-Presets / teilbare Ladereihenfolge-Profile
-- Workshop-Update-Benachrichtigungen und Ein-Klick-Links zur Workshop-Seite
+| Format | Download | Hinweise |
+|--------|----------|----------|
+| 🐧 **AppImage** | [Neueste laden](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Läuft auf jeder Distro - laden, chmod +x, starten |
+| 🪟 **Windows-EXE** | [Neueste laden](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Eigenständig, kein Python nötig |
+| 🏗️ **AUR** | `yay -S easy-scsmodmanager` | Arch / Manjaro / CachyOS / EndeavourOS |
+| 🍥 **.deb** | [Neueste laden](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Debian / Ubuntu / Linux Mint (nutzt System-PyQt6) |
+| 📁 **tar.gz** | [Neueste laden](https://github.com/Switch-Bros/easy-scsmodmanager/releases) | Portabel mit Installationsskript |
 
-
-<h2 align="center">🚀 Loslegen</h2>
+<details>
+<summary>🔧 Aus dem Quellcode bauen (für Entwickler)</summary>
 
 ```bash
+# Klonen
 git clone https://github.com/Switch-Bros/easy-scsmodmanager.git
 cd easy-scsmodmanager
+
+# Virtuelle Umgebung
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Installieren (editierbar) und starten
 pip install -e .
 python -m easy_scsmodmanager
 ```
 
-Benötigt Python 3.12+ und PyQt6. Eigenständige Linux-AppImage- und Windows-Builds sind geplant.
+Benötigt **Python 3.13+** und **PyQt6**.
+
+</details>
+
+
+<h2 align="center">🗺️ Roadmap</h2>
+
+| Meilenstein | Status |
+|-------------|--------|
+| SCS-Reader (ZIP, HashFS v1/v2, Fake-Lock, AEM), SII-Parser, Scan-Cache | ✅ Fertig |
+| Mod-Browser, Suche/Filter, Profil-Header, i18n, Einstellungen | ✅ Fertig |
+| Drag and Drop, Ladereihenfolge umsortieren, `profile.sii`-Writer, Backups | ✅ Fertig |
+| Load-Order-Gruppen, Map-Basis-Pinning, Fehlplatzierungs-Markierung | ✅ Fertig |
+| Map-Combo Export/Import mit Fehlende-Map- und Versions-Hinweis | ✅ Fertig |
+| Kompatibilitäts-Prüfung (4 Zustände) und def-Überschneidungs-Konflikte | ✅ Fertig |
+| Favoriten, ETS2/ATS-Spiel-Umschalter | ✅ Fertig |
+| Multi-Format-Pakete (AppImage, EXE, .deb, tar.gz, AUR) | ✅ Fertig |
+| **v1.1.1 - Erste öffentliche Version** | ✅ **Veröffentlicht** |
+| Mod-Presets / teilbare Ladereihenfolge-Profile | 📋 Geplant |
+| Workshop-Update-Benachrichtigungen und Ein-Klick-Links zur Workshop-Seite | 📋 Geplant |
+| Flatpak (Flathub-Einreichung) | 📋 Geplant |
+
+
+<h2 align="center">🌍 Übersetzungen</h2>
+
+Easy SCSModManager kommt mit **Englisch** und **Deutsch**. Du willst es in deiner Sprache?
+
+**Eine Übersetzung beizutragen braucht kein Programmieren.**
+
+1. Kopiere die Dateien aus `easy_scsmodmanager/resources/i18n/en/`
+2. Übersetze die Werte - ändere niemals die Schlüssel
+3. Lass Platzhalter wie `{count}` und `{name}` unangetastet
+4. Reiche einen Pull Request ein
+
+Ein fehlender Schlüssel erscheint als nackter Schlüssel in der Oberfläche, sodass Lücken beim Arbeiten leicht auffallen.
+
+
+<h2 align="center">🤝 Mitmachen</h2>
+
+- 🐛 **Bug gefunden?** -> [Issue öffnen](https://github.com/Switch-Bros/easy-scsmodmanager/issues)
+- 💡 **Eine Idee?** -> [Diskussion starten](https://github.com/Switch-Bros/easy-scsmodmanager/discussions)
+- 🌍 **Sprichst du eine andere Sprache?** -> [Hilf beim Übersetzen!](#-übersetzungen)
+- 🔧 **Du willst coden?** -> Repo forken, Issues ansehen, PR einreichen
+
+
+<h2 align="center">⚖️ Rechtlicher Hinweis</h2>
+
+Diese Software wird **"WIE BESEHEN"** bereitgestellt, ohne jegliche ausdrückliche oder stillschweigende Gewährleistung.
+
+Easy SCSModManager bearbeitet nur deine eigene `profile.sii` und liest deine eigenen installierten Mods. Es steht in **keiner Verbindung zu SCS Software** oder Valve Corporation und wird von diesen nicht unterstützt. Euro Truck Simulator 2 und American Truck Simulator sind Marken von SCS Software.
 
 
 <h2 align="center">📜 Lizenz</h2>
@@ -100,5 +244,5 @@ Benötigt Python 3.12+ und PyQt6. Eigenständige Linux-AppImage- und Windows-Bui
 </p>
 
 <p align="center">
-  Mit ❤️ unter Linux gebaut von <a href="https://github.com/Switch-Bros">Switch Bros</a>
+  Mit ❤️ auf Linux gebaut von <a href="https://github.com/Switch-Bros">Switch Bros</a>
 </p>
