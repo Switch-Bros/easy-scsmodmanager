@@ -34,7 +34,7 @@
 
 <h3 align="center">💛 Support This Project</h3>
 
-If this manager saves you from clicking a 300-mod list into shape one row at a time, consider supporting its development. Every contribution - no matter how small - helps keep the project alive.
+If this manager saves you from clicking a 300-mod list into shape one row at a time, PLEASE consider supporting its development. Every contribution - no matter how small - helps keep the project alive.
 
 <p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
@@ -47,6 +47,8 @@ If this manager saves you from clicking a 300-mod list into shape one row at a t
 </p>
 
 <p align="center"><i>Thank you to everyone who has already contributed - you're amazing! 🙏</i></p>
+
+<p align="center">Not in a position to donate? <b>A ⭐ on this repo helps just as much</b> - it makes the project visible to other truckers, and it's free.</p>
 
 <p align="center">
   <picture>
