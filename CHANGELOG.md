@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.3] - 2026-06-04
+
+- Detect Steam Workshop mods for native installs (Windows, macOS and native
+  Linux), not just Proton - fixes Workshop mods staying invisible in the
+  Windows build even when the game itself was found.
+- A manual documents-folder override no longer switches the Workshop off: the
+  Workshop is auto-detected unless you pin it yourself, and the Settings dialog
+  now has its own Workshop-folder override per game.
+- The language list is now driven entirely by which translations ship, so a new
+  translation only needs to add its folder - groundwork for an upcoming Russian
+  translation.
+
 ## [1.1.2] - 2026-06-04
 
 - Write a rotating log file under a per-platform location (Windows
