@@ -20,6 +20,6 @@ pkgbase = easy-scsmodmanager
 	depends = python-pillow
 	depends = qt6-base
 	source = easy-scsmodmanager-1.1.2.tar.gz::https://github.com/Switch-Bros/easy-scsmodmanager/archive/v1.1.2.tar.gz
-	sha256sums = SKIP
+	sha256sums = 347715afda281aa699a7d39ab2da560806463dfd52f137f930993e2462384dba
 
 pkgname = easy-scsmodmanager

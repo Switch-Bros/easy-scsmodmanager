@@ -28,7 +28,7 @@ checkdepends=(
     'python-pytest-qt'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('347715afda281aa699a7d39ab2da560806463dfd52f137f930993e2462384dba')
 
 build() {
     cd "easy-scsmodmanager-$pkgver"
