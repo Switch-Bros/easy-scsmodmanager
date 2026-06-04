@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.2] - 2026-06-04
+
+- Write a rotating log file under a per-platform location (Windows
+  `%LOCALAPPDATA%`, Linux `$XDG_STATE_HOME`), so problems are diagnosable even
+  in the windowed Windows build where there is no console.
+- Catch uncaught exceptions into the log instead of crashing silently.
+- Log each mod's path before scanning it, so a scan that hangs leaves the
+  culprit as the last line in the log.
+- New **Tools - Open Log Folder** menu entry.
+- New **.rpm** package for Fedora / openSUSE / RHEL.
+
 ## [1.1.1] - 2026-06-01
 
 Initial release.
