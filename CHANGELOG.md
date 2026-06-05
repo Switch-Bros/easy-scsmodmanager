@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.2.0] - 2026-06-05
+
+- **Auto-update.** The app can now check GitHub for a newer release. The
+  AppImage and the Windows build can download a verified update (checked
+  against the release SHA256SUMS) and restart into it; deb/rpm/AUR/tar.gz get
+  a notice with the release notes and a link, and keep updating through their
+  package manager. Toggle the startup check under Settings - Behaviour, or run
+  it any time from Help - Check for Updates.
+- **Windows: find Steam and the Documents folder via the registry.** Steam
+  installed outside Program Files, and a moved (redirected) Documents folder,
+  are now detected, so Workshop mods and profiles show up where earlier builds
+  missed them.
+- Save and restore dialogs now name the game you are actually using (ATS no
+  longer warns about ETS2).
+- **Jump from the grid to the active list.** Right-click a mod and choose
+  "Show in active list", or enable click-to-jump under Settings - Behaviour
+  (off by default).
+- Live scan progress in the status bar, and a faster grid rebuild for very
+  large libraries.
+- More diagnostic logging around install detection, to make "game found but
+  no Workshop" reports easier to pin down.
+- New CONTRIBUTING and CODE_OF_CONDUCT, a committed `uv.lock` for reproducible
+  contributor setups, and groundwork for community translations.
+
 ## [1.1.3] - 2026-06-04
 
 - Detect Steam Workshop mods for native installs (Windows, macOS and native

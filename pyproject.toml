@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "easy-scsmodmanager"
-version = "1.1.3"
+version = "1.2.0"
 description = "Cross-platform mod and profile manager for Euro Truck Simulator 2 and American Truck Simulator"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
