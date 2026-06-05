@@ -117,6 +117,53 @@ def test_windows_documents_uses_userprofile(
     )
 
 
+def test_windows_documents_prefers_registry_personal(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from easy_scsmodmanager.core import game_paths as gp
+
+    redirected = tmp_path / "D" / "MyDocs"
+    monkeypatch.setattr(gp, "read_string", lambda *a, **k: str(redirected))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "user"))
+    monkeypatch.setenv("OneDrive", str(tmp_path / "od"))
+
+    assert windows_documents(Game.ATS) == redirected / "American Truck Simulator"
+
+
+def test_windows_documents_requests_env_expansion(monkeypatch: pytest.MonkeyPatch) -> None:
+    from easy_scsmodmanager.core import game_paths as gp
+
+    seen: dict[str, object] = {}
+
+    def spy(hive: str, subkey: str, name: str, *, expand: bool = False) -> str | None:
+        seen["expand"] = expand
+        seen["name"] = name
+        return None
+
+    monkeypatch.setattr(gp, "read_string", spy)
+    monkeypatch.delenv("OneDrive", raising=False)
+    monkeypatch.setenv("USERPROFILE", "/u")
+
+    windows_documents(Game.ETS2)
+
+    assert seen["expand"] is True
+    assert seen["name"] == "Personal"
+
+
+def test_windows_documents_falls_back_to_onedrive(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from easy_scsmodmanager.core import game_paths as gp
+
+    monkeypatch.setattr(gp, "read_string", lambda *a, **k: None)
+    monkeypatch.setenv("OneDrive", str(tmp_path / "od"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "user"))
+
+    assert windows_documents(Game.ETS2) == (
+        tmp_path / "od" / "Documents" / "Euro Truck Simulator 2"
+    )
+
+
 def test_detect_game_installs_returns_empty_when_nothing_exists(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

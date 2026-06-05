@@ -25,6 +25,7 @@ from enum import Enum
 from pathlib import Path
 
 from easy_scsmodmanager.integrations.steam.library_detector import discover_steam_libraries
+from easy_scsmodmanager.utils.win_registry import read_string
 
 
 class Game(Enum):
@@ -93,12 +94,30 @@ def workshop_dir_path(steam_library: Path, game: Game) -> Path:
 
 
 def windows_documents(game: Game) -> Path:
-    user_profile = os.environ.get("USERPROFILE")
-    onedrive = os.environ.get("OneDrive")  # noqa: SIM112 - real Windows env name
-    docs_root = (
-        Path(onedrive) / "Documents" if onedrive else Path(user_profile or "~") / "Documents"
+    return windows_documents_root() / GAME_DIRECTORY_NAME[game]
+
+
+def windows_documents_root() -> Path:
+    """The user's Documents folder, honouring a redirected location.
+
+    Windows lets users move Documents anywhere (Known Folder redirection); the
+    real path lives in the registry under "Personal" as a REG_EXPAND_SZ, so it
+    may contain %USERPROFILE% and needs expansion. OneDrive and USERPROFILE
+    stay as fallbacks for the rare case the value is missing.
+    """
+    personal = read_string(
+        "HKCU",
+        r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders",
+        "Personal",
+        expand=True,
     )
-    return docs_root / GAME_DIRECTORY_NAME[game]
+    if personal:
+        return Path(personal)
+    onedrive = os.environ.get("OneDrive")  # noqa: SIM112 - real Windows env name
+    if onedrive:
+        return Path(onedrive) / "Documents"
+    user_profile = os.environ.get("USERPROFILE")
+    return Path(user_profile or "~") / "Documents"
 
 
 def macos_documents(game: Game) -> Path:
