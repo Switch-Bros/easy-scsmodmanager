@@ -248,7 +248,9 @@ Requires **Python 3.13+** (from [python.org](https://www.python.org/), on Window
 - 🐛 **Found a bug?** -> [Open an Issue](https://github.com/Switch-Bros/easy-scsmodmanager/issues)
 - 💡 **Have an idea?** -> [Start a Discussion](https://github.com/Switch-Bros/easy-scsmodmanager/discussions)
 - 🌍 **Speak another language?** -> [Help translate!](#-translations)
-- 🔧 **Want to code?** -> Fork the repo, check the issues, and submit a PR
+- 🔧 **Want to code?** -> Read the [Contributing guide](CONTRIBUTING.md), fork the repo, check the issues, and submit a PR
+
+By taking part you agree to our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 
 <h2 align="center">⚖️ Legal Notice</h2>

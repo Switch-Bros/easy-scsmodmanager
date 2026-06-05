@@ -248,7 +248,9 @@ Benötigt **Python 3.13+** (von [python.org](https://www.python.org/), unter Win
 - 🐛 **Bug gefunden?** -> [Issue öffnen](https://github.com/Switch-Bros/easy-scsmodmanager/issues)
 - 💡 **Eine Idee?** -> [Diskussion starten](https://github.com/Switch-Bros/easy-scsmodmanager/discussions)
 - 🌍 **Sprichst du eine andere Sprache?** -> [Hilf beim Übersetzen!](#-übersetzungen)
-- 🔧 **Du willst coden?** -> Repo forken, Issues ansehen, PR einreichen
+- 🔧 **Du willst coden?** -> Lies den [Contributing-Leitfaden](CONTRIBUTING.md), forke das Repo, sieh dir die Issues an und reiche einen PR ein
+
+Mit deiner Teilnahme stimmst du unserem [Code of Conduct](CODE_OF_CONDUCT.md) zu.
 
 
 <h2 align="center">⚖️ Rechtlicher Hinweis</h2>
