@@ -65,6 +65,10 @@ def build_menu_bar(window: MainWindow) -> None:
     issues.triggered.connect(lambda: webbrowser.open(GITHUB_ISSUES_URL))
     help_menu.addAction(issues)
 
+    updates = QAction(t("menu.help.check_updates"), window)
+    updates.triggered.connect(window._on_check_updates)
+    help_menu.addAction(updates)
+
 
 def _build_game_menu(window: MainWindow) -> None:
     """A 'Game' menu with one radio entry per game; only installed ones enabled.

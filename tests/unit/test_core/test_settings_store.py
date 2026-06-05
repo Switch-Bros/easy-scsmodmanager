@@ -70,3 +70,23 @@ def test_active_game_round_trip(store: SettingsStore) -> None:
 def test_active_game_ignores_a_garbage_value(store: SettingsStore) -> None:
     store._s.setValue("active_game", "nonsense")
     assert store.get_active_game() == Game.ETS2
+
+
+def test_update_check_on_startup_defaults_true(store: SettingsStore) -> None:
+    assert store.get_update_check_on_startup() is True
+
+
+def test_update_check_on_startup_roundtrips_false(store: SettingsStore) -> None:
+    store.set_update_check_on_startup(False)
+    assert store.get_update_check_on_startup() is False
+    store.set_update_check_on_startup(True)
+    assert store.get_update_check_on_startup() is True
+
+
+def test_grid_click_jump_defaults_false(store: SettingsStore) -> None:
+    assert store.get_grid_click_jumps_to_active() is False
+
+
+def test_grid_click_jump_roundtrips_true(store: SettingsStore) -> None:
+    store.set_grid_click_jumps_to_active(True)
+    assert store.get_grid_click_jumps_to_active() is True

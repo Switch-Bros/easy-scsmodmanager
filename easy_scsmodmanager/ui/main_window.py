@@ -20,7 +20,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QSize, Qt, QUrl
+from PyQt6.QtCore import QSize, Qt, QTimer, QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -136,8 +136,13 @@ class MainWindow(QMainWindow):
         self._build_central()
         self.statusBar().setStyleSheet(f"color: {Theme.TEXT_DIM};")
 
+        self._update_service: object | None = None  # kept alive during a check
         if auto_scan:
             self._detect_install_and_scan()
+
+        # silent update check once the app has finished loading
+        if self._settings.get_update_check_on_startup():
+            QTimer.singleShot(5000, self._on_startup_update_check)
 
     # ------------------------------------------------------------------ #
     # building
@@ -603,6 +608,52 @@ class MainWindow(QMainWindow):
             self,
             t("dialog.about.title"),
             t("dialog.about.body", version=__version__),
+        )
+
+    # ------------------------------------------------------------------ #
+    # updates
+    # ------------------------------------------------------------------ #
+
+    def _on_check_updates(self) -> None:
+        self._run_update_check(silent=False)
+
+    def _on_startup_update_check(self) -> None:
+        self._run_update_check(silent=True)
+
+    def _run_update_check(self, *, silent: bool) -> None:
+        from easy_scsmodmanager.services.update_service import UpdateService
+
+        svc = UpdateService(parent=self)
+        self._update_service = svc  # keep the QObject alive past this method
+        svc.update_available.connect(self._on_update_available)
+        if not silent:
+            svc.update_not_available.connect(self._on_update_up_to_date)
+            svc.check_failed.connect(self._on_update_check_failed)
+        else:
+            svc.check_failed.connect(lambda msg: log.info("startup update check failed: %s", msg))
+        svc.check_for_update()
+
+    def _on_update_available(self, info: object) -> None:
+        from easy_scsmodmanager.services.update_core import UpdateInfo
+        from easy_scsmodmanager.ui.dialogs.update_dialog import UpdateDialog
+
+        svc = self._update_service
+        if not isinstance(info, UpdateInfo) or svc is None:
+            return
+        UpdateDialog(info, svc, parent=self).exec()  # type: ignore[arg-type]
+
+    def _on_update_up_to_date(self) -> None:
+        QMessageBox.information(
+            self,
+            t("update.check_title"),
+            t("update.up_to_date", version=__version__),
+        )
+
+    def _on_update_check_failed(self, message: str) -> None:
+        QMessageBox.warning(
+            self,
+            t("update.check_title"),
+            t("update.check_failed", error=message),
         )
 
     # ------------------------------------------------------------------ #

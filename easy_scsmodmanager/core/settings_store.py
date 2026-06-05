@@ -23,6 +23,8 @@ APP = "easy-scsmodmanager"
 _KEY_LANGUAGE = "language"
 _KEY_MAP_BASE_NAMES = "map_base_names"
 _KEY_ACTIVE_GAME = "active_game"
+_KEY_UPDATE_CHECK = "update_check_on_startup"
+_KEY_GRID_JUMP = "grid_click_jumps_to_active"
 
 
 def _documents_key(game: Game) -> str:
@@ -81,6 +83,19 @@ class SettingsStore:
     def set_active_game(self, game: Game) -> None:
         _put(self._s, _KEY_ACTIVE_GAME, game.value)
 
+    def get_update_check_on_startup(self) -> bool:
+        return _as_bool(self._s.value(_KEY_UPDATE_CHECK), default=True)
+
+    def set_update_check_on_startup(self, enabled: bool) -> None:
+        # store the bool literally - _put would drop a False as "unset"
+        self._s.setValue(_KEY_UPDATE_CHECK, enabled)
+
+    def get_grid_click_jumps_to_active(self) -> bool:
+        return _as_bool(self._s.value(_KEY_GRID_JUMP), default=False)
+
+    def set_grid_click_jumps_to_active(self, enabled: bool) -> None:
+        self._s.setValue(_KEY_GRID_JUMP, enabled)
+
     def get_map_base_names(self) -> tuple[str, ...]:
         raw = _clean(self._s.value(_KEY_MAP_BASE_NAMES))
         if not raw:
@@ -91,6 +106,15 @@ class SettingsStore:
     def set_map_base_names(self, names: Iterable[str]) -> None:
         joined = "\n".join(n.strip() for n in names if n.strip())
         _put(self._s, _KEY_MAP_BASE_NAMES, joined or None)
+
+
+def _as_bool(value: object, *, default: bool) -> bool:
+    # QSettings hands bools back as the strings "true"/"false"
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
 
 
 def _clean(value: object) -> str | None:
