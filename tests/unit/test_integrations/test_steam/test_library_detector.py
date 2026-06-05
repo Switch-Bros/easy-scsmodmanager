@@ -207,3 +207,38 @@ def test_windows_candidates_skip_registry_when_absent(monkeypatch: pytest.Monkey
     cands = ld._windows_candidates()
 
     assert cands == [Path(r"C:\Program Files (x86)") / "Steam"]
+
+
+def test_discover_logs_no_install(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    from easy_scsmodmanager.integrations.steam import library_detector as ld
+
+    monkeypatch.setattr(ld, "find_steam_installs", lambda: [])
+    with caplog.at_level(logging.INFO):
+        ld.discover_steam_libraries()
+
+    assert any("no Steam install found" in r.message for r in caplog.records)
+
+
+def test_discover_logs_installs_and_libraries(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    from easy_scsmodmanager.integrations.steam import library_detector as ld
+
+    install = tmp_path / "steam"
+    _write_vdf(
+        install / "steamapps" / "libraryfolders.vdf",
+        '"libraryfolders"\n{\n\t"0"\n\t{\n\t\t"path"\t"/lib/one"\n\t}\n}\n',
+    )
+    monkeypatch.setattr(ld, "find_steam_installs", lambda: [install])
+    with caplog.at_level(logging.INFO):
+        ld.discover_steam_libraries()
+
+    joined = " ".join(r.message for r in caplog.records)
+    assert "Steam installs:" in joined
+    assert "Steam libraries:" in joined

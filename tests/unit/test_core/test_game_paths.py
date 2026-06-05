@@ -319,3 +319,46 @@ def test_game_install_has_convenience_paths(tmp_path: Path) -> None:
 
     assert install.profiles_dir == tmp_path / "docs" / "profiles"
     assert install.mod_dir == tmp_path / "docs" / "mod"
+
+
+def test_windows_documents_root_logs_registry_source(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    from easy_scsmodmanager.core import game_paths as gp
+
+    monkeypatch.setattr(gp, "read_string", lambda *a, **k: "/D/MyDocs")
+    with caplog.at_level(logging.INFO):
+        gp.windows_documents_root()
+
+    assert any("from registry" in r.message for r in caplog.records)
+
+
+def test_windows_documents_root_logs_fallback_source(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    from easy_scsmodmanager.core import game_paths as gp
+
+    monkeypatch.setattr(gp, "read_string", lambda *a, **k: None)
+    monkeypatch.delenv("OneDrive", raising=False)
+    monkeypatch.setenv("USERPROFILE", "/u")
+    with caplog.at_level(logging.INFO):
+        gp.windows_documents_root()
+
+    assert any("USERPROFILE fallback" in r.message for r in caplog.records)
+
+
+def test_detect_game_installs_logs_when_empty(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    import logging
+
+    monkeypatch.setenv("HOME", str(tmp_path / "empty_home"))
+    monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+    with caplog.at_level(logging.INFO):
+        detect_game_installs(Game.ETS2, steam_libraries=[])
+
+    assert any("no ets2 install detected" in r.message for r in caplog.records)

@@ -18,6 +18,7 @@ lives outside this module.
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from dataclasses import dataclass
@@ -26,6 +27,8 @@ from pathlib import Path
 
 from easy_scsmodmanager.integrations.steam.library_detector import discover_steam_libraries
 from easy_scsmodmanager.utils.win_registry import read_string
+
+log = logging.getLogger(__name__)
 
 
 class Game(Enum):
@@ -112,11 +115,14 @@ def windows_documents_root() -> Path:
         expand=True,
     )
     if personal:
+        log.info("Documents folder from registry: %s", personal)
         return Path(personal)
     onedrive = os.environ.get("OneDrive")  # noqa: SIM112 - real Windows env name
     if onedrive:
+        log.info("Documents folder from OneDrive fallback: %s", onedrive)
         return Path(onedrive) / "Documents"
     user_profile = os.environ.get("USERPROFILE")
+    log.info("Documents folder from USERPROFILE fallback")
     return Path(user_profile or "~") / "Documents"
 
 
@@ -241,6 +247,18 @@ def detect_game_installs(
                     workshop_dir=workshop if workshop.is_dir() else None,
                 )
             )
+
+    if installs:
+        for inst in installs:
+            log.info(
+                "%s %s install: documents=%s workshop=%s",
+                game.value,
+                inst.kind.value,
+                inst.documents_dir,
+                inst.workshop_dir if inst.workshop_dir else "(none)",
+            )
+    else:
+        log.info("no %s install detected", game.value)
 
     return installs
 

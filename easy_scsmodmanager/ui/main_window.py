@@ -234,12 +234,20 @@ class MainWindow(QMainWindow):
         documents = store.get_documents_override(self._game)
         if documents is not None:
             workshop = store.get_workshop_override(self._game)
+            log.info("using documents override for %s: %s", self._game.value, documents)
             return install_for_overrides(self._game, documents, workshop)
         installs = detect_game_installs(self._game)
         if not installs:
             return None
         proton = next((i for i in installs if i.kind is InstallKind.PROTON), None)
-        return proton or installs[0]
+        chosen = proton or installs[0]
+        log.info(
+            "resolved %s install: %s (%s)",
+            self._game.value,
+            chosen.documents_dir,
+            chosen.kind.value,
+        )
+        return chosen
 
     def _on_open_settings(self) -> None:
         dialog = SettingsDialog(SettingsStore(), self)

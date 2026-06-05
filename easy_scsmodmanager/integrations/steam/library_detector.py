@@ -16,6 +16,7 @@ environment variables (HOME, XDG_DATA_HOME, ProgramFiles(x86), ...).
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -25,6 +26,8 @@ import vdf
 from easy_scsmodmanager.utils.win_registry import read_string
 
 LIBRARYFOLDERS_RELATIVE = Path("steamapps") / "libraryfolders.vdf"
+
+log = logging.getLogger(__name__)
 
 
 def steam_install_candidates() -> list[Path]:
@@ -62,14 +65,22 @@ def read_library_paths_from_vdf(vdf_path: Path) -> list[Path]:
 
 def discover_steam_libraries() -> list[Path]:
     """All library roots across all detected Steam installs, deduplicated."""
+    installs = find_steam_installs()
+    if installs:
+        log.info("Steam installs: %s", ", ".join(str(p) for p in installs))
+    else:
+        log.info("no Steam install found")
+
     seen: set[Path] = set()
     result: list[Path] = []
-    for install in find_steam_installs():
+    for install in installs:
         for lib in read_library_paths_from_vdf(install / LIBRARYFOLDERS_RELATIVE):
             if lib in seen:
                 continue
             seen.add(lib)
             result.append(lib)
+
+    log.info("Steam libraries: %s", ", ".join(str(p) for p in result) or "(none)")
     return result
 
 
