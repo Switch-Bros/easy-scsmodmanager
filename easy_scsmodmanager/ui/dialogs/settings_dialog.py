@@ -13,6 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -109,6 +110,14 @@ class SettingsDialog(QDialog):
         hint = QLabel(t("settings.language.restart_hint"))
         hint.setStyleSheet(f"color: {Theme.TEXT_DIM};")
         root.addWidget(hint)
+
+        root.addWidget(self._heading("settings.behaviour.heading"))
+        self._grid_jump = QCheckBox(t("settings.behaviour.grid_click_jump"))
+        self._grid_jump.setChecked(self._store.get_grid_click_jumps_to_active())
+        root.addWidget(self._grid_jump)
+        self._update_check = QCheckBox(t("settings.behaviour.update_check_startup"))
+        self._update_check.setChecked(self._store.get_update_check_on_startup())
+        root.addWidget(self._update_check)
 
         root.addWidget(self._heading("settings.paths.heading"))
         self._add_rows(root, DOCUMENTS)
@@ -220,6 +229,8 @@ class SettingsDialog(QDialog):
 
     def accept(self) -> None:
         self._store.set_language(self._lang_combo.currentData())
+        self._store.set_grid_click_jumps_to_active(self._grid_jump.isChecked())
+        self._store.set_update_check_on_startup(self._update_check.isChecked())
         for game, kind, _ in _PATH_FIELDS:
             self._save(game, kind, self._paths[(game, kind)])
         self._store.set_map_base_names(self._map_base_names())

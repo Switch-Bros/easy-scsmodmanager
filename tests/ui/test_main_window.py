@@ -228,3 +228,29 @@ def test_restore_button_enabled_for_corrupt_active_profile(qtbot, tmp_path) -> N
 
     assert window._profile_header._restore_btn.isEnabled() is True
     assert window._profile_header._backup_btn.isEnabled() is False
+
+
+def test_grid_click_jump_gated_by_setting(qtbot, tmp_path, monkeypatch) -> None:
+    from pathlib import Path
+
+    from PyQt6.QtCore import QSettings
+
+    from easy_scsmodmanager.core.settings_store import SettingsStore
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    window._settings = SettingsStore(QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat))
+
+    jumped: list[str] = []
+    monkeypatch.setattr(window._active_list, "focus_active", lambda name: jumped.append(name))
+    mod = ScannedMod(path=Path("/tmp/x.scs"), format=ScsFormat.ZIP, manifest=None, error=None)
+
+    window._settings.set_grid_click_jumps_to_active(False)
+    window._on_grid_selection_changed([mod])
+    assert jumped == []  # default off: no jump
+
+    window._settings.set_grid_click_jumps_to_active(True)
+    window._on_grid_selection_changed([mod])
+    assert len(jumped) == 1  # opt-in on: jumps

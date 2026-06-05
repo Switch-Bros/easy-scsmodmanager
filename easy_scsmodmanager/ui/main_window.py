@@ -170,6 +170,7 @@ class MainWindow(QMainWindow):
         self._grid.info_requested.connect(self._on_mod_info_requested)
         self._grid.card_activated.connect(self._on_mod_activated)
         self._grid.favorite_toggled.connect(self._on_favorite_toggled)
+        self._grid.show_in_active_requested.connect(self._show_mod_in_active_list)
         left_layout.addWidget(self._filter_toolbar)
         left_layout.addWidget(self._grid, 1)
 
@@ -457,6 +458,13 @@ class MainWindow(QMainWindow):
             self.statusBar().clearMessage()
             return
         self.statusBar().showMessage(t("status_bar.selection", count=len(mods)))
+        # opt-in: a single click on a card jumps to its row in the active list
+        if len(mods) == 1 and self._settings.get_grid_click_jumps_to_active():
+            self._show_mod_in_active_list(mods[0])
+
+    def _show_mod_in_active_list(self, mod: ScannedMod) -> None:
+        # no-op when the mod is not on the active list (focus_active returns False)
+        self._active_list.focus_active(active_name_for(mod))
 
     def _on_mod_info_requested(self, mod: ScannedMod) -> None:
         ModInfoDialog(mod, parent=self, display_name=self._presenter.display_name_for(mod)).exec()

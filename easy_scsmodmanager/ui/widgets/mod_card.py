@@ -22,12 +22,13 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from PyQt6.QtCore import QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QMouseEvent, QPixmap
+from PyQt6.QtGui import QContextMenuEvent, QMouseEvent, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMenu,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -53,6 +54,7 @@ class ModCard(QFrame):
     favorite_toggled = pyqtSignal(bool)
     info_requested = pyqtSignal()
     drag_started = pyqtSignal()  # left-drag moved past the threshold
+    show_in_active_requested = pyqtSignal()  # jump to this mod's row in the active list
 
     def __init__(
         self,
@@ -148,6 +150,18 @@ class ModCard(QFrame):
         if event is not None and event.button() == Qt.MouseButton.LeftButton:
             self.activated.emit()
         super().mouseDoubleClickEvent(event)
+
+    def contextMenuEvent(self, event: QContextMenuEvent | None) -> None:  # noqa: N802
+        if event is None:
+            return
+        self.build_context_menu().exec(event.globalPos())
+
+    def build_context_menu(self) -> QMenu:
+        menu = QMenu(self)
+        show = menu.addAction(t("mod_card.show_in_active"))
+        show.setEnabled(self._is_active)  # only mods on the active list can jump
+        show.triggered.connect(lambda: self.show_in_active_requested.emit())
+        return menu
 
     # ------------------------------------------------------------------ #
     # building
