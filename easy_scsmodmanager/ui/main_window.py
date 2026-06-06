@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QSize, Qt, QTimer, QUrl
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -66,6 +66,7 @@ from easy_scsmodmanager.services.profile_reader import (
 )
 from easy_scsmodmanager.services.profile_writer import save_active_mods
 from easy_scsmodmanager.ui.controllers.map_combo_controller import MapComboController
+from easy_scsmodmanager.ui.controllers.mod_delete_controller import ModDeleteController
 from easy_scsmodmanager.ui.controllers.profile_backup_controller import ProfileBackupController
 from easy_scsmodmanager.ui.controllers.workshop_fetch_controller import WorkshopFetchController
 from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
@@ -171,6 +172,19 @@ class MainWindow(QMainWindow):
         self._grid.card_activated.connect(self._on_mod_activated)
         self._grid.favorite_toggled.connect(self._on_favorite_toggled)
         self._grid.show_in_active_requested.connect(self._show_mod_in_active_list)
+        self._delete = ModDeleteController(
+            parent=self,
+            profiles=lambda: [p for _, p in self._profile_choices if p is not None],
+            display_name_for=self._presenter.display_name_for,
+            on_mods_deleted=self._on_mods_deleted,
+            show_status=self.statusBar().showMessage,
+        )
+        self._grid.delete_requested.connect(self._delete.request_delete)
+        del_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self._grid)
+        del_shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        del_shortcut.activated.connect(
+            lambda: self._delete.request_delete(self._grid.selected_mods())
+        )
         left_layout.addWidget(self._filter_toolbar)
         left_layout.addWidget(self._grid, 1)
 
@@ -420,6 +434,22 @@ class MainWindow(QMainWindow):
             game_version=self._game_version,
             map_base_names=self._map_base_names,
         )
+
+    def _on_mods_deleted(self, mods: list[ScannedMod]) -> None:
+        # files are already in the trash; drop them from model, cache and the
+        # loaded active list (no full rescan - cheap for big libraries)
+        paths = {m.path for m in mods}
+        self._all_mods = [m for m in self._all_mods if m.path not in paths]
+        for mod in mods:
+            self._cache.delete(mod.path)
+        self._matcher = ActiveModMatcher(self._all_mods)
+        active_names = {am.name for am in self._active_list.display_order()}
+        for mod in mods:
+            name = active_name_for(mod)
+            if name in active_names:
+                # removes by name + emits order_changed -> Save button enables
+                self._active_list.remove_mod(ActiveMod(name=name, display_name=""))
+        self._refresh_grid()
 
     def _refresh_grid(self) -> None:
         self._sync_presenter()

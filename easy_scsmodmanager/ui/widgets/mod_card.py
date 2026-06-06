@@ -37,6 +37,7 @@ from PyQt6.QtWidgets import (
 
 from easy_scsmodmanager.core.mod_categories import canonical_categories, i18n_key
 from easy_scsmodmanager.core.version_compat import CompatStatus
+from easy_scsmodmanager.services.mod_identity import workshop_id_for_path
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
@@ -55,6 +56,7 @@ class ModCard(QFrame):
     info_requested = pyqtSignal()
     drag_started = pyqtSignal()  # left-drag moved past the threshold
     show_in_active_requested = pyqtSignal()  # jump to this mod's row in the active list
+    delete_requested = pyqtSignal()  # delete this mod (and the rest of the selection)
 
     def __init__(
         self,
@@ -66,11 +68,15 @@ class ModCard(QFrame):
         display_name: str | None = None,
         categories_for: Callable[[ScannedMod], tuple[str, ...]] | None = None,
         compat_for: Callable[[ScannedMod], CompatStatus] | None = None,
+        selection_provider: Callable[[], list[ScannedMod]] | None = None,
+        on_context_menu: Callable[[ModCard], None] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._mod = mod
         self._is_active = is_active
+        self._selection_provider = selection_provider
+        self._on_context_menu = on_context_menu
         self._is_favorite = is_favorite
         self._is_selected = False
         self._display_name_override = display_name
@@ -154,13 +160,28 @@ class ModCard(QFrame):
     def contextMenuEvent(self, event: QContextMenuEvent | None) -> None:  # noqa: N802
         if event is None:
             return
+        # let the grid collapse the selection onto this card if it was not part
+        # of it, so the menu acts on what the user actually right-clicked
+        if self._on_context_menu is not None:
+            self._on_context_menu(self)
         self.build_context_menu().exec(event.globalPos())
 
     def build_context_menu(self) -> QMenu:
         menu = QMenu(self)
+        menu.setToolTipsVisible(True)  # tooltips also show on disabled actions
         show = menu.addAction(t("mod_card.show_in_active"))
         show.setEnabled(self._is_active)  # only mods on the active list can jump
         show.triggered.connect(lambda: self.show_in_active_requested.emit())
+
+        # delete: enabled if the selection holds at least one local mod; only
+        # the locals get deleted. Workshop-only -> disabled with a why tooltip.
+        selection = self._selection_provider() if self._selection_provider else [self._mod]
+        has_local = any(workshop_id_for_path(m.path) is None for m in selection)
+        delete = menu.addAction(t("mod_card.delete"))
+        delete.setEnabled(has_local)
+        if not has_local:
+            delete.setToolTip(t("mod_card.delete_workshop_tooltip"))
+        delete.triggered.connect(lambda: self.delete_requested.emit())
         return menu
 
     # ------------------------------------------------------------------ #

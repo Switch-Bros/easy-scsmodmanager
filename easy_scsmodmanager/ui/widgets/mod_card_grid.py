@@ -30,6 +30,7 @@ class ModCardGrid(QScrollArea):
     info_requested = pyqtSignal(object)  # ScannedMod
     favorite_toggled = pyqtSignal(object, bool)  # (ScannedMod, is_favorite)
     show_in_active_requested = pyqtSignal(object)  # ScannedMod
+    delete_requested = pyqtSignal(list)  # list[ScannedMod] - the current selection
 
     def __init__(self, columns: int = 3, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -90,6 +91,8 @@ class ModCardGrid(QScrollArea):
                     categories_for=categories_for,
                     compat_for=compat_for,
                     is_favorite=is_favorite_for(mod) if is_favorite_for is not None else False,
+                    selection_provider=self.selected_mods,
+                    on_context_menu=self._collapse_selection_to,
                 )
                 idx = len(self._cards)
                 card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
@@ -98,6 +101,9 @@ class ModCardGrid(QScrollArea):
                 card.favorite_toggled.connect(lambda fav, m=mod: self.favorite_toggled.emit(m, fav))
                 card.show_in_active_requested.connect(
                     lambda m=mod: self.show_in_active_requested.emit(m)
+                )
+                card.delete_requested.connect(
+                    lambda: self.delete_requested.emit(self.selected_mods())
                 )
                 card.drag_started.connect(lambda i=idx: self._start_drag(i))
                 self._cards.append(card)
@@ -190,6 +196,17 @@ class ModCardGrid(QScrollArea):
 
     def _on_card_activated(self, index: int) -> None:
         self.card_activated.emit(self._cards[index].mod)
+
+    def _collapse_selection_to(self, card: ModCard) -> None:
+        # right-click on a card outside the current selection collapses onto it,
+        # so a context action never hits the old, invisible selection
+        if card not in self._cards:
+            return
+        index = self._cards.index(card)
+        if index not in self._selected:
+            self._set_single(index)
+            self._anchor = index
+            self.selection_changed.emit(self.selected_mods())
 
     def _start_drag(self, index: int) -> None:
         # drag the whole selection; if the grabbed card is not selected,

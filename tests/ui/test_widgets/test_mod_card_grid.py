@@ -210,3 +210,28 @@ def test_set_mods_name_for_overrides_card_display_name(qtbot: QtBot) -> None:
     )
 
     assert grid.cards()[0]._display_name() == "Resolved Title"
+
+
+def test_right_click_collapses_selection_and_delete_emits_list(qtbot):
+    from pathlib import Path
+
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+    from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
+
+    mods = [
+        ScannedMod(path=Path("/mods/a.scs"), format=ScsFormat.ZIP, manifest=None, error=None),
+        ScannedMod(path=Path("/mods/b.scs"), format=ScsFormat.ZIP, manifest=None, error=None),
+    ]
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+    grid.set_mods(mods)
+
+    # nothing selected; right-click on card 1 collapses selection onto it
+    grid._collapse_selection_to(grid.cards()[1])
+    assert grid.selected_mods() == [mods[1]]
+
+    captured: list = []
+    grid.delete_requested.connect(captured.append)
+    grid.cards()[1].delete_requested.emit()
+    assert captured == [[mods[1]]]
