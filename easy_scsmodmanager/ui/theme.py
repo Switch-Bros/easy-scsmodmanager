@@ -44,7 +44,8 @@ class Theme:
     # Status
     SUCCESS = "#7BB72C"  # active mod
     WARNING = "#F5C842"  # conflict border
-    DANGER = "#D04545"  # incompatible
+    DANGER = "#D04545"  # incompatible / destructive action (4.55:1 on #FFFFFF)
+    DANGER_HOVER = "#B83C3C"  # darker on hover so it stays >= 4.5:1 (5.60:1)
     MUTED = "#999999"  # inactive / installed
 
     # Text

@@ -281,3 +281,20 @@ def test_schema_upgrade_clears_errored_entries_for_rescan(tmp_path: Path) -> Non
     with ScanCache(db) as cache:
         assert cache.get(bad) is None  # re-scan with the new readers
         assert cache.get(good) is not None  # untouched
+
+
+def test_delete_removes_entry(tmp_path: Path) -> None:
+    scs = _make_scs(tmp_path / "mod_a.scs")
+    with ScanCache(tmp_path / "c.db") as cache:
+        cache.put(scs, _scanned(scs), icon_bytes=None)
+        assert cache.get(scs) is not None
+
+        removed = cache.delete(scs)
+
+        assert removed == 1
+        assert cache.get(scs) is None
+
+
+def test_delete_missing_path_returns_zero(tmp_path: Path) -> None:
+    with ScanCache(tmp_path / "c.db") as cache:
+        assert cache.delete(tmp_path / "never.scs") == 0

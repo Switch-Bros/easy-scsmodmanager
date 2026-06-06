@@ -139,6 +139,12 @@ class ScanCache:
             cursor = self._conn.execute("DELETE FROM mod_cache")
         return cursor.rowcount
 
+    def delete(self, scs_path: Path) -> int:
+        # drop one mod after it was trashed; key is str(path), as get/put store it
+        with self._conn:
+            cursor = self._conn.execute("DELETE FROM mod_cache WHERE path = ?", (str(scs_path),))
+        return cursor.rowcount
+
     def connection(self) -> sqlite3.Connection:
         """Exposes the underlying connection so sibling caches (workshop
         metadata, future icon variants) can share it."""

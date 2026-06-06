@@ -38,6 +38,12 @@ def test_disabled_and_selection_contrast_meets_3() -> None:
     assert _contrast(Theme.SELECTION_TEXT, Theme.SELECTION) >= 3.0
 
 
+def test_danger_button_text_contrast_meets_4_5() -> None:
+    # white text on the destructive button, base and hover both legible
+    assert _contrast("#FFFFFF", Theme.DANGER) >= 4.5
+    assert _contrast("#FFFFFF", Theme.DANGER_HOVER) >= 4.5
+
+
 # ---- GLOBAL_QSS selectors ------------------------------------------------- #
 
 
