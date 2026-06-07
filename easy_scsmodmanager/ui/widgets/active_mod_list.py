@@ -61,8 +61,9 @@ class ActiveModList(QWidget):
     selection_changed = pyqtSignal(list)  # list[ActiveMod]
     mod_focus_requested = pyqtSignal(object)  # ActiveMod
     order_changed = pyqtSignal()  # the active list was reordered/edited
-    mods_dropped = pyqtSignal(list, int)  # (mod path strings from the grid, target row)
-    move_to_group_requested = pyqtSignal(object, str)  # (ActiveMod, group_id)
+    mods_dropped = pyqtSignal(list, int, str)  # (grid path strings, target row, target group)
+    reorder_pin_requested = pyqtSignal(list, str)  # (moved ActiveMods, target group) - pin first
+    move_to_group_requested = pyqtSignal(object, str)  # (ActiveMod or list, group_id)
     export_combo_requested = pyqtSignal()  # right-click on the maps spacer
     import_combo_requested = pyqtSignal()  # right-click on the maps spacer
 
@@ -274,19 +275,45 @@ class ActiveModList(QWidget):
                 return i
         return len(mods)
 
+    def group_for_widget_row(self, widget_row: int) -> str:
+        """Group id of the region a drop at ``widget_row`` lands in.
+
+        A drop ON a spacer takes that spacer's group (block start); on a mod row
+        the nearest spacer above it; past the last row the last block's group.
+        """
+        count = self._list.count()
+        if count == 0:
+            return GROUPS[0].id
+        row = min(widget_row, count - 1)
+        for i in range(row, -1, -1):
+            gid = self._list.item(i).data(_SPACER_GROUP_ROLE)
+            if gid is not None:
+                return str(gid)
+        return GROUPS[0].id
+
     def _on_reorder_requested(self, widget_rows: list[int], widget_target: int) -> None:
         """Translate QListWidget widget-row indices from a drag to mod-display indices."""
         resolved: list[int] = []
+        moving: list[ActiveMod] = []
         for r in widget_rows:
             if r < self._list.count():
                 data = self._list.item(r).data(Qt.ItemDataRole.UserRole)
                 if data is not None:
                     resolved.append(self.widget_row_to_mod_index(r))
+                    moving.append(data)
+        # pin FIRST so move_rows' rerender already sees the target group, then
+        # move (position stays widget-internal); pin-after would only take on the
+        # next action
+        self.reorder_pin_requested.emit(moving, self.group_for_widget_row(widget_target))
         self.move_rows(resolved, self.widget_row_to_mod_index(widget_target))
 
     def _on_external_drop(self, paths: list[str], widget_target: int) -> None:
         """Map raw widget-row drop target to mod-space index before forwarding."""
-        self.mods_dropped.emit(paths, self.widget_row_to_mod_index(widget_target))
+        self.mods_dropped.emit(
+            paths,
+            self.widget_row_to_mod_index(widget_target),
+            self.group_for_widget_row(widget_target),
+        )
 
     def _on_context_menu(self, pos: object) -> None:
         from PyQt6.QtCore import QPoint

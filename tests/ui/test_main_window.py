@@ -137,7 +137,7 @@ def test_drop_from_grid_inserts_mods_at_row(qtbot) -> None:
     window._all_mods = [dropped]
     window._active_list.set_active_mods([ActiveMod("existing", "Existing")])
 
-    window._on_mods_dropped(["/mod/dropme.scs"], 0)  # drop at display top
+    window._on_mods_dropped(["/mod/dropme.scs"], 0, "ui_other")  # drop at display top
 
     assert window._active_list.display_order()[0].name == "dropme"
     assert window._active_list.display_order()[0].display_name == "Drop Me"
@@ -164,7 +164,7 @@ def test_drop_relocates_already_active_mod_without_duplicating(qtbot) -> None:
         [ActiveMod("already", "Already"), ActiveMod("other", "Other")]
     )
 
-    window._on_mods_dropped(["/mod/already.scs"], 0)  # drag from grid to the top
+    window._on_mods_dropped(["/mod/already.scs"], 0, "ui_other")  # drag from grid to the top
 
     order = [m.name for m in window._active_list.display_order()]
     assert order.count("already") == 1  # moved, not duplicated
@@ -303,3 +303,40 @@ def test_on_move_to_group_list_batches(qtbot, monkeypatch) -> None:
     assert len(moved) == 1
     assert [m.name for m in moved[0][0]] == ["a", "b"]
     assert moved[0][1] == "trucks"
+
+
+def test_drop_into_foreign_group_pins_it(qtbot) -> None:
+    from pathlib import Path
+
+    from easy_scsmodmanager.core.models.mod_manifest import ModManifest
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_matching import active_name_for
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    mod = ScannedMod(
+        path=Path("/mod/weatherfix.scs"),
+        format=ScsFormat.ZIP,
+        manifest=ModManifest(display_name="Weather Fix"),
+        error=None,
+    )
+    window._all_mods = [mod]
+    window._active_list.set_active_mods([])
+
+    # drop into the trucks block (foreign for a no-match mod whose natural is other)
+    window._on_mods_dropped(["/mod/weatherfix.scs"], 0, "trucks")
+
+    assert window._group_overrides.get(active_name_for(mod)) == "trucks"
+
+
+def test_reorder_pin_applies_pin_rule(qtbot, monkeypatch) -> None:
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    monkeypatch.setattr(window._presenter, "natural_group_token_for", lambda a: "other")
+
+    window._on_reorder_pin([ActiveMod("m", "M")], "trucks")  # foreign -> pin
+
+    assert window._group_overrides.get("m") == "trucks"

@@ -214,6 +214,7 @@ class MainWindow(QMainWindow):
         self._active_list.mod_focus_requested.connect(self._on_active_mod_focus)
         self._active_list.order_changed.connect(self._on_active_order_changed)
         self._active_list.mods_dropped.connect(self._on_mods_dropped)
+        self._active_list.reorder_pin_requested.connect(self._on_reorder_pin)
         self._active_list.move_to_group_requested.connect(self._on_move_to_group)
         self._combo = MapComboController(
             parent=self,
@@ -526,10 +527,11 @@ class MainWindow(QMainWindow):
             ActiveMod(name=active_name_for(mod), display_name=self._presenter.display_name_for(mod))
         )
 
-    def _on_mods_dropped(self, paths: list[str], row: int) -> None:
+    def _on_mods_dropped(self, paths: list[str], row: int, group_id: str) -> None:
         # mods dragged from the grid land at the drop position; an already
-        # active mod is relocated there (so the user can re-order without
-        # scrolling the whole way up the active list)
+        # active mod is relocated there. Dropping into a section adopts that
+        # section's group (same meaning as the right-click move), via the pin
+        # rule, so the mod stays where it was dropped instead of snapping back.
         by_path = {str(mod.path): mod for mod in self._all_mods}
         to_place: list[ActiveMod] = []
         seen: set[str] = set()
@@ -545,7 +547,15 @@ class MainWindow(QMainWindow):
                 ActiveMod(name=name, display_name=self._presenter.display_name_for(mod))
             )
         if to_place:
+            for active_mod in to_place:
+                self._apply_group_pin(active_mod, group_id)
             self._active_list.insert_or_move(to_place, at=row)
+
+    def _on_reorder_pin(self, mods: object, group_id: str) -> None:
+        # internal reorder-drag: pin the moved mods to the target section before
+        # the widget re-renders (the widget moves the rows itself afterwards)
+        for active_mod in mods if isinstance(mods, list) else []:
+            self._apply_group_pin(cast(ActiveMod, active_mod), group_id)
 
     def _on_move_to_group(self, mods: object, group_id: str) -> None:
         # payload carries the whole selection (a single right-clicked mod is

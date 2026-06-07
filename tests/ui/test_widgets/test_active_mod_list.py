@@ -260,3 +260,34 @@ def test_move_mods_to_group_across_two_blocks_keeps_order(qtbot: QtBot) -> None:
 
     order = [m.name for m in widget.display_order()]
     assert _rel(order, "a", "c") == _rel(before, "a", "c")
+
+
+def test_group_for_widget_row(qtbot: QtBot) -> None:
+    from PyQt6.QtCore import Qt as _Qt
+
+    from easy_scsmodmanager.ui.widgets.active_mod_list import _SPACER_GROUP_ROLE
+
+    w = _grouped(qtbot, ["a_trailer", "b_truck"])
+    # a drop ON a spacer takes that spacer's group; the row just below it (a
+    # mod) is in the same region
+    for i in range(w._list.count()):
+        gid = w._list.item(i).data(_SPACER_GROUP_ROLE)
+        if gid == "trucks":
+            assert w.group_for_widget_row(i) == "trucks"  # on the spacer
+            below = w._list.item(i + 1)
+            if below is not None and below.data(_Qt.ItemDataRole.UserRole) is not None:
+                assert w.group_for_widget_row(i + 1) == "trucks"  # mod under it
+    # all group headers render; maps is always last, so a drop past the end
+    # falls into the maps region
+    assert w.group_for_widget_row(w._list.count() + 5) == "maps"
+
+
+def test_external_drop_emits_group(qtbot: QtBot) -> None:
+    w = _grouped(qtbot, ["a_trailer", "b_truck"])
+    captured: list = []
+    w.mods_dropped.connect(lambda paths, row, gid: captured.append((paths, row, gid)))
+
+    w._on_external_drop(["/x.scs"], w._list.count())  # drop past the end
+
+    assert len(captured) == 1
+    assert captured[0][2] == "maps"  # last region
