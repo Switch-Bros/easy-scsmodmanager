@@ -26,39 +26,61 @@ from PyQt6.QtGui import QColor, QPalette
 
 
 class Theme:
-    """Dark theme - mirrors the in-game ETS2 mod manager look."""
+    """Dark theme - mirrors the in-game ETS2 mod manager look, in BVB yellow."""
 
+    # ---- layer 1: raw brand / base marks (the only place hex lives) ------ #
+    NEAR_BLACK = "#1A1A1A"
+    DARK_GREY = "#2A2A2A"
+    MID_GREY = "#3A3A3A"
+    SELECT_GREY = "#3D3D45"
+    ALT_GREY = "#303030"
+    BLUE = "#3D7DDB"  # steam blue
+    BLUE_LT = "#5293E8"
+    YELLOW = "#FDE100"  # Borussia Dortmund yellow
+    YELLOW_LT = "#FFE933"
+    GREEN = "#7BB72C"
+    RED = "#D04545"
+    RED_DK = "#B83C3C"
+    ORANGE = "#FFAE00"
+    GREY = "#999999"
+    TEXT_GREY = "#E0E0E0"
+    DISABLED_GREY = "#7A7A7A"
+    WHITE = "#FFFFFF"
+
+    # ---- layer 2: semantic tokens (reference layer 1 only, no hex) ------- #
     # Base palette
-    BACKGROUND = "#1A1A1A"
-    SURFACE = "#2A2A2A"
-    SURFACE_HOVER = "#3A3A3A"
-    SURFACE_SELECTED = "#3D3D45"
-    ALTERNATE_BASE = "#303030"  # zebra rows in item views
+    BACKGROUND = NEAR_BLACK
+    SURFACE = DARK_GREY
+    SURFACE_HOVER = MID_GREY
+    SURFACE_SELECTED = SELECT_GREY
+    ALTERNATE_BASE = ALT_GREY  # zebra rows in item views
 
     # Action / accent
-    PRIMARY = "#3D7DDB"  # steam blue
-    PRIMARY_HOVER = "#5293E8"
-    ACCENT = "#F5C842"  # ETS2 mod-manager yellow
-    ACCENT_HOVER = "#FFD75A"
+    PRIMARY = BLUE
+    PRIMARY_HOVER = BLUE_LT
+    ACCENT = YELLOW  # BVB yellow
+    ACCENT_HOVER = YELLOW_LT
 
     # Status
-    SUCCESS = "#7BB72C"  # active mod
-    WARNING = "#F5C842"  # conflict border
-    DANGER = "#D04545"  # incompatible / destructive action (4.55:1 on #FFFFFF)
-    DANGER_HOVER = "#B83C3C"  # darker on hover so it stays >= 4.5:1 (5.60:1)
-    MUTED = "#999999"  # inactive / installed
+    SUCCESS = GREEN  # active mod
+    WARNING = YELLOW  # conflict border / partial-override glyph
+    DANGER = RED  # incompatible / destructive action (4.55:1 on WHITE)
+    DANGER_HOVER = RED_DK  # darker on hover so it stays >= 4.5:1 (5.60:1)
+    MISPLACED = ORANGE  # a mod sitting outside its load-order group
+    MUTED = GREY  # inactive / installed
 
     # Text
-    TEXT = "#E0E0E0"
-    TEXT_DIM = "#999999"
-    TEXT_DISABLED = "#7A7A7A"  # disabled text, ~3.3:1 on BACKGROUND
-    TEXT_MOD_NAME = "#F5C842"  # mod name in orange-yellow
+    TEXT = TEXT_GREY
+    TEXT_DIM = GREY
+    TEXT_DISABLED = DISABLED_GREY  # disabled text, ~3.3:1 on BACKGROUND
+    TEXT_MOD_NAME = YELLOW  # mod name in BVB yellow
 
     # Semantic aliases - so widgets/QSS read intent, not raw colour
-    BORDER = SURFACE_HOVER
-    PLACEHOLDER = TEXT_DIM
-    SELECTION = PRIMARY
-    SELECTION_TEXT = "#FFFFFF"  # HighlightedText on SELECTION, 4.07:1
+    BORDER = MID_GREY
+    PLACEHOLDER = GREY
+    SELECTION = BLUE
+    SELECTION_TEXT = WHITE  # HighlightedText on SELECTION, 4.07:1
+    ON_DANGER = WHITE  # text on a DANGER surface
 
     # Sizing - aligned with ETS2's native 276x162 mod icon dimensions
     ICON_WIDTH = 276

@@ -27,9 +27,6 @@ from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
 
-# Orange used for misplaced-mod indicator; Theme has no dedicated constant.
-_MISPLACED_COLOUR = "#FFAE00"
-
 THUMB_SIZE = QSize(Theme.ACTIVE_THUMBNAIL_WIDTH, Theme.ACTIVE_THUMBNAIL_HEIGHT)
 
 # carried by a drag coming from the mod grid: newline-joined mod path strings
@@ -213,7 +210,7 @@ class ActiveModItem(QWidget):
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             self.setObjectName("misplaced_mod_item")
             self.setStyleSheet(
-                f"#misplaced_mod_item {{ border-left: 3px solid {_MISPLACED_COLOUR}; }}"
+                f"#misplaced_mod_item {{ border-left: 3px solid {Theme.MISPLACED}; }}"
             )
         if tooltip:
             self.setToolTip(tooltip)

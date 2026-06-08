@@ -87,7 +87,7 @@ class ModDeleteController:
         confirm = box.addButton(t("dialog.delete.confirm"), QMessageBox.ButtonRole.AcceptRole)
         cancel = box.addButton(t("dialog.delete.cancel"), QMessageBox.ButtonRole.RejectRole)
         confirm.setStyleSheet(
-            f"QPushButton {{ background-color: {Theme.DANGER}; color: #FFFFFF;"
+            f"QPushButton {{ background-color: {Theme.DANGER}; color: {Theme.ON_DANGER};"
             f" border-radius: 3px; padding: 4px 12px; font-weight: 600; }}"
             f"QPushButton:hover {{ background-color: {Theme.DANGER_HOVER}; }}"
         )

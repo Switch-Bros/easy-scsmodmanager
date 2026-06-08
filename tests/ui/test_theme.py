@@ -40,8 +40,23 @@ def test_disabled_and_selection_contrast_meets_3() -> None:
 
 def test_danger_button_text_contrast_meets_4_5() -> None:
     # white text on the destructive button, base and hover both legible
-    assert _contrast("#FFFFFF", Theme.DANGER) >= 4.5
-    assert _contrast("#FFFFFF", Theme.DANGER_HOVER) >= 4.5
+    assert _contrast(Theme.ON_DANGER, Theme.DANGER) >= 4.5
+    assert _contrast(Theme.ON_DANGER, Theme.DANGER_HOVER) >= 4.5
+
+
+def test_bvb_yellow_is_high_contrast_on_background() -> None:
+    # mod names + warning glyph are BVB yellow (#FDE100), ~13.2:1 on the dark bg
+    assert Theme.WARNING == "#FDE100"
+    assert _contrast(Theme.WARNING, Theme.BACKGROUND) >= 13.0
+
+
+def test_two_layer_semantic_tokens_resolve_to_raw_marks() -> None:
+    # layer-2 tokens reference layer-1 marks, not stray hex
+    assert Theme.ACCENT == Theme.YELLOW
+    assert Theme.ACCENT_HOVER == Theme.YELLOW_LT
+    assert Theme.TEXT_MOD_NAME == Theme.YELLOW
+    assert Theme.MISPLACED == Theme.ORANGE
+    assert Theme.ON_DANGER == Theme.WHITE
 
 
 # ---- GLOBAL_QSS selectors ------------------------------------------------- #
