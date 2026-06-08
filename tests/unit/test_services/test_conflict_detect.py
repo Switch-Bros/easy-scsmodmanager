@@ -73,3 +73,53 @@ def test_shared_directory_plus_shared_file_still_conflicts():
     )
     assert set(result) == {"mod_a", "mod_b"}
     assert result["mod_a"][0].shared == ("def/vehicle/shared.sii",)
+
+
+# --- severity (analyze_overrides) ----------------------------------------- #
+
+from easy_scsmodmanager.services.conflict_detect import Severity, analyze_overrides  # noqa: E402
+
+
+def test_direction_rule_higher_position_wins():
+    # THE foundation: the mod visually higher (greater position) overrides the
+    # one below. Invert this and red/yellow are mirror-imaged.
+    ov = analyze_overrides(
+        {"low": ["def/x.sii"], "high": ["def/x.sii"]},
+        {"low": 0, "high": 1},
+    )
+    assert ov["low"].severity is Severity.FULL  # the lower one loses
+    assert "high" not in ov  # the winner gets no mark
+    assert ov["low"].lost == (("def/x.sii", "high"),)
+
+
+def test_severity_is_one_value_per_mod():
+    # M wins file1 against X (below), loses file2 to Y (above) -> exactly PARTIAL
+    active = {
+        "M": ["def/1.sii", "def/2.sii"],
+        "X": ["def/1.sii"],
+        "Y": ["def/2.sii"],
+    }
+    positions = {"X": 0, "M": 1, "Y": 2}
+    ov = analyze_overrides(active, positions)
+
+    assert ov["M"].severity is Severity.PARTIAL
+    assert ov["M"].lost == (("def/2.sii", "Y"),)
+    assert ov["X"].severity is Severity.FULL
+    assert "Y" not in ov  # Y wins everything
+
+
+def test_wins_all_gets_no_mark_loses_all_is_full():
+    ov = analyze_overrides(
+        {"top": ["def/a.sii", "def/b.sii"], "bot": ["def/a.sii", "def/b.sii"]},
+        {"bot": 0, "top": 1},
+    )
+    assert "top" not in ov
+    assert ov["bot"].severity is Severity.FULL
+
+
+def test_generic_paths_not_counted_in_severity():
+    # a path owned by >8 mods is generic and must not push anyone to red
+    names = [f"m{i}" for i in range(9)]
+    active = {n: ["def/generic.sii"] for n in names}
+    positions = {n: i for i, n in enumerate(names)}
+    assert analyze_overrides(active, positions) == {}

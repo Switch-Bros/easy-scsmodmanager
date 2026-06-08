@@ -486,6 +486,7 @@ class MainWindow(QMainWindow):
             icon_for=self._presenter.active_icon_for,
             category_for=self._presenter.category_for_active,
             conflict_for=self._presenter.conflict_for,
+            severity_for=self._presenter.severity_for,
         )
 
     # ------------------------------------------------------------------ #

@@ -31,6 +31,7 @@ from easy_scsmodmanager.core.load_order import (
     group_repr_token,
 )
 from easy_scsmodmanager.core.load_order_layout import SpacerRow, build_rows
+from easy_scsmodmanager.services.conflict_detect import Severity
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.widgets.active_list_widgets import (
@@ -38,6 +39,7 @@ from easy_scsmodmanager.ui.widgets.active_list_widgets import (
     ActiveListView,
     ActiveModItem,
     SpacerItem,
+    conflict_legend_html,
 )
 from easy_scsmodmanager.utils.i18n import t
 
@@ -77,6 +79,7 @@ class ActiveModList(QWidget):
         self._installed_names: set[str] = set()
         self._category_for: Callable[[ActiveMod], tuple[str, ...]] | None = None
         self._conflict_for: Callable[[ActiveMod], str] | None = None
+        self._severity_for: Callable[[ActiveMod], Severity | None] | None = None
         self._misplaced: set[str] = set()
 
         root = QVBoxLayout(self)
@@ -137,6 +140,13 @@ class ActiveModList(QWidget):
         self._empty_hint.hide()
         root.addWidget(self._empty_hint)
 
+        # one-line conflict legend, shown only while a conflict exists
+        self._legend = QLabel()
+        self._legend.setStyleSheet(f"color: {Theme.TEXT_DIM}; font-size: 10px; padding: 2px 4px;")
+        self._legend.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._legend.hide()
+        root.addWidget(self._legend)
+
     def set_active_mods(
         self,
         mods: Iterable[ActiveMod],
@@ -145,11 +155,13 @@ class ActiveModList(QWidget):
         icon_for: Callable[[ActiveMod], bytes | None] | None = None,
         category_for: Callable[[ActiveMod], tuple[str, ...]] | None = None,
         conflict_for: Callable[[ActiveMod], str] | None = None,
+        severity_for: Callable[[ActiveMod], Severity | None] | None = None,
     ) -> None:
         self._installed_names = installed_names or set()
         self._icon_for = icon_for
         self._category_for = category_for
         self._conflict_for = conflict_for
+        self._severity_for = severity_for
         # store top-priority first; the incoming list is profile order
         self._mods = list(reversed(list(mods)))
         self._rerender()
@@ -424,6 +436,7 @@ class ActiveModList(QWidget):
         scroll = self._list.verticalScrollBar().value()
         self._list.clear()
         self._misplaced = set()
+        any_conflict = False
 
         items: list[tuple[ActiveMod, str]] = [(mod, self._primary_token(mod)) for mod in self._mods]
         rows = build_rows(items)
@@ -454,12 +467,15 @@ class ActiveModList(QWidget):
                 conflict_tip = self._conflict_for(mod) if self._conflict_for is not None else ""
                 if conflict_tip:
                     tips.append(conflict_tip)
+                severity = self._severity_for(mod) if self._severity_for is not None else None
+                if severity is not None:
+                    any_conflict = True
                 widget = ActiveModItem(
                     mod,
                     icon_bytes,
                     is_missing=mod.name not in self._installed_names,
                     misplaced=row.misplaced,
-                    conflict=bool(conflict_tip),
+                    severity=severity,
                     tooltip="\n\n".join(tips),
                 )
                 item = QListWidgetItem()
@@ -471,6 +487,9 @@ class ActiveModList(QWidget):
         self._count.setText(t("active_panel.count", count=len(self._mods)))
         self._empty_hint.setVisible(len(self._mods) == 0)
         self._list.setVisible(len(self._mods) > 0)
+        if any_conflict:
+            self._legend.setText(conflict_legend_html())
+        self._legend.setVisible(any_conflict)
         # keep the viewport where it was; activation re-scrolls via focus_active
         self._list.verticalScrollBar().setValue(scroll)
 

@@ -140,3 +140,44 @@ def test_source_all_keeps_both() -> None:
     result = presenter.filter_and_sort([workshop, local], FilterState(source=ModSource.ALL))
 
     assert set(result) == {workshop, local}
+
+
+def test_severity_and_tooltip_come_from_owner_positions() -> None:
+    from easy_scsmodmanager.services.conflict_detect import Severity
+    from easy_scsmodmanager.services.mod_matching import ActiveModMatcher
+
+    low = ScannedMod(
+        path=Path("/m/low.scs"),
+        format=ScsFormat.ZIP,
+        manifest=None,
+        error=None,
+        def_files=("def/x.sii",),
+    )
+    high = ScannedMod(
+        path=Path("/m/high.scs"),
+        format=ScsFormat.ZIP,
+        manifest=None,
+        error=None,
+        def_files=("def/x.sii",),
+    )
+    presenter = _presenter()
+    profile = Profile(
+        dir_name="d",
+        profile_name="P",
+        # index 0 = bottom; "high" higher index = above = wins
+        active_mods=(ActiveMod("low", "Low"), ActiveMod("high", "High")),
+    )
+    presenter.set_context(
+        matcher=ActiveModMatcher([low, high]),
+        profile=profile,
+        game_version=None,
+        map_base_names=(),
+    )
+    presenter.compute_conflicts()
+
+    assert presenter.severity_for(ActiveMod("low", "Low")) is Severity.FULL
+    assert presenter.severity_for(ActiveMod("high", "High")) is None
+    assert presenter.has_conflicts() is True
+    tip = presenter.conflict_for(ActiveMod("low", "Low"))
+    assert "def/x.sii" in tip
+    assert "High" in tip  # winner shown by display name

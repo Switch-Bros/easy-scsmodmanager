@@ -23,9 +23,16 @@ from PyQt6.QtWidgets import (
 )
 
 from easy_scsmodmanager.core.load_order import group_label_keys
+from easy_scsmodmanager.services.conflict_detect import Severity
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
+
+# Severity glyphs: shape differs (triangle vs. crossed circle) so the two levels
+# stay distinct in greyscale / for colour-blind users, not colour alone.
+# U+2298 renders in Inter on Win+Linux; documented fallback is U+2715 ("X").
+_GLYPH_PARTIAL = "⚠"  # warning triangle
+_GLYPH_FULL = "⊘"  # circled division slash (crossed circle)
 
 THUMB_SIZE = QSize(Theme.ACTIVE_THUMBNAIL_WIDTH, Theme.ACTIVE_THUMBNAIL_HEIGHT)
 
@@ -167,7 +174,7 @@ class ActiveModItem(QWidget):
         *,
         is_missing: bool,
         misplaced: bool = False,
-        conflict: bool = False,
+        severity: Severity | None = None,
         tooltip: str = "",
         parent: QWidget | None = None,
     ) -> None:
@@ -185,10 +192,10 @@ class ActiveModItem(QWidget):
         self._set_thumbnail(icon_bytes)
         root.addWidget(self._thumb, 0, Qt.AlignmentFlag.AlignCenter)
 
-        # a conflict gets a warning glyph on the name (no extra row, so card
-        # height stays uniform); the details live in the tooltip.
-        label = ("⚠ " + _format_label(mod)) if conflict else _format_label(mod)
-        self._name = QLabel(label)
+        # an override gets a severity glyph prefixed on the name (no extra row,
+        # so card height stays uniform); only the glyph is coloured, the name
+        # keeps its colour. Details live in the tooltip.
+        self._name = QLabel(_severity_label(mod, severity))
         self._name.setStyleSheet(f"color: {Theme.TEXT}; font-size: 11px; font-weight: 600;")
         self._name.setWordWrap(True)
         self._name.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -232,6 +239,31 @@ class ActiveModItem(QWidget):
 
 def _format_label(mod: ActiveMod) -> str:
     return mod.display_name or mod.name
+
+
+def conflict_legend_html() -> str:
+    """One-line legend: the two severity glyphs in their colours + meaning."""
+    return (
+        f'<span style="color:{Theme.WARNING}">{_GLYPH_PARTIAL}</span> '
+        f'{t("conflict.legend.partial")}'
+        f'&nbsp;&nbsp;&nbsp;<span style="color:{Theme.DANGER}">{_GLYPH_FULL}</span> '
+        f'{t("conflict.legend.full")}'
+    )
+
+
+def _severity_label(mod: ActiveMod, severity: Severity | None) -> str:
+    name = _format_label(mod)
+    if severity is None:
+        return name
+    glyph, colour = (
+        (_GLYPH_FULL, Theme.DANGER)
+        if severity is Severity.FULL
+        else (_GLYPH_PARTIAL, Theme.WARNING)
+    )
+    # rich text so only the glyph carries the severity colour; the name keeps
+    # the label's own colour. Escape the name since the label is now HTML.
+    safe = name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return f'<span style="color:{colour}">{glyph}</span> {safe}'
 
 
 def _thumbnail_style() -> str:

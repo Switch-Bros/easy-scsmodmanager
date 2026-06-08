@@ -17,6 +17,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from enum import Enum
 from itertools import combinations
 
 log = logging.getLogger(__name__)
@@ -37,11 +38,24 @@ class ModConflict:
     shared: tuple[str, ...]  # shared def paths (capped for display)
 
 
-def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModConflict]]:
-    """Map each mod_name to the other active mods it shares a def file with.
+class Severity(Enum):
+    PARTIAL = "partial"  # M wins some shared files, loses others
+    FULL = "full"  # M loses all its shared files - effectively dead
 
-    ``active`` maps mod_name -> its def file paths. The result only contains
-    mods that actually conflict; a mod with no conflicts is absent.
+
+@dataclass(frozen=True)
+class ModOverride:
+    severity: Severity
+    # the files this mod loses, each with the mod that wins it (the top owner
+    # above it). Sorted; powers both the glyph and the tooltip.
+    lost: tuple[tuple[str, str], ...]
+
+
+def _shared_owners(active: Mapping[str, Iterable[str]]) -> dict[str, list[str]]:
+    """path -> owning mod names, for paths shared by 2..LIMIT mods.
+
+    The single place the directory-entry and generic-path (>8 owners) filters
+    live, so conflict pairing AND severity read the same set (no double filter).
     """
     owners: dict[str, list[str]] = defaultdict(list)
     for name, defs in active.items():
@@ -50,7 +64,7 @@ def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModCon
                 continue  # directory entry from an old cache - never a conflict
             owners[path].append(name)
 
-    pair_shared: dict[tuple[str, str], set[str]] = defaultdict(set)
+    shared: dict[str, list[str]] = {}
     dropped_generic = 0
     for path, names in owners.items():
         if len(names) < 2:
@@ -58,8 +72,7 @@ def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModCon
         if len(names) > _GENERIC_OWNER_LIMIT:
             dropped_generic += 1
             continue
-        for a, b in combinations(sorted(names), 2):
-            pair_shared[(a, b)].add(path)
+        shared[path] = names
 
     if dropped_generic:
         log.debug(
@@ -67,6 +80,19 @@ def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModCon
             dropped_generic,
             _GENERIC_OWNER_LIMIT,
         )
+    return shared
+
+
+def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModConflict]]:
+    """Map each mod_name to the other active mods it shares a def file with.
+
+    ``active`` maps mod_name -> its def file paths. The result only contains
+    mods that actually conflict; a mod with no conflicts is absent.
+    """
+    pair_shared: dict[tuple[str, str], set[str]] = defaultdict(set)
+    for path, names in _shared_owners(active).items():
+        for a, b in combinations(sorted(names), 2):
+            pair_shared[(a, b)].add(path)
 
     result: dict[str, list[ModConflict]] = defaultdict(list)
     for (a, b), shared in pair_shared.items():
@@ -74,3 +100,33 @@ def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModCon
         result[a].append(ModConflict(other=b, shared=files))
         result[b].append(ModConflict(other=a, shared=files))
     return dict(result)
+
+
+def analyze_overrides(
+    active: Mapping[str, Iterable[str]],
+    positions: Mapping[str, int],
+) -> dict[str, ModOverride]:
+    """Per-mod override severity, keyed by mod_name.
+
+    ``positions`` maps mod_name -> load-order index (higher = visually higher =
+    wins). For each shared def path the top owner (highest position) wins; every
+    other owner loses that path to it. A mod that loses none is absent (it is
+    the winner, no glyph); loses all -> FULL; loses some -> PARTIAL. Only the
+    non-generic shared paths count, from the same _shared_owners set.
+    """
+    shared = _shared_owners(active)
+    top_of: dict[str, str] = {}
+    by_mod: dict[str, list[str]] = defaultdict(list)
+    for path, names in shared.items():
+        top_of[path] = max(names, key=lambda n: positions.get(n, -1))
+        for name in names:
+            by_mod[name].append(path)
+
+    result: dict[str, ModOverride] = {}
+    for name, paths in by_mod.items():
+        lost = sorted((p, top_of[p]) for p in paths if top_of[p] != name)
+        if not lost:
+            continue  # wins all of its shared files - no mark
+        severity = Severity.FULL if len(lost) == len(paths) else Severity.PARTIAL
+        result[name] = ModOverride(severity=severity, lost=tuple(lost))
+    return result

@@ -169,17 +169,22 @@ def test_apply_combo_order_reorders_block_only(qtbot: QtBot) -> None:
 def test_conflict_marks_name_and_sets_tooltip(qtbot: QtBot) -> None:
     w = ActiveModList()
     qtbot.addWidget(w)
+    from easy_scsmodmanager.services.conflict_detect import Severity
+
     w.set_active_mods(
         _mods("a"),
         category_for=lambda m: ("truck",),
         conflict_for=lambda m: "shares def/x with B" if m.name == "a" else "",
+        severity_for=lambda m: Severity.PARTIAL if m.name == "a" else None,
     )
     for i in range(w._list.count()):
         item = w._list.item(i)
         if item.data(Qt.ItemDataRole.UserRole) is not None:
             widget = w._list.itemWidget(item)
             assert widget.toolTip() == "shares def/x with B"
-            assert widget._name.text().startswith("⚠")
+            # rich-text label: the coloured partial glyph prefixes the name
+            assert "⚠" in widget._name.text()
+            assert not w._legend.isHidden()  # legend appears with a conflict
             return
     raise AssertionError("no mod row found")
 
@@ -205,3 +210,22 @@ def test_maps_spacer_carries_group_id(qtbot: QtBot) -> None:
         if w._list.item(i).data(_SPACER_GROUP_ROLE) is not None
     ]
     assert _MAPS_GROUP_ID in roles
+
+
+def test_full_severity_uses_crossed_circle_glyph(qtbot: QtBot) -> None:
+    from easy_scsmodmanager.services.conflict_detect import Severity
+
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    w.set_active_mods(
+        _mods("a"),
+        category_for=lambda m: ("truck",),
+        severity_for=lambda m: Severity.FULL if m.name == "a" else None,
+    )
+    for i in range(w._list.count()):
+        item = w._list.item(i)
+        if item.data(Qt.ItemDataRole.UserRole) is not None:
+            widget = w._list.itemWidget(item)
+            assert "⊘" in widget._name.text()  # crossed circle, distinct from triangle
+            return
+    raise AssertionError("no mod row found")

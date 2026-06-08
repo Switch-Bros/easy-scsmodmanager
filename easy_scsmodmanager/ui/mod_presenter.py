@@ -18,7 +18,11 @@ from easy_scsmodmanager.core.map_base_mods import is_map_base
 from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_key
 from easy_scsmodmanager.core.version_compat import CompatStatus, compat_status
 from easy_scsmodmanager.integrations.scs.content_category import content_category
-from easy_scsmodmanager.services.conflict_detect import ModConflict, find_conflicts
+from easy_scsmodmanager.services.conflict_detect import (
+    ModOverride,
+    Severity,
+    analyze_overrides,
+)
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
@@ -30,6 +34,8 @@ from easy_scsmodmanager.services.mod_search import matches_search
 from easy_scsmodmanager.services.profile_reader import ActiveMod, Profile
 from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, ModSource, SortKey
 from easy_scsmodmanager.utils.i18n import t
+
+_MAX_TOOLTIP_ROWS = 12  # cap the per-mod conflict tooltip so it stays readable
 
 
 class ModPresenter:
@@ -45,7 +51,7 @@ class ModPresenter:
         self._game_version: str | None = None
         self._map_base_names: tuple[str, ...] = ()
         # active.name -> mods it shares a def file with (recomputed per scan)
-        self._conflicts: dict[str, list[ModConflict]] = {}
+        self._conflict_overrides: dict[str, ModOverride] = {}
 
     def set_context(
         self,
@@ -166,28 +172,46 @@ class ModPresenter:
     # ------------------------------------------------------------------ #
 
     def compute_conflicts(self) -> None:
-        """Recompute which active mods overwrite the same def files."""
-        self._conflicts = {}
+        """Recompute per-mod override severity for the active load order."""
+        self._conflict_overrides = {}
         if self._profile is None or self._matcher is None:
             return
         active_defs: dict[str, tuple[str, ...]] = {}
-        for active in self._profile.active_mods:
+        positions: dict[str, int] = {}
+        # active_mods index 0 = bottom = lowest priority; higher index = above
+        for index, active in enumerate(self._profile.active_mods):
+            positions[active.name] = index
             match = self._matcher.lookup(active)
             if match is not None and match.def_files:
                 active_defs[active.name] = match.def_files
-        self._conflicts = find_conflicts(active_defs)
+        self._conflict_overrides = analyze_overrides(active_defs, positions)
+
+    def has_conflicts(self) -> bool:
+        return bool(self._conflict_overrides)
+
+    def severity_for(self, active_mod: ActiveMod) -> Severity | None:
+        """Override severity of this mod, or None when it wins all its files."""
+        override = self._conflict_overrides.get(active_mod.name)
+        return override.severity if override else None
 
     def conflict_for(self, active_mod: ActiveMod) -> str:
-        """Tooltip listing the active mods this one shares def files with."""
-        conflicts = self._conflicts.get(active_mod.name)
-        if not conflicts:
+        """Severity-aware tooltip: header in words, then '{file} -> {winner}'."""
+        override = self._conflict_overrides.get(active_mod.name)
+        if override is None:
             return ""
         names = self._active_display_map()
-        lines = [t("conflict.tooltip_header")]
-        for c in conflicts[:8]:
-            other = names.get(c.other, c.other)
-            sample = c.shared[0] if c.shared else ""
-            lines.append(t("conflict.tooltip_row", mod=other, file=sample))
+        header = (
+            "conflict.tooltip.header_full"
+            if override.severity is Severity.FULL
+            else "conflict.tooltip.header_partial"
+        )
+        lines = [t(header)]
+        shown = override.lost[:_MAX_TOOLTIP_ROWS]
+        for path, winner in shown:
+            lines.append(t("conflict.tooltip.row", file=path, mod=names.get(winner, winner)))
+        rest = len(override.lost) - len(shown)
+        if rest > 0:
+            lines.append(t("conflict.tooltip.more", count=rest))
         return "\n".join(lines)
 
     # ------------------------------------------------------------------ #
