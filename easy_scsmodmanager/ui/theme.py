@@ -90,7 +90,7 @@ class Theme:
     BORDER_WIDTH = 2
     MOD_CARD_WIDTH = ICON_WIDTH + 2 * CARD_PADDING + 2 * BORDER_WIDTH
     MOD_CARD_HEIGHT = ICON_HEIGHT + 80  # icon + 2 text rows + paddings
-    MOD_GRID_COLUMNS = 3
+    MOD_GRID_COLUMNS = 3  # initial / minimum columns; the grid adds more on resize
     ACTIVE_THUMBNAIL_WIDTH = 200
     ACTIVE_THUMBNAIL_HEIGHT = 112
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 
 from PyQt6.QtCore import QMimeData, Qt, pyqtSignal
-from PyQt6.QtGui import QDrag
+from PyQt6.QtGui import QDrag, QResizeEvent
 from PyQt6.QtWidgets import QGridLayout, QScrollArea, QSizePolicy, QWidget
 
 from easy_scsmodmanager.core.version_compat import CompatStatus
@@ -20,6 +20,10 @@ from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.widgets.active_mod_list import MOD_DRAG_MIME
 from easy_scsmodmanager.ui.widgets.mod_card import ModCard
+
+# grid contents margin and horizontal spacing, mirrored in _compute_columns
+_GRID_MARGIN = 8
+_GRID_SPACING = 8
 
 
 class ModCardGrid(QScrollArea):
@@ -77,42 +81,69 @@ class ModCardGrid(QScrollArea):
         """
         self._clear()
         active_names = active_names or set()
-        # batch the insert: one repaint at the end, not one per card. With a few
-        # thousand mods the per-widget layout updates are what makes the grid crawl.
+        for mod in mods:
+            icon = icon_for(mod) if icon_for is not None else None
+            card = ModCard(
+                mod,
+                is_active=active_name_for(mod) in active_names,
+                icon_bytes=icon,
+                display_name=name_for(mod) if name_for is not None else None,
+                categories_for=categories_for,
+                compat_for=compat_for,
+                is_favorite=is_favorite_for(mod) if is_favorite_for is not None else False,
+                selection_provider=self.selected_mods,
+                on_context_menu=self._collapse_selection_to,
+            )
+            idx = len(self._cards)
+            card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
+            card.activated.connect(lambda i=idx: self._on_card_activated(i))
+            card.info_requested.connect(lambda m=mod: self.info_requested.emit(m))
+            card.favorite_toggled.connect(lambda fav, m=mod: self.favorite_toggled.emit(m, fav))
+            card.show_in_active_requested.connect(
+                lambda m=mod: self.show_in_active_requested.emit(m)
+            )
+            card.delete_requested.connect(lambda: self.delete_requested.emit(self.selected_mods()))
+            card.drag_started.connect(lambda i=idx: self._start_drag(i))
+            self._cards.append(card)
+        # one shared layout pass positions the fresh cards (force, since they are
+        # not in the grid yet even when the column count is unchanged)
+        self._relayout(force=True)
+
+    @staticmethod
+    def _columns_for_width(width: int) -> int:
+        # how many fixed-width cards fit; n columns use only n-1 gaps, hence the
+        # + spacing. Never below 1 (avoids division surprises on a tiny window).
+        usable = width - 2 * _GRID_MARGIN
+        column = Theme.MOD_CARD_WIDTH + _GRID_SPACING
+        return max(1, (usable + _GRID_SPACING) // column)
+
+    def _compute_columns(self) -> int:
+        viewport = self.viewport()
+        width = viewport.width() if viewport is not None else self.width()
+        return self._columns_for_width(width)
+
+    def _relayout(self, *, force: bool = False) -> bool:
+        # returns whether it actually repositioned (False = guarded no-op)
+        cols = self._compute_columns()
+        if not force and cols == self._columns:
+            return False  # a resize that does not change the column count
+        self._columns = cols
         self._content.setUpdatesEnabled(False)
         try:
-            for i, mod in enumerate(mods):
-                icon = icon_for(mod) if icon_for is not None else None
-                card = ModCard(
-                    mod,
-                    is_active=active_name_for(mod) in active_names,
-                    icon_bytes=icon,
-                    display_name=name_for(mod) if name_for is not None else None,
-                    categories_for=categories_for,
-                    compat_for=compat_for,
-                    is_favorite=is_favorite_for(mod) if is_favorite_for is not None else False,
-                    selection_provider=self.selected_mods,
-                    on_context_menu=self._collapse_selection_to,
-                )
-                idx = len(self._cards)
-                card.clicked.connect(lambda mods, i=idx: self._on_card_clicked(i, mods))
-                card.activated.connect(lambda i=idx: self._on_card_activated(i))
-                card.info_requested.connect(lambda m=mod: self.info_requested.emit(m))
-                card.favorite_toggled.connect(lambda fav, m=mod: self.favorite_toggled.emit(m, fav))
-                card.show_in_active_requested.connect(
-                    lambda m=mod: self.show_in_active_requested.emit(m)
-                )
-                card.delete_requested.connect(
-                    lambda: self.delete_requested.emit(self.selected_mods())
-                )
-                card.drag_started.connect(lambda i=idx: self._start_drag(i))
-                self._cards.append(card)
-                self._grid.addWidget(card, i // self._columns, i % self._columns)
-            # Push the cards top-left, do not let the grid stretch them.
+            while self._grid.count():
+                self._grid.takeAt(0)  # detach (cards keep their parent), no delete
+            for i, card in enumerate(self._cards):
+                self._grid.addWidget(card, i // cols, i % cols)
+            # push the cards top-left; no column stretch, so the leftover on the
+            # right is at most one card gap instead of a big empty box
             self._grid.setRowStretch(self._grid.rowCount(), 1)
-            self._grid.setColumnStretch(self._columns, 1)
         finally:
             self._content.setUpdatesEnabled(True)
+        return True
+
+    def resizeEvent(self, event: QResizeEvent | None) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        self._relayout()
 
     def cards(self) -> list[ModCard]:
         return list(self._cards)

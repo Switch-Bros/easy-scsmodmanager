@@ -276,3 +276,73 @@ def test_select_all_only_covers_the_filtered_grid(qtbot):
     grid.select_all()
 
     assert [m.path.name for m in grid.selected_mods()] == ["a.scs", "b.scs"]
+
+
+def _grid_and_mods(qtbot, n):
+    from pathlib import Path
+
+    from easy_scsmodmanager.integrations.scs.detector import ScsFormat
+    from easy_scsmodmanager.services.mod_scanner import ScannedMod
+    from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
+
+    mods = [
+        ScannedMod(path=Path(f"/m/m{i}.scs"), format=ScsFormat.ZIP, manifest=None, error=None)
+        for i in range(n)
+    ]
+    grid = ModCardGrid()
+    qtbot.addWidget(grid)
+    grid.set_mods(mods)
+    return grid, mods
+
+
+def test_columns_for_width_exact_fit():
+    from easy_scsmodmanager.ui.theme import Theme
+    from easy_scsmodmanager.ui.widgets.mod_card_grid import (
+        _GRID_MARGIN,
+        _GRID_SPACING,
+        ModCardGrid,
+    )
+
+    w = Theme.MOD_CARD_WIDTH
+    for n in (3, 4, 5):
+        width = n * w + (n - 1) * _GRID_SPACING + 2 * _GRID_MARGIN
+        assert ModCardGrid._columns_for_width(width) == n
+
+
+def test_columns_for_width_never_below_one():
+    from easy_scsmodmanager.ui.widgets.mod_card_grid import ModCardGrid
+
+    assert ModCardGrid._columns_for_width(10) == 1  # tiny window -> 1, no zero-div
+
+
+def test_reflow_changes_columns_keeps_cards(qtbot, monkeypatch):
+    grid, mods = _grid_and_mods(qtbot, 9)
+    monkeypatch.setattr(grid, "_compute_columns", lambda: 2)
+    grid._relayout(force=True)
+    assert grid._columns == 2
+    before = [c.mod.path for c in grid.cards()]
+    widths = [c.maximumWidth() for c in grid.cards()]
+
+    monkeypatch.setattr(grid, "_compute_columns", lambda: 5)
+    assert grid._relayout() is True  # cols changed -> rebuilt
+    assert grid._columns == 5
+    assert [c.mod.path for c in grid.cards()] == before  # same order, same count
+    assert [c.maximumWidth() for c in grid.cards()] == widths  # card width unchanged
+
+
+def test_reflow_guard_skips_when_columns_unchanged(qtbot, monkeypatch):
+    grid, _ = _grid_and_mods(qtbot, 6)
+    monkeypatch.setattr(grid, "_compute_columns", lambda: grid._columns)
+    assert grid._relayout() is False  # no column change -> no rebuild
+
+
+def test_selection_survives_reflow(qtbot, monkeypatch):
+    grid, mods = _grid_and_mods(qtbot, 8)
+    grid._set_single(5)
+    assert 5 in grid._selected
+
+    monkeypatch.setattr(grid, "_compute_columns", lambda: 4)
+    grid._relayout(force=True)
+
+    assert 5 in grid._selected
+    assert grid.selected_mods() == [mods[5]]
