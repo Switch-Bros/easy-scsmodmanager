@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.4] - 2026-06-08
+
+- Refined the colour palette and switched the accent to Borussia Dortmund
+  yellow, so mod names now show in the club colour. Internally the theme is now
+  a clean two-layer palette (raw marks vs. semantic tokens) with no stray
+  hardcoded colours left.
+
 ## [1.3.3] - 2026-06-07
 
 - **Move several mods to a group at once.** The active-list right-click "Move

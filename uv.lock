@@ -213,7 +213,7 @@ wheels = [
 
 [[package]]
 name = "easy-scsmodmanager"
-version = "1.3.3"
+version = "1.3.4"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
