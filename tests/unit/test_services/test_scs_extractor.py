@@ -60,3 +60,21 @@ def test_unsupported_format_raises(tmp_path: Path) -> None:
     aem.write_bytes(b"AEM!" + b"\x00" * 32)
     with pytest.raises(UnsupportedArchive):
         extract_scs(aem, tmp_path / "o")
+
+
+def test_extract_hashfs_writes_dds_for_packed_textures(tmp_path: Path) -> None:
+    import sys
+
+    # reuse the v2 reader's builder for a tiny archive with one real packed texture
+    sys.path.insert(0, str(Path(__file__).parent.parent / "test_integrations"))
+    from test_hashfs_v2_reader import _image_archive
+
+    fx = Path(__file__).parent.parent.parent / "fixtures" / "scs_textures"
+    dest = tmp_path / "out"
+    res = extract_scs(_image_archive(tmp_path), dest)
+
+    dds = dest / "road.dds"
+    assert dds.exists()
+    assert dds.read_bytes() == (fx / "tex0.dds").read_bytes()
+    assert res.failed == 0
+    assert not (dest / "road.tobj").exists()  # rebuilt as .dds, not the raw .tobj

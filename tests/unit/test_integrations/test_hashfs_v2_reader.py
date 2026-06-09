@@ -27,27 +27,42 @@ def _pack_main(offset: int, size: int, csize: int, compressed: bool) -> bytes:
     return bytes(b)
 
 
-def _build_v2(items: list[tuple[str, bytes, bool, int]], salt: int = 0) -> bytes:
-    """items: (path, content, compress, chunk_type). chunk_type 128=file/129=dir/1=image."""
+def _build_v2(items: list[tuple], salt: int = 0) -> bytes:
+    """items: (path, content, compress, chunk_type[, tobj_meta]).
+
+    chunk_type 128=file/129=dir/1=image. For image entries the content is the
+    raw GDeflate payload (stored verbatim, never zlib'd) and ``compress`` only
+    sets the GDeflate flag; ``tobj_meta`` is the optional 12-byte metadata.
+    """
     blobs = bytearray()
     placed = []
-    for path, content, compress, chunk_type in items:
-        stored = zlib.compress(content) if compress else content
+    for item in items:
+        path, content, compress, chunk_type = item[:4]
+        tobj_meta = item[4] if len(item) > 4 else bytes(12)
+        stored = content if chunk_type == 1 else (zlib.compress(content) if compress else content)
         while (_DATA_START + len(blobs)) % 16:
             blobs.append(0)
         offset = _DATA_START + len(blobs)
         blobs += stored
         placed.append(
-            (hash_path(path, salt), offset, len(content), len(stored), compress, chunk_type)
+            (
+                hash_path(path, salt),
+                offset,
+                len(content),
+                len(stored),
+                compress,
+                chunk_type,
+                tobj_meta,
+            )
         )
 
     meta = bytearray()
     entry_records = []
-    for h, offset, size, csize, compress, chunk_type in placed:
+    for h, offset, size, csize, compress, chunk_type, tobj_meta in placed:
         meta_index = len(meta) // 4
         meta += bytes([0, 0, 0, chunk_type])
         if chunk_type == 1:  # image: 12-byte packed tobj/dds metadata first
-            meta += bytes(12)
+            meta += bytes(tobj_meta)
         meta += _pack_main(offset, size, csize, compress)
         entry_records.append((h, meta_index, 1))
 
@@ -146,3 +161,36 @@ def test_open_hashfs_dispatches_to_v2(tmp_path: Path) -> None:
         assert r.has("manifest.sii")
     finally:
         r.close()
+
+
+_FIXTURES = Path(__file__).parent.parent.parent / "fixtures" / "scs_textures"
+
+
+# a root listing naming exactly the two entries below (12 + 9 byte names)
+_IMG_ROOT_LISTING = struct.pack("<I", 2) + bytes([12, 9]) + b"manifest.sii" + b"road.tobj"
+
+
+def _image_archive(tmp_path: Path) -> Path:
+    tobj = (_FIXTURES / "tex0.tobj12").read_bytes()
+    payload = (_FIXTURES / "tex0.gdeflate").read_bytes()
+    items = [
+        ("", _IMG_ROOT_LISTING, True, 129),
+        ("manifest.sii", b'display_name: "Tex Mod"', True, 128),
+        ("road.tobj", payload, True, 1, tobj),  # real packed texture, GDeflate flag set
+    ]
+    path = tmp_path / "tex.scs"
+    path.write_bytes(_build_v2(items))
+    return path
+
+
+def test_read_image_dds_rebuilds_texture(tmp_path: Path) -> None:
+    want = (_FIXTURES / "tex0.dds").read_bytes()
+    with HashFsV2Reader(_image_archive(tmp_path)) as r:
+        assert r.is_image_entry("road.tobj")
+        assert not r.is_image_entry("manifest.sii")
+        assert r.read_image_dds("road.tobj") == want
+
+
+def test_read_image_dds_rejects_plain_entry(tmp_path: Path) -> None:
+    with HashFsV2Reader(_image_archive(tmp_path)) as r, pytest.raises(HashFsError):
+        r.read_image_dds("manifest.sii")

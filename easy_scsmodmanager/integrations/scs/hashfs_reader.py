@@ -12,8 +12,10 @@ A reader offers two things:
   full "extract this .scs to a folder" feature needs.
 
 v2 texture entries (packed .tobj/.dds) are GDeflate-compressed and need DDS
-reconstruction; we record them but raise on read. Everything else - the SII,
-text, jpg/png and other plain files plus directory listings - reads normally.
+reconstruction; ``read_image_dds`` rebuilds a real .dds for them (plain
+``read_bytes`` still raises, since the raw payload is not a standalone file).
+Everything else - the SII, text, jpg/png and other plain files plus directory
+listings - reads normally.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from pathlib import Path
 from types import TracebackType
 
 from easy_scsmodmanager.integrations.scs.cityhash import hash_path
+from easy_scsmodmanager.integrations.scs.tobj_dds import reconstruct_dds
 
 MAGIC = 0x23534353  # "SCS#"
 CITY_METHOD = "CITY"
@@ -85,7 +88,8 @@ class _Entry:
     compressed_size: int
     is_directory: bool
     is_compressed: bool
-    is_image: bool = False  # v2 packed .tobj/.dds - content not decodable yet
+    is_image: bool = False  # v2 packed .tobj/.dds, rebuilt via read_image_dds
+    tobj_meta: bytes | None = None  # 12-byte texture metadata for image entries
 
 
 def peek_version(fh: object) -> int:
@@ -129,6 +133,19 @@ class _HashFsReaderBase:
 
     def read_text(self, path: str, encoding: str = "utf-8") -> str:
         return self.read_bytes(path).decode(encoding, errors="replace")
+
+    def is_image_entry(self, path: str) -> bool:
+        entry = self._entries.get(hash_path(path, self._salt))
+        return entry is not None and entry.is_image
+
+    def read_image_dds(self, path: str) -> bytes:
+        # rebuild a real .dds from a packed v2 texture entry
+        entry = self._entries.get(hash_path(path, self._salt))
+        if entry is None or not entry.is_image or entry.tobj_meta is None:
+            raise HashFsError(f"not a packed texture: {path}")
+        self._fh.seek(entry.offset)
+        raw = self._fh.read(entry.compressed_size if entry.is_compressed else entry.size)
+        return reconstruct_dds(entry.tobj_meta, raw, compressed=entry.is_compressed)
 
     def close(self) -> None:
         self._fh.close()
@@ -306,7 +323,15 @@ def _decode_v2_metadata(meta: bytes, meta_index: int, meta_count: int) -> _Entry
     if chunk_type == _CHUNK_IMAGE:
         # 12-byte packed tobj/dds metadata precedes the main metadata.
         offset, size, csize, compressed = _decode_main_metadata(meta, body + 12)
-        return _Entry(offset, size, csize, False, compressed, is_image=True)
+        return _Entry(
+            offset,
+            size,
+            csize,
+            False,
+            compressed,
+            is_image=True,
+            tobj_meta=bytes(meta[body : body + 12]),
+        )
     return None  # unimplemented chunk type - skip
 
 

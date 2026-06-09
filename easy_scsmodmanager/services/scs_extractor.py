@@ -70,8 +70,11 @@ def _extract_hashfs(
             if should_cancel is not None and should_cancel():
                 return ExtractResult(total, extracted, failed, True, failures)
             try:
-                data = reader.read_bytes(entry)
-                _write_file(dest_dir, entry.lstrip("/"), data)
+                if reader.is_image_entry(entry):
+                    # packed texture: rebuild a real .dds next to the .tobj path
+                    _write_file(dest_dir, _dds_name(entry), reader.read_image_dds(entry))
+                else:
+                    _write_file(dest_dir, entry.lstrip("/"), reader.read_bytes(entry))
                 extracted += 1
             except Exception as exc:  # noqa: BLE001 - record and keep going
                 failed += 1
@@ -106,6 +109,12 @@ def _extract_zip(
             if on_progress is not None:
                 on_progress(done, total)
         return ExtractResult(total, extracted, failed, False, failures)
+
+
+def _dds_name(path: str) -> str:
+    # an image entry is keyed by its .tobj path; the rebuilt image is a .dds
+    p = path.lstrip("/")
+    return p[:-5] + ".dds" if p.endswith(".tobj") else p + ".dds"
 
 
 def _write_file(dest_dir: Path, relative: str, data: bytes) -> None:
