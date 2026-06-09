@@ -19,9 +19,10 @@ from easy_scsmodmanager.core.mod_categories import effective_categories, i18n_ke
 from easy_scsmodmanager.core.version_compat import CompatStatus, compat_status
 from easy_scsmodmanager.integrations.scs.content_category import content_category
 from easy_scsmodmanager.services.conflict_detect import (
+    FrequentShare,
     ModOverride,
     Severity,
-    analyze_overrides,
+    analyze,
 )
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
@@ -52,6 +53,7 @@ class ModPresenter:
         self._map_base_names: tuple[str, ...] = ()
         # active.name -> mods it shares a def file with (recomputed per scan)
         self._conflict_overrides: dict[str, ModOverride] = {}
+        self._frequent: dict[str, FrequentShare] = {}
 
     def set_context(
         self,
@@ -172,8 +174,9 @@ class ModPresenter:
     # ------------------------------------------------------------------ #
 
     def compute_conflicts(self) -> None:
-        """Recompute per-mod override severity for the active load order."""
+        """Recompute per-mod override severity + frequent-share info."""
         self._conflict_overrides = {}
+        self._frequent = {}
         if self._profile is None or self._matcher is None:
             return
         active_defs: dict[str, tuple[str, ...]] = {}
@@ -184,34 +187,51 @@ class ModPresenter:
             match = self._matcher.lookup(active)
             if match is not None and match.def_files:
                 active_defs[active.name] = match.def_files
-        self._conflict_overrides = analyze_overrides(active_defs, positions)
+        self._conflict_overrides, self._frequent = analyze(active_defs, positions)
 
     def has_conflicts(self) -> bool:
         return bool(self._conflict_overrides)
+
+    def has_frequent(self) -> bool:
+        return bool(self._frequent)
 
     def severity_for(self, active_mod: ActiveMod) -> Severity | None:
         """Override severity of this mod, or None when it wins all its files."""
         override = self._conflict_overrides.get(active_mod.name)
         return override.severity if override else None
 
+    def frequent_for(self, active_mod: ActiveMod) -> bool:
+        """Whether this mod shares any def file with many mods (frequent tier)."""
+        return active_mod.name in self._frequent
+
     def conflict_for(self, active_mod: ActiveMod) -> str:
-        """Severity-aware tooltip: header in words, then '{file} -> {winner}'."""
+        """Tooltip: severity block (if any), then a dimmed frequent-shared block."""
         override = self._conflict_overrides.get(active_mod.name)
-        if override is None:
-            return ""
-        names = self._active_display_map()
-        header = (
-            "conflict.tooltip.header_full"
-            if override.severity is Severity.FULL
-            else "conflict.tooltip.header_partial"
-        )
-        lines = [t(header)]
-        shown = override.lost[:_MAX_TOOLTIP_ROWS]
-        for path, winner in shown:
-            lines.append(t("conflict.tooltip.row", file=path, mod=names.get(winner, winner)))
-        rest = len(override.lost) - len(shown)
-        if rest > 0:
-            lines.append(t("conflict.tooltip.more", count=rest))
+        frequent = self._frequent.get(active_mod.name)
+        lines: list[str] = []
+        if override is not None:
+            names = self._active_display_map()
+            header = (
+                "conflict.tooltip.header_full"
+                if override.severity is Severity.FULL
+                else "conflict.tooltip.header_partial"
+            )
+            lines.append(t(header))
+            shown = override.lost[:_MAX_TOOLTIP_ROWS]
+            for path, winner in shown:
+                lines.append(t("conflict.tooltip.row", file=path, mod=names.get(winner, winner)))
+            rest = len(override.lost) - len(shown)
+            if rest > 0:
+                lines.append(t("conflict.tooltip.more", count=rest))
+        if frequent is not None:
+            # a real conflict already has a header above, so use the "also" lead
+            lines.append(
+                t("conflict.tooltip.frequent_also")
+                if override is not None
+                else t("conflict.tooltip.header_frequent")
+            )
+            for path, count in frequent.files[:_MAX_TOOLTIP_ROWS]:
+                lines.append(t("conflict.tooltip.frequent_row", file=path, count=count))
         return "\n".join(lines)
 
     # ------------------------------------------------------------------ #

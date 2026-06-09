@@ -147,3 +147,43 @@ def test_base_packaged_physics_conflicts_and_classifies():
     result = find_conflicts({"a": defs_a, "b": defs_b})
     assert set(result) == {"a", "b"}
     assert content_category(defs_a) == "physics"
+
+
+# --- §B frequent tier (>8 owners) ---------------------------------------- #
+
+from easy_scsmodmanager.services.conflict_detect import FrequentShare, analyze  # noqa: E402
+
+
+def _many_sharers(n: int, path: str) -> dict[str, list[str]]:
+    return {f"m{i}": [path] for i in range(n)}
+
+
+def test_analyze_splits_conflict_and_frequent_tiers():
+    # 2 mods share def/x -> conflict; 9 mods share def/y -> frequent (>8)
+    active = {"a": ["def/x.sii"], "b": ["def/x.sii"]}
+    active.update({f"m{i}": ["def/y.sii"] for i in range(9)})
+    positions = {name: i for i, name in enumerate(active)}
+    overrides, frequent = analyze(active, positions)
+
+    assert set(overrides) <= {"a", "b"}  # only the 2-mod overlap is a conflict
+    assert all(name in frequent for name in (f"m{i}" for i in range(9)))
+    # frequent carries the owner count, no names
+    share = frequent["m0"]
+    assert isinstance(share, FrequentShare)
+    assert share.files == (("def/y.sii", 9),)
+
+
+def test_frequent_does_not_create_overrides():
+    active = _many_sharers(10, "def/physics/physics.sii")
+    positions = {name: i for i, name in enumerate(active)}
+    overrides, frequent = analyze(active, positions)
+    assert overrides == {}  # >8 is never a red/yellow conflict
+    assert len(frequent) == 10
+
+
+def test_eight_owners_is_still_a_conflict_not_frequent():
+    active = _many_sharers(8, "def/x.sii")
+    positions = {name: i for i, name in enumerate(active)}
+    overrides, frequent = analyze(active, positions)
+    assert frequent == {}  # exactly 8 stays in the conflict tier
+    assert overrides  # the lower 7 lose to the top one

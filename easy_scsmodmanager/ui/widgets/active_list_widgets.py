@@ -33,6 +33,7 @@ from easy_scsmodmanager.utils.i18n import t
 # U+2298 renders in Inter on Win+Linux; documented fallback is U+2715 ("X").
 _GLYPH_PARTIAL = "⚠"  # warning triangle
 _GLYPH_FULL = "⊘"  # circled division slash (crossed circle)
+_GLYPH_FREQUENT = "="  # neutral "frequently shared" (not a conflict); fallback "•"
 
 THUMB_SIZE = QSize(Theme.ACTIVE_THUMBNAIL_WIDTH, Theme.ACTIVE_THUMBNAIL_HEIGHT)
 
@@ -175,6 +176,7 @@ class ActiveModItem(QWidget):
         is_missing: bool,
         misplaced: bool = False,
         severity: Severity | None = None,
+        frequent: bool = False,
         tooltip: str = "",
         parent: QWidget | None = None,
     ) -> None:
@@ -195,7 +197,7 @@ class ActiveModItem(QWidget):
         # an override gets a severity glyph prefixed on the name (no extra row,
         # so card height stays uniform); only the glyph is coloured, the name
         # keeps its colour. Details live in the tooltip.
-        self._name = QLabel(_severity_label(mod, severity))
+        self._name = QLabel(_severity_label(mod, severity, frequent))
         self._name.setStyleSheet(f"color: {Theme.TEXT}; font-size: 11px; font-weight: 600;")
         self._name.setWordWrap(True)
         self._name.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -242,26 +244,30 @@ def _format_label(mod: ActiveMod) -> str:
 
 
 def conflict_legend_html() -> str:
-    """One-line legend: the two severity glyphs in their colours + meaning."""
+    """One-line legend: the three glyphs in their colours + meaning."""
     return (
         f'<span style="color:{Theme.WARNING}">{_GLYPH_PARTIAL}</span> '
         f'{t("conflict.legend.partial")}'
         f'&nbsp;&nbsp;&nbsp;<span style="color:{Theme.DANGER}">{_GLYPH_FULL}</span> '
         f'{t("conflict.legend.full")}'
+        f'&nbsp;&nbsp;&nbsp;<span style="color:{Theme.TEXT_DIM}">{_GLYPH_FREQUENT}</span> '
+        f'{t("conflict.legend.frequent")}'
     )
 
 
-def _severity_label(mod: ActiveMod, severity: Severity | None) -> str:
+def _severity_label(mod: ActiveMod, severity: Severity | None, frequent: bool = False) -> str:
     name = _format_label(mod)
-    if severity is None:
+    # one glyph per card, precedence FULL > PARTIAL > FREQUENT > none
+    if severity is Severity.FULL:
+        glyph, colour = _GLYPH_FULL, Theme.DANGER
+    elif severity is Severity.PARTIAL:
+        glyph, colour = _GLYPH_PARTIAL, Theme.WARNING
+    elif frequent:
+        glyph, colour = _GLYPH_FREQUENT, Theme.TEXT_DIM  # neutral grey, not an alarm
+    else:
         return name
-    glyph, colour = (
-        (_GLYPH_FULL, Theme.DANGER)
-        if severity is Severity.FULL
-        else (_GLYPH_PARTIAL, Theme.WARNING)
-    )
-    # rich text so only the glyph carries the severity colour; the name keeps
-    # the label's own colour. Escape the name since the label is now HTML.
+    # rich text so only the glyph carries the colour; the name keeps the label's
+    # own colour. Escape the name since the label is now HTML.
     safe = name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     return f'<span style="color:{colour}">{glyph}</span> {safe}'
 

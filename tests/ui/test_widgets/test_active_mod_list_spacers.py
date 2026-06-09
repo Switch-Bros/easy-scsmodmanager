@@ -4,6 +4,7 @@ from PyQt6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 
 from easy_scsmodmanager.services.profile_reader import ActiveMod
+from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.ui.widgets.active_list_widgets import (
     _SPACER_FONT_PX_MULTILINE,
     _SPACER_FONT_PX_SINGLE,
@@ -227,5 +228,49 @@ def test_full_severity_uses_crossed_circle_glyph(qtbot: QtBot) -> None:
         if item.data(Qt.ItemDataRole.UserRole) is not None:
             widget = w._list.itemWidget(item)
             assert "⊘" in widget._name.text()  # crossed circle, distinct from triangle
+            return
+    raise AssertionError("no mod row found")
+
+
+def test_frequent_only_shows_grey_glyph(qtbot: QtBot) -> None:
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    w.set_active_mods(
+        _mods("a"),
+        category_for=lambda m: ("truck",),
+        frequent_for=lambda m: m.name == "a",
+    )
+    for i in range(w._list.count()):
+        item = w._list.item(i)
+        if item.data(Qt.ItemDataRole.UserRole) is not None:
+            widget = w._list.itemWidget(item)
+            text = widget._name.text()
+            # neutral grey glyph: muted colour, neither conflict glyph
+            assert Theme.TEXT_DIM in text
+            assert "⚠" not in text and "⊘" not in text
+            assert not w._legend.isHidden()  # legend shows for frequent too
+            return
+    raise AssertionError("no mod row found")
+
+
+def test_severity_beats_frequent_in_glyph_precedence(qtbot: QtBot) -> None:
+    from easy_scsmodmanager.services.conflict_detect import Severity
+
+    w = ActiveModList()
+    qtbot.addWidget(w)
+    w.set_active_mods(
+        _mods("a"),
+        category_for=lambda m: ("truck",),
+        severity_for=lambda m: Severity.FULL,
+        frequent_for=lambda m: True,  # also frequent, but conflict wins
+    )
+    for i in range(w._list.count()):
+        item = w._list.item(i)
+        if item.data(Qt.ItemDataRole.UserRole) is not None:
+            widget = w._list.itemWidget(item)
+            text = widget._name.text()
+            # FULL beats frequent: crossed circle in DANGER, not the grey glyph
+            assert "⊘" in text
+            assert Theme.DANGER in text and Theme.TEXT_DIM not in text
             return
     raise AssertionError("no mod row found")

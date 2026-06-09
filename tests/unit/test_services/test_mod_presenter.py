@@ -181,3 +181,40 @@ def test_severity_and_tooltip_come_from_owner_positions() -> None:
     tip = presenter.conflict_for(ActiveMod("low", "Low"))
     assert "def/x.sii" in tip
     assert "High" in tip  # winner shown by display name
+
+
+def test_frequent_tier_in_presenter() -> None:
+    from easy_scsmodmanager.services.mod_matching import ActiveModMatcher
+
+    # 9 mods sharing one physics def -> frequent, not a conflict
+    mods = [
+        ScannedMod(
+            path=Path(f"/m/m{i}.scs"),
+            format=ScsFormat.ZIP,
+            manifest=None,
+            error=None,
+            def_files=("def/vehicle/physics/physics.sii",),
+        )
+        for i in range(9)
+    ]
+    presenter = _presenter()
+    profile = Profile(
+        dir_name="d",
+        profile_name="P",
+        active_mods=tuple(ActiveMod(f"m{i}", f"M{i}") for i in range(9)),
+    )
+    presenter.set_context(
+        matcher=ActiveModMatcher(mods),
+        profile=profile,
+        game_version=None,
+        map_base_names=(),
+    )
+    presenter.compute_conflicts()
+
+    assert presenter.has_frequent() is True
+    assert presenter.has_conflicts() is False  # >8 never a red/yellow conflict
+    assert presenter.frequent_for(ActiveMod("m0", "M0")) is True
+    assert presenter.severity_for(ActiveMod("m0", "M0")) is None
+    tip = presenter.conflict_for(ActiveMod("m0", "M0"))
+    assert "physics.sii" in tip
+    assert "9" in tip  # owner count, no names

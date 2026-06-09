@@ -494,6 +494,7 @@ class MainWindow(QMainWindow):
             category_for=self._presenter.category_for_active,
             conflict_for=self._presenter.conflict_for,
             severity_for=self._presenter.severity_for,
+            frequent_for=self._presenter.frequent_for,
         )
 
     # ------------------------------------------------------------------ #

@@ -53,11 +53,22 @@ class ModOverride:
     lost: tuple[tuple[str, str], ...]
 
 
-def _shared_owners(active: Mapping[str, Iterable[str]]) -> dict[str, list[str]]:
-    """path -> owning mod names, for paths shared by 2..LIMIT mods.
+@dataclass(frozen=True)
+class FrequentShare:
+    # def files this mod shares with MORE than the generic limit of mods - a
+    # usually-intended overlap (physics, climate ...), shown as neutral info,
+    # never as a conflict. Each entry is (file, total owner count). Sorted.
+    files: tuple[tuple[str, int], ...]
 
-    The single place the directory-entry and generic-path (>8 owners) filters
-    live, so conflict pairing AND severity read the same set (no double filter).
+
+def _partition_owners(
+    active: Mapping[str, Iterable[str]],
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Split shared def paths into (conflicting 2..LIMIT, frequent >LIMIT).
+
+    One pass over the inverted index. The conflicting set drives red/yellow
+    severity; the frequent set drives the neutral grey "frequently shared" tier.
+    Directory entries are dropped (an old-cache artefact, never a real overlap).
     """
     owners: dict[str, list[str]] = defaultdict(list)
     for name, defs in active.items():
@@ -67,22 +78,22 @@ def _shared_owners(active: Mapping[str, Iterable[str]]) -> dict[str, list[str]]:
             owners[path].append(name)
 
     shared: dict[str, list[str]] = {}
-    dropped_generic = 0
+    frequent: dict[str, list[str]] = {}
     for path, names in owners.items():
         if len(names) < 2:
             continue
         if len(names) > _GENERIC_OWNER_LIMIT:
-            dropped_generic += 1
-            continue
-        shared[path] = names
+            frequent[path] = names
+        else:
+            shared[path] = names
 
-    if dropped_generic:
+    if frequent:
         log.debug(
-            "conflict scan skipped %d generic def paths (>%d owners)",
-            dropped_generic,
+            "conflict scan: %d def paths shared by >%d mods (frequent tier)",
+            len(frequent),
             _GENERIC_OWNER_LIMIT,
         )
-    return shared
+    return shared, frequent
 
 
 def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModConflict]]:
@@ -92,7 +103,7 @@ def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModCon
     mods that actually conflict; a mod with no conflicts is absent.
     """
     pair_shared: dict[tuple[str, str], set[str]] = defaultdict(set)
-    for path, names in _shared_owners(active).items():
+    for path, names in _partition_owners(active)[0].items():
         for a, b in combinations(sorted(names), 2):
             pair_shared[(a, b)].add(path)
 
@@ -104,19 +115,9 @@ def find_conflicts(active: Mapping[str, Iterable[str]]) -> dict[str, list[ModCon
     return dict(result)
 
 
-def analyze_overrides(
-    active: Mapping[str, Iterable[str]],
-    positions: Mapping[str, int],
+def _overrides_from_shared(
+    shared: dict[str, list[str]], positions: Mapping[str, int]
 ) -> dict[str, ModOverride]:
-    """Per-mod override severity, keyed by mod_name.
-
-    ``positions`` maps mod_name -> load-order index (higher = visually higher =
-    wins). For each shared def path the top owner (highest position) wins; every
-    other owner loses that path to it. A mod that loses none is absent (it is
-    the winner, no glyph); loses all -> FULL; loses some -> PARTIAL. Only the
-    non-generic shared paths count, from the same _shared_owners set.
-    """
-    shared = _shared_owners(active)
     top_of: dict[str, str] = {}
     by_mod: dict[str, list[str]] = defaultdict(list)
     for path, names in shared.items():
@@ -132,3 +133,39 @@ def analyze_overrides(
         severity = Severity.FULL if len(lost) == len(paths) else Severity.PARTIAL
         result[name] = ModOverride(severity=severity, lost=tuple(lost))
     return result
+
+
+def _frequent_shares(frequent: dict[str, list[str]]) -> dict[str, FrequentShare]:
+    by_mod: dict[str, list[tuple[str, int]]] = defaultdict(list)
+    for path, names in frequent.items():
+        for name in names:
+            by_mod[name].append((path, len(names)))
+    return {name: FrequentShare(tuple(sorted(files))) for name, files in by_mod.items()}
+
+
+def analyze_overrides(
+    active: Mapping[str, Iterable[str]],
+    positions: Mapping[str, int],
+) -> dict[str, ModOverride]:
+    """Per-mod override severity, keyed by mod_name.
+
+    ``positions`` maps mod_name -> load-order index (higher = visually higher =
+    wins). For each shared def path the top owner (highest position) wins; every
+    other owner loses that path to it. A mod that loses none is absent (it is
+    the winner, no glyph); loses all -> FULL; loses some -> PARTIAL.
+    """
+    return _overrides_from_shared(_partition_owners(active)[0], positions)
+
+
+def analyze(
+    active: Mapping[str, Iterable[str]],
+    positions: Mapping[str, int],
+) -> tuple[dict[str, ModOverride], dict[str, FrequentShare]]:
+    """Both tiers in ONE pass: (per-mod override severity, per-mod frequent shares).
+
+    The presenter uses this so the 2..8 conflict tier and the >8 frequent tier
+    are derived together. A mod can be in both (it has a real conflict AND also
+    shares some generic files); precedence is resolved at the glyph.
+    """
+    shared, frequent = _partition_owners(active)
+    return _overrides_from_shared(shared, positions), _frequent_shares(frequent)

@@ -80,6 +80,7 @@ class ActiveModList(QWidget):
         self._category_for: Callable[[ActiveMod], tuple[str, ...]] | None = None
         self._conflict_for: Callable[[ActiveMod], str] | None = None
         self._severity_for: Callable[[ActiveMod], Severity | None] | None = None
+        self._frequent_for: Callable[[ActiveMod], bool] | None = None
         self._misplaced: set[str] = set()
 
         root = QVBoxLayout(self)
@@ -156,12 +157,14 @@ class ActiveModList(QWidget):
         category_for: Callable[[ActiveMod], tuple[str, ...]] | None = None,
         conflict_for: Callable[[ActiveMod], str] | None = None,
         severity_for: Callable[[ActiveMod], Severity | None] | None = None,
+        frequent_for: Callable[[ActiveMod], bool] | None = None,
     ) -> None:
         self._installed_names = installed_names or set()
         self._icon_for = icon_for
         self._category_for = category_for
         self._conflict_for = conflict_for
         self._severity_for = severity_for
+        self._frequent_for = frequent_for
         # store top-priority first; the incoming list is profile order
         self._mods = list(reversed(list(mods)))
         self._rerender()
@@ -468,7 +471,8 @@ class ActiveModList(QWidget):
                 if conflict_tip:
                     tips.append(conflict_tip)
                 severity = self._severity_for(mod) if self._severity_for is not None else None
-                if severity is not None:
+                frequent = self._frequent_for(mod) if self._frequent_for is not None else False
+                if severity is not None or frequent:
                     any_conflict = True
                 widget = ActiveModItem(
                     mod,
@@ -476,6 +480,7 @@ class ActiveModList(QWidget):
                     is_missing=mod.name not in self._installed_names,
                     misplaced=row.misplaced,
                     severity=severity,
+                    frequent=frequent,
                     tooltip="\n\n".join(tips),
                 )
                 item = QListWidgetItem()
