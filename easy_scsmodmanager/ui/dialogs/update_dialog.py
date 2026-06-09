@@ -11,7 +11,9 @@ from __future__ import annotations
 import logging
 import webbrowser
 
+from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import (
+    QApplication,
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -29,6 +31,9 @@ from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
 
 log = logging.getLogger(__name__)
+
+# let the "restarting" label paint before we hand off / quit the process
+_RESTART_DELAY_MS = 150
 
 
 class UpdateDialog(QDialog):
@@ -137,8 +142,26 @@ class UpdateDialog(QDialog):
         self._bar.setVisible(False)
 
     def _do_install(self) -> None:
-        self.accept()
-        if not UpdateService.install(self._dl_path or ""):
+        # Keep the dialog open (no accept()) so the restart hint stays visible.
+        # Disable the button + show the hint, then run the swap on a timer so the
+        # label actually paints before the process is replaced (AppImage execv)
+        # or the app quits (Windows helper batch). A blocking sleep would freeze
+        # the event loop and the label would never render.
+        self._act.setEnabled(False)
+        self._status.setVisible(True)
+        self._status.setText(t("update.restarting"))
+        QTimer.singleShot(_RESTART_DELAY_MS, self._perform_install)
+
+    def _perform_install(self) -> None:
+        if UpdateService.install(self._dl_path or ""):
+            # AppImage already replaced the process via execv and never reaches
+            # here; on Windows the helper batch now owns the swap + relaunch.
+            QApplication.quit()
+        else:
+            # install failed: re-enable the dialog instead of leaving it stuck on
+            # "restarting", then point at the releases page as a manual fallback.
+            self._act.setEnabled(True)
+            self._status.setText(t("update.ready_to_install"))
             self._open_releases()
 
     def _open_releases(self) -> None:

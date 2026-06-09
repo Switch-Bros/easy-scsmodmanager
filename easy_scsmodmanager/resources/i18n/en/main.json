@@ -242,6 +242,7 @@
   "update.later": "Later",
   "update.downloading": "Downloading... {percent}%",
   "update.ready_to_install": "Downloaded and verified. Restart to install.",
+  "update.restarting": "Updating - ESCSMM will restart...",
   "update.download_error": "Download failed: {error}",
   "update.package_hint": "AUR: arrives with your system update. .deb / .rpm / tar.gz: grab the new version from the releases page.",
   "update.check_title": "Check for updates",

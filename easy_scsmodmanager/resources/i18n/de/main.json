@@ -242,6 +242,7 @@
   "update.later": "Später",
   "update.downloading": "Lädt herunter... {percent}%",
   "update.ready_to_install": "Heruntergeladen und geprüft. Zum Installieren neu starten.",
+  "update.restarting": "Update läuft - ESCSMM startet neu...",
   "update.download_error": "Download fehlgeschlagen: {error}",
   "update.package_hint": "AUR: kommt mit deinem System-Update. .deb / .rpm / tar.gz: neue Version von der Releases-Seite laden.",
   "update.check_title": "Nach Updates suchen",
