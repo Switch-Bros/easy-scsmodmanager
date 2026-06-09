@@ -54,18 +54,41 @@ def current_exe_path() -> Path:
 
 
 def windows_helper_batch(current: Path, new: Path, pid: int) -> str:
-    """The .bat that waits for our PID to die, swaps the exe and relaunches."""
+    """The .bat that waits for our PID to die, swaps the exe and relaunches.
+
+    ``chcp 65001`` + a UTF-8 (no BOM) file let it run on a CJK install path. The
+    ``current -> bak`` move happens ONCE before the retry loop; only ``new ->
+    current`` is retried (the locked-target case). If every retry fails the
+    backup is restored and the OLD exe relaunched, so a failed swap never leaves
+    the user without a runnable app. Everything is logged for diagnosis.
+    """
     return (
         "@echo off\r\n"
+        "chcp 65001 >NUL\r\n"
+        'set "LOG=%TEMP%\\escsmm_update.log"\r\n'
+        f'echo [start] waiting for PID {pid} >> "%LOG%"\r\n'
         ":wait\r\n"
         f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\r\n'
-        "if not errorlevel 1 (\r\n"
-        "  timeout /t 1 /nobreak >NUL\r\n"
-        "  goto wait\r\n"
-        ")\r\n"
-        f'move /Y "{current}" "{current}.bak" >NUL\r\n'
-        f'move /Y "{new}" "{current}" >NUL\r\n'
+        "if not errorlevel 1 ( timeout /t 1 /nobreak >NUL & goto wait )\r\n"
+        f'move /Y "{current}" "{current}.bak" >> "%LOG%" 2>&1\r\n'
+        "set /a tries=0\r\n"
+        ":swap\r\n"
+        f'move /Y "{new}" "{current}" >> "%LOG%" 2>&1\r\n'
+        f'if not exist "{new}" goto ok\r\n'
+        "set /a tries+=1\r\n"
+        "if %tries% geq 10 goto fail\r\n"
+        'echo [retry %tries%] target locked >> "%LOG%"\r\n'
+        "timeout /t 1 /nobreak >NUL\r\n"
+        "goto swap\r\n"
+        ":ok\r\n"
+        'echo [ok] swapped, relaunch >> "%LOG%"\r\n'
         f'start "" "{current}"\r\n'
+        "goto done\r\n"
+        ":fail\r\n"
+        'echo [error] swap failed after retries, restoring backup >> "%LOG%"\r\n'
+        f'move /Y "{current}.bak" "{current}" >> "%LOG%" 2>&1\r\n'
+        f'start "" "{current}"\r\n'
+        ":done\r\n"
         'del "%~f0"\r\n'
     )
 
@@ -80,7 +103,8 @@ def install_windows_exe(new_path: str) -> bool:
     try:
         script = windows_helper_batch(cur, new, os.getpid())
         fd, bat = tempfile.mkstemp(suffix=".bat", prefix="escsmm_update_")
-        with os.fdopen(fd, "w", encoding="ascii") as fh:
+        # utf-8 (NOT utf-8-sig) - a BOM would break the leading @echo off
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(script)
         # detached so it survives us exiting; flags only exist on Windows
         flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
