@@ -348,3 +348,96 @@ def test_map_and_defs_plain_root_def_unchanged() -> None:
     is_map, def_files = _map_and_defs(["def/vehicle/truck.sii", "manifest.sii"])
     assert def_files == ("def/vehicle/truck.sii",)
     assert is_map is False
+
+
+# --- §A dlc_ package gating (v1.4.0) ------------------------------------- #
+
+
+def test_map_and_defs_strips_owned_dlc_prefix() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    files = ["dlc_toys/def/vehicle/x.sii", "manifest.sii"]
+    _, owned = _map_and_defs(files, frozenset({"dlc_toys"}))
+    assert owned == ("def/vehicle/x.sii",)  # owned -> mounts at root
+
+
+def test_map_and_defs_keeps_unowned_dlc_out() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    _, def_files = _map_and_defs(["dlc_toys/def/vehicle/x.sii"], frozenset())
+    assert def_files == ()  # not owned -> not mounted -> not a def file
+
+
+def test_map_and_defs_dlc_fallback_ungated_when_owned_none() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    _, def_files = _map_and_defs(["dlc_toys/def/vehicle/x.sii"], None)
+    assert def_files == ("def/vehicle/x.sii",)  # install unknown -> ungated
+
+
+def test_map_and_defs_dlc_segment_guard() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs, _strip_dlc_prefix
+
+    # "dlcfoo" has no underscore -> never treated as a dlc_ segment
+    assert _strip_dlc_prefix("dlcfoo/def/x.sii", None) == "dlcfoo/def/x.sii"
+    _, def_files = _map_and_defs(["dlcfoo/def/x.sii"], None)
+    assert def_files == ()
+
+
+def test_map_and_defs_base_and_dlc_dedupe() -> None:
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    # base/def/a and dlc_toys/def/a both normalise to def/a -> once
+    files = ["base/def/a.sii", "dlc_toys/def/a.sii"]
+    _, def_files = _map_and_defs(files, frozenset({"dlc_toys"}))
+    assert def_files == ("def/a.sii",)
+
+
+def test_owned_dlc_tokens_reads_dlc_scs_stems(tmp_path) -> None:
+    from easy_scsmodmanager.services.mod_scanner import owned_dlc_tokens
+
+    (tmp_path / "dlc_toys.scs").write_bytes(b"x")
+    (tmp_path / "dlc_north.scs").write_bytes(b"x")
+    (tmp_path / "base.scs").write_bytes(b"x")
+    assert owned_dlc_tokens(tmp_path) == frozenset({"dlc_toys", "dlc_north"})
+    assert owned_dlc_tokens(None) is None
+
+
+def test_dlc_fingerprint_stable_and_sensitive() -> None:
+    from easy_scsmodmanager.services.mod_scanner import dlc_fingerprint
+
+    a = dlc_fingerprint(frozenset({"dlc_toys", "dlc_north"}))
+    b = dlc_fingerprint(frozenset({"dlc_north", "dlc_toys"}))  # order irrelevant
+    assert a == b
+    assert dlc_fingerprint(frozenset({"dlc_toys"})) != a  # a purchase changes it
+    assert dlc_fingerprint(None) == "none"
+
+
+def test_pgrs_repro_conflict_only_when_dlc_owned() -> None:
+    from easy_scsmodmanager.services.conflict_detect import find_conflicts
+    from easy_scsmodmanager.services.mod_scanner import _map_and_defs
+
+    listing = ["dlc_toys/def/vehicle/truck/accessory/curtain_f.dlc_toys.sii"]
+    _, a_owned = _map_and_defs(listing, frozenset({"dlc_toys"}))
+    _, b_owned = _map_and_defs(listing, frozenset({"dlc_toys"}))
+    assert find_conflicts({"a": a_owned, "b": b_owned})  # owned -> conflict seen
+
+    _, a_un = _map_and_defs(listing, frozenset())
+    _, b_un = _map_and_defs(listing, frozenset())
+    assert find_conflicts({"a": a_un, "b": b_un}) == {}  # unowned -> invisible
+
+
+def test_scan_directory_threads_owned_dlc(tmp_path) -> None:
+    from easy_scsmodmanager.services.mod_scanner import _scan_directory
+
+    mod = tmp_path / "pgrs"
+    (mod / "dlc_toys" / "def" / "vehicle").mkdir(parents=True)
+    (mod / "manifest.sii").write_text(
+        'SiiNunit\n{\nmod_package: .pgrs {\n display_name: "PGRS"\n}\n}\n'
+    )
+    (mod / "dlc_toys" / "def" / "vehicle" / "x.sii").write_text("x")
+
+    result, _, _ = _scan_directory(mod, frozenset({"dlc_toys"}))
+    assert "def/vehicle/x.sii" in result.def_files
+    result_un, _, _ = _scan_directory(mod, frozenset())
+    assert result_un.def_files == ()

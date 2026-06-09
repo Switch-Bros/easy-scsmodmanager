@@ -16,6 +16,7 @@ format-agnostic.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import zipfile
 from collections.abc import Callable
@@ -92,26 +93,43 @@ def scan_game_install(
     cache: ScanCache | None = None,
     game_version: str | None = None,
     on_scan: OnScan | None = None,
+    owned_dlc: frozenset[str] | None = None,
 ) -> list[ScannedMod]:
-    """Scan the install's mod/ directory and workshop tree."""
-    mods = scan_mod_directory(install.mod_dir, cache=cache, on_scan=on_scan)
+    """Scan the install's mod/ directory and workshop tree.
+
+    ``owned_dlc`` gates the 1.48 dlc_ normalisation (see ``_strip_dlc_prefix``);
+    ``None`` means the install dir was not found, so dlc_ folders are ungated.
+    """
+    if owned_dlc is None:
+        log.info("install dir unknown - dlc_ package folders are ungated for this scan")
+    mods = scan_mod_directory(install.mod_dir, cache=cache, on_scan=on_scan, owned_dlc=owned_dlc)
     if install.workshop_dir is not None:
         mods.extend(
             scan_workshop_directory(
-                install.workshop_dir, cache=cache, game_version=game_version, on_scan=on_scan
+                install.workshop_dir,
+                cache=cache,
+                game_version=game_version,
+                on_scan=on_scan,
+                owned_dlc=owned_dlc,
             )
         )
     return mods
 
 
 def scan_mod_directory(
-    directory: Path, cache: ScanCache | None = None, on_scan: OnScan | None = None
+    directory: Path,
+    cache: ScanCache | None = None,
+    on_scan: OnScan | None = None,
+    owned_dlc: frozenset[str] | None = None,
 ) -> list[ScannedMod]:
     """Scan a flat directory for ``.scs`` / ``.zip`` files and unpacked
     mod directories (those that contain ``manifest.sii`` at the root)."""
     if not directory.is_dir():
         return []
-    return [_scan_one(p, cache=cache, on_scan=on_scan) for p in _mod_candidates(directory)]
+    return [
+        _scan_one(p, cache=cache, on_scan=on_scan, owned_dlc=owned_dlc)
+        for p in _mod_candidates(directory)
+    ]
 
 
 def scan_workshop_directory(
@@ -119,6 +137,7 @@ def scan_workshop_directory(
     cache: ScanCache | None = None,
     game_version: str | None = None,
     on_scan: OnScan | None = None,
+    owned_dlc: frozenset[str] | None = None,
 ) -> list[ScannedMod]:
     """Scan a Steam workshop content tree.
 
@@ -133,7 +152,7 @@ def scan_workshop_directory(
     for workshop_id_dir in sorted(p for p in directory.iterdir() if p.is_dir()):
         payload = _resolve_workshop_payload(workshop_id_dir, game_version)
         if payload is not None:
-            results.append(_scan_one(payload, cache=cache, on_scan=on_scan))
+            results.append(_scan_one(payload, cache=cache, on_scan=on_scan, owned_dlc=owned_dlc))
     return results
 
 
@@ -217,28 +236,32 @@ def _fallback_workshop_payload(workshop_id_dir: Path) -> Path | None:
 
 
 def _scan_one(
-    path: Path, cache: ScanCache | None = None, on_scan: OnScan | None = None
+    path: Path,
+    cache: ScanCache | None = None,
+    on_scan: OnScan | None = None,
+    owned_dlc: frozenset[str] | None = None,
 ) -> ScannedMod:
     # logged before any work so a hang leaves the culprit's path as the last line
     log.info("scanning %s", path)
     if on_scan is not None:
         on_scan(path)  # same point as the log line - the single progress hook
+    dlc_fp = dlc_fingerprint(owned_dlc)
     if cache is not None:
-        cached = cache.get(path)
+        cached = cache.get(path, dlc_fp=dlc_fp)
         if cached is not None:
             return cached.mod
 
     if path.is_dir():
-        result, icon, description = _scan_directory(path)
+        result, icon, description = _scan_directory(path, owned_dlc)
     elif path.is_file():
-        result, icon, description = _scan_archive(path)
+        result, icon, description = _scan_archive(path, owned_dlc)
     else:
         result = ScannedMod(
             path=path, format=ScsFormat.UNKNOWN, manifest=None, error="path does not exist"
         )
         icon, description = None, None
 
-    _store_if_caching(cache, path, result, icon, description)
+    _store_if_caching(cache, path, result, icon, description, dlc_fp)
     return result
 
 
@@ -255,18 +278,39 @@ def _strip_base_prefix(path: str) -> str:
     return p[len("base/") :] if p.startswith("base/") else p
 
 
-def _map_and_defs(files: list[str]) -> tuple[bool, tuple[str, ...]]:
+def _strip_dlc_prefix(path: str, owned_dlc: frozenset[str] | None) -> str:
+    """Drop a leading ``dlc_<name>/`` segment when that DLC is owned.
+
+    SCS 1.48 mods may put content under ``dlc_<name>/`` which the game mounts
+    at the root, but only if the matching game DLC (``dlc_<name>.scs`` in the
+    install) is present. ``owned_dlc`` is the set of owned DLC tokens; ``None``
+    means the install could not be located, so we ungate (and the caller logs
+    it). Segment match: ``dlcfoo/`` (no underscore) is never touched.
+    """
+    first, sep, rest = path.partition("/")
+    if sep and first.startswith("dlc_") and (owned_dlc is None or first in owned_dlc):
+        return rest
+    return path
+
+
+def _map_and_defs(
+    files: list[str], owned_dlc: frozenset[str] | None = None
+) -> tuple[bool, tuple[str, ...]]:
     """is_map flag + the ``def/`` file paths from a single listing.
 
     Reads the archive once and derives both signals so a 1-GB map is not
     walked twice (Performance: this listing also feeds conflict detection).
     """
-    # normalise the 1.48 base/ package layer ONCE, before both signals derive
-    # from it, so a base/-packaged mod is seen by map, physics and conflict
-    # detection. dict.fromkeys dedupes deterministically (order preserved): a mod
-    # carrying both def/a and base/def/a collapses to one def/a, which the 1.3.5
-    # per-file conflict tooltip would otherwise list twice.
-    normalized = list(dict.fromkeys(s for f in files if (s := _strip_base_prefix(f))))
+    # normalise the 1.48 package layers ONCE, before both signals derive from
+    # them, so a base/- or dlc_<name>/-packaged mod is seen by map, physics and
+    # conflict detection. dict.fromkeys dedupes deterministically (order kept):
+    # a mod carrying both def/a and base/def/a collapses to one def/a, which the
+    # 1.3.5 per-file conflict tooltip would otherwise list twice.
+    normalized = list(
+        dict.fromkeys(
+            s for f in files if (s := _strip_dlc_prefix(_strip_base_prefix(f), owned_dlc))
+        )
+    )
     is_map = contains_map(normalized)
     # drop directory entries ("def/", "def/vehicle/"): two mods sharing the same
     # folder structure would otherwise read as a conflict (forum #33).
@@ -274,12 +318,41 @@ def _map_and_defs(files: list[str]) -> tuple[bool, tuple[str, ...]]:
     return is_map, def_files
 
 
-def _scan_directory(directory: Path) -> tuple[ScannedMod, bytes | None, str | None]:
+def owned_dlc_tokens(install_dir: Path | None) -> frozenset[str] | None:
+    """The set of owned DLC tokens (``dlc_mighty_griffin`` ...) for an install.
+
+    These are the stems of the ``dlc_*.scs`` files in the game directory - the
+    DLCs the user actually owns. ``None`` when the install dir is unknown, which
+    tells the scanner to ungate dlc_ normalisation.
+    """
+    if install_dir is None:
+        return None
+    try:
+        return frozenset(p.stem for p in install_dir.glob("dlc_*.scs"))
+    except OSError:
+        return None
+
+
+def dlc_fingerprint(owned_dlc: frozenset[str] | None) -> str:
+    """A short stable fingerprint of the owned-DLC set for cache validity.
+
+    A DLC purchase changes this, so the cache treats prior entries as stale and
+    re-scans (the dlc_ gating may now reveal more def files).
+    """
+    if owned_dlc is None:
+        return "none"
+    joined = ",".join(sorted(owned_dlc)).encode("utf-8")
+    return hashlib.sha256(joined).hexdigest()[:16]
+
+
+def _scan_directory(
+    directory: Path, owned_dlc: frozenset[str] | None = None
+) -> tuple[ScannedMod, bytes | None, str | None]:
     """Scan an unpacked mod directory (with manifest.sii at its root)."""
     try:
         with DirectoryModSource(directory) as source:
             bundle = read_bundle(source)
-            is_map, def_files = _map_and_defs(list_archive_files(source))
+            is_map, def_files = _map_and_defs(list_archive_files(source), owned_dlc)
     except MissingManifest as exc:
         return _error_mod(directory, ScsFormat.UNKNOWN, str(exc)), None, None
     except Exception as exc:
@@ -300,7 +373,9 @@ def _scan_directory(directory: Path) -> tuple[ScannedMod, bytes | None, str | No
     )
 
 
-def _scan_archive(path: Path) -> tuple[ScannedMod, bytes | None, str | None]:
+def _scan_archive(
+    path: Path, owned_dlc: frozenset[str] | None = None
+) -> tuple[ScannedMod, bytes | None, str | None]:
     """Scan a .scs / .zip file by detecting the container format first."""
     try:
         fmt = detect_format(path)
@@ -314,20 +389,22 @@ def _scan_archive(path: Path) -> tuple[ScannedMod, bytes | None, str | None]:
         fmt = ScsFormat.ZIP
 
     if fmt == ScsFormat.ZIP:
-        return _scan_zip(path, fmt)
+        return _scan_zip(path, fmt, owned_dlc)
     if fmt in (ScsFormat.HASHFS_V1, ScsFormat.HASHFS_V2):
-        return _scan_hashfs(path, fmt)
+        return _scan_hashfs(path, fmt, owned_dlc)
     if fmt == ScsFormat.AEM:
-        return _scan_aem(path, fmt)
+        return _scan_aem(path, fmt, owned_dlc)
     return _error_mod(path, fmt, "Unknown SCS container format"), None, None
 
 
-def _scan_aem(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None, str | None]:
+def _scan_aem(
+    scs_path: Path, fmt: ScsFormat, owned_dlc: frozenset[str] | None = None
+) -> tuple[ScannedMod, bytes | None, str | None]:
     # AEM! container: manifest is raw-deflate, textures/icon stored verbatim.
     try:
         with AemReader(scs_path) as reader:
             bundle = read_bundle(reader)
-            return _bundle_result_with_map(scs_path, fmt, bundle, reader)
+            return _bundle_result_with_map(scs_path, fmt, bundle, reader, owned_dlc)
     except MissingManifest:
         return _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"), None, None
     except Exception as exc:
@@ -335,20 +412,25 @@ def _scan_aem(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None,
         return _error_mod(scs_path, fmt, str(exc)), None, None
 
 
-def _scan_zip(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None, str | None]:
+def _scan_zip(
+    scs_path: Path, fmt: ScsFormat, owned_dlc: frozenset[str] | None = None
+) -> tuple[ScannedMod, bytes | None, str | None]:
     try:
         with ZipScsReader(scs_path) as reader:
             bundle = read_bundle(reader)
-            return _bundle_result_with_map(scs_path, fmt, bundle, reader)
+            return _bundle_result_with_map(scs_path, fmt, bundle, reader, owned_dlc)
     except MissingManifest:
-        return _recover_fake_locked_zip(scs_path, fmt, f"missing {MANIFEST_ENTRY}")
+        return _recover_fake_locked_zip(scs_path, fmt, f"missing {MANIFEST_ENTRY}", owned_dlc)
     except Exception as exc:
         log.debug("failed to read manifest from %s: %s", scs_path, exc)
-        return _recover_fake_locked_zip(scs_path, fmt, str(exc))
+        return _recover_fake_locked_zip(scs_path, fmt, str(exc), owned_dlc)
 
 
 def _recover_fake_locked_zip(
-    scs_path: Path, fmt: ScsFormat, prior_error: str
+    scs_path: Path,
+    fmt: ScsFormat,
+    prior_error: str,
+    owned_dlc: frozenset[str] | None = None,
 ) -> tuple[ScannedMod, bytes | None, str | None]:
     """Second pass for zips the stdlib reader refused.
 
@@ -360,7 +442,7 @@ def _recover_fake_locked_zip(
     try:
         with RawZipReader(scs_path) as raw:
             bundle = read_bundle(raw)
-            return _bundle_result_with_map(scs_path, fmt, bundle, raw)
+            return _bundle_result_with_map(scs_path, fmt, bundle, raw, owned_dlc)
     except MissingManifest:
         return (
             _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"),
@@ -389,9 +471,13 @@ def _bundle_result(
 
 
 def _bundle_result_with_map(
-    scs_path: Path, fmt: ScsFormat, bundle: ManifestBundle, source: object
+    scs_path: Path,
+    fmt: ScsFormat,
+    bundle: ManifestBundle,
+    source: object,
+    owned_dlc: frozenset[str] | None = None,
 ) -> tuple[ScannedMod, bytes | None, str | None]:
-    is_map, def_files = _map_and_defs(list_archive_files(source))
+    is_map, def_files = _map_and_defs(list_archive_files(source), owned_dlc)
     mod, icon, desc = _bundle_result(scs_path, fmt, bundle)
     return replace(mod, is_map=is_map, def_files=def_files), icon, desc
 
@@ -437,12 +523,14 @@ def _scavenge_zip_icon(scs_path: Path) -> bytes | None:
     return None
 
 
-def _scan_hashfs(scs_path: Path, fmt: ScsFormat) -> tuple[ScannedMod, bytes | None, str | None]:
+def _scan_hashfs(
+    scs_path: Path, fmt: ScsFormat, owned_dlc: frozenset[str] | None = None
+) -> tuple[ScannedMod, bytes | None, str | None]:
     # Pure-Python HashFS reader (v1 + v2) - no external binary, works in every build.
     try:
         with open_hashfs(scs_path) as reader:
             bundle = read_bundle(reader)
-            return _bundle_result_with_map(scs_path, fmt, bundle, reader)
+            return _bundle_result_with_map(scs_path, fmt, bundle, reader, owned_dlc)
     except MissingManifest:
         return _error_mod(scs_path, fmt, f"missing {MANIFEST_ENTRY}"), None, None
     except Exception as exc:
@@ -460,10 +548,11 @@ def _store_if_caching(
     mod: ScannedMod,
     icon_bytes: bytes | None,
     description: str | None,
+    dlc_fp: str | None = None,
 ) -> None:
     if cache is None:
         return
     try:
-        cache.put(path, mod, icon_bytes=icon_bytes, description=description)
+        cache.put(path, mod, icon_bytes=icon_bytes, description=description, dlc_fp=dlc_fp)
     except Exception as exc:
         log.debug("cache write failed for %s: %s", path, exc)

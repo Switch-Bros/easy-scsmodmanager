@@ -48,17 +48,31 @@ class ScanWorker(QObject):
     failed = pyqtSignal(str)
     progress = pyqtSignal(int, str)  # (mods scanned so far, current mod name)
 
-    def __init__(self, install: GameInstall, cache: ScanCache | None) -> None:
+    def __init__(
+        self,
+        install: GameInstall,
+        cache: ScanCache | None,
+        game_version: str | None = None,
+        owned_dlc: frozenset[str] | None = None,
+    ) -> None:
         super().__init__()
         self._install = install
         self._cache = cache
+        self._game_version = game_version
+        self._owned_dlc = owned_dlc
         self._done = 0
 
     def run(self) -> None:
         start = time.monotonic()
         self._done = 0
         try:
-            mods = scan_game_install(self._install, cache=self._cache, on_scan=self._tick)
+            mods = scan_game_install(
+                self._install,
+                cache=self._cache,
+                game_version=self._game_version,
+                on_scan=self._tick,
+                owned_dlc=self._owned_dlc,
+            )
         except Exception as exc:  # pragma: no cover - defensive only
             log.exception("scan failed")
             self.failed.emit(str(exc))
@@ -87,9 +101,15 @@ class ScanThread(QThread):
     failed = pyqtSignal(str)
     progress = pyqtSignal(int, str)  # (mods scanned so far, current mod name)
 
-    def __init__(self, install: GameInstall, cache: ScanCache | None) -> None:
+    def __init__(
+        self,
+        install: GameInstall,
+        cache: ScanCache | None,
+        game_version: str | None = None,
+        owned_dlc: frozenset[str] | None = None,
+    ) -> None:
         super().__init__()
-        self._worker = ScanWorker(install, cache)
+        self._worker = ScanWorker(install, cache, game_version, owned_dlc)
         self._worker.finished.connect(self.finished_with_result.emit)
         self._worker.failed.connect(self.failed.emit)
         self._worker.progress.connect(self.progress.emit)

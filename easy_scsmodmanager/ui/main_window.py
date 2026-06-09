@@ -61,7 +61,7 @@ from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
 )
-from easy_scsmodmanager.services.mod_scanner import ScannedMod
+from easy_scsmodmanager.services.mod_scanner import ScannedMod, owned_dlc_tokens
 from easy_scsmodmanager.services.profile_reader import (
     ActiveMod,
     Profile,
@@ -117,6 +117,7 @@ class MainWindow(QMainWindow):
         self._favorites = FavoritesStore(default_favorites_path())
         self._map_base_names = SettingsStore().get_map_base_names()
         self._game_version: str | None = None
+        self._owned_dlc: frozenset[str] | None = None
         self._scan_thread: ScanThread | None = None
         # derives display data (names, icons, categories, conflicts, filtering)
         self._presenter = ModPresenter(
@@ -257,6 +258,10 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(t("status_bar.no_install"))
             return
         self._game_version = read_game_version(self._install.documents_dir)
+        # owned DLCs gate the 1.48 dlc_ package normalisation in the scanner
+        store = SettingsStore()
+        install_dir = store.get_install_override(self._game) or find_game_install_dir(self._game)
+        self._owned_dlc = owned_dlc_tokens(install_dir)
         self._load_profiles()
         self._start_scan()
 
@@ -397,7 +402,9 @@ class MainWindow(QMainWindow):
         )
         if self._scan_thread is not None and self._scan_thread.isRunning():
             self._scan_thread.wait()
-        self._scan_thread = ScanThread(self._install, self._cache)
+        self._scan_thread = ScanThread(
+            self._install, self._cache, self._game_version, self._owned_dlc
+        )
         self._scan_thread.finished_with_result.connect(self._on_scan_finished)
         self._scan_thread.failed.connect(self._on_scan_failed)
         self._scan_thread.progress.connect(self._on_scan_progress)

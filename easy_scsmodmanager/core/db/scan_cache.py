@@ -44,7 +44,7 @@ from easy_scsmodmanager.core.models.mod_manifest import ModManifest
 from easy_scsmodmanager.integrations.scs.detector import ScsFormat
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 APP_DIR_NAME = "easy-scsmodmanager"
 DB_FILE_NAME = "scan_cache.db"
 
@@ -73,7 +73,7 @@ class ScanCache:
         self._tune_pragmas()
         self._migrate()
 
-    def get(self, scs_path: Path) -> CachedEntry | None:
+    def get(self, scs_path: Path, dlc_fp: str | None = None) -> CachedEntry | None:
         try:
             stat = scs_path.stat()
         except OSError:
@@ -88,6 +88,10 @@ class ScanCache:
         mtime, size = _cache_signature(scs_path, stat)
         if row["mtime"] != mtime or row["size"] != size:
             return None
+        # the owned-DLC set gates dlc_ normalisation, so a changed fingerprint
+        # (e.g. a DLC was bought) means the cached def_files may be stale
+        if _row_dlc_fp(row) != dlc_fp:
+            return None
         return _row_to_entry(row, scs_path)
 
     def put(
@@ -96,6 +100,7 @@ class ScanCache:
         mod: ScannedMod,
         icon_bytes: bytes | None = None,
         description: str | None = None,
+        dlc_fp: str | None = None,
     ) -> None:
         stat = scs_path.stat()
         mtime, size = _cache_signature(scs_path, stat)
@@ -105,8 +110,8 @@ class ScanCache:
                 """
                 INSERT INTO mod_cache (
                     path, mtime, size, format, manifest_json,
-                    error, icon_bytes, description, is_map, def_files, scanned_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    error, icon_bytes, description, is_map, def_files, dlc_fp, scanned_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(path) DO UPDATE SET
                     mtime         = excluded.mtime,
                     size          = excluded.size,
@@ -117,6 +122,7 @@ class ScanCache:
                     description   = excluded.description,
                     is_map        = excluded.is_map,
                     def_files     = excluded.def_files,
+                    dlc_fp        = excluded.dlc_fp,
                     scanned_at    = excluded.scanned_at
                 """,
                 (
@@ -130,6 +136,7 @@ class ScanCache:
                     description,
                     int(mod.is_map),
                     json.dumps(list(mod.def_files)),
+                    dlc_fp,
                     time.time(),
                 ),
             )
@@ -228,6 +235,12 @@ class ScanCache:
                 # re-reads each archive and fills the list (powers conflicts +
                 # the physics content signal). One-off slower scan after upgrade.
                 self._conn.execute("DELETE FROM mod_cache WHERE def_files IS NULL")
+            if current < 7:
+                cols = {row[1] for row in self._conn.execute("PRAGMA table_info(mod_cache)")}
+                if "dlc_fp" not in cols:
+                    self._conn.execute("ALTER TABLE mod_cache ADD COLUMN dlc_fp TEXT")
+                # old rows have dlc_fp NULL, which no real fingerprint matches, so
+                # they re-scan once with the owned-DLC gating in effect.
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
 
@@ -293,6 +306,14 @@ def _row_to_entry(row: sqlite3.Row, scs_path: Path) -> CachedEntry:
         scanned_at=row["scanned_at"],
         description=description,
     )
+
+
+def _row_dlc_fp(row: sqlite3.Row) -> str | None:
+    # pre-v7 rows have no column; treat as "no fingerprint"
+    try:
+        return row["dlc_fp"]
+    except (IndexError, KeyError):
+        return None
 
 
 def _cache_signature(path: Path, stat: os.stat_result) -> tuple[float, int]:

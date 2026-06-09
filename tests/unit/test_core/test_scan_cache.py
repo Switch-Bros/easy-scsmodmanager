@@ -298,3 +298,15 @@ def test_delete_removes_entry(tmp_path: Path) -> None:
 def test_delete_missing_path_returns_zero(tmp_path: Path) -> None:
     with ScanCache(tmp_path / "c.db") as cache:
         assert cache.delete(tmp_path / "never.scs") == 0
+
+
+def test_dlc_fingerprint_change_invalidates_cache(tmp_path: Path) -> None:
+    # a DLC purchase changes owned_dlc -> the cached def_files may be stale
+    scs = _make_scs(tmp_path / "mod.scs")
+    with ScanCache(tmp_path / "c.db") as cache:
+        cache.put(scs, _scanned(scs), dlc_fp="fp-A")
+        assert cache.get(scs, dlc_fp="fp-A") is not None  # same set -> hit
+        assert cache.get(scs, dlc_fp="fp-B") is None  # changed set -> stale
+        # re-store under the new fingerprint, now it hits again
+        cache.put(scs, _scanned(scs), dlc_fp="fp-B")
+        assert cache.get(scs, dlc_fp="fp-B") is not None
