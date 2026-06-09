@@ -310,3 +310,35 @@ def test_dlc_fingerprint_change_invalidates_cache(tmp_path: Path) -> None:
         # re-store under the new fingerprint, now it hits again
         cache.put(scs, _scanned(scs), dlc_fp="fp-B")
         assert cache.get(scs, dlc_fp="fp-B") is not None
+
+
+def test_icon_bytes_for_survives_dlc_fingerprint_change(tmp_path: Path) -> None:
+    # the icon does not depend on owned DLCs, so a changed dlc_fp must not drop it
+    scs = _make_scs(tmp_path / "mod.scs")
+    with ScanCache(tmp_path / "c.db") as cache:
+        cache.put(scs, _scanned(scs), icon_bytes=b"JPEGDATA", dlc_fp="fpA")
+        assert cache.icon_bytes_for(scs) == b"JPEGDATA"
+        # def_files freshness still gates get(), but the icon survives
+        cache.put(scs, _scanned(scs), icon_bytes=b"JPEGDATA", dlc_fp="fpB")
+        assert cache.icon_bytes_for(scs) == b"JPEGDATA"
+        assert cache.get(scs, dlc_fp="fpA") is None  # scanner freshness stays strict
+
+
+def test_icon_bytes_for_none_when_no_icon(tmp_path: Path) -> None:
+    scs = _make_scs(tmp_path / "mod.scs")
+    with ScanCache(tmp_path / "c.db") as cache:
+        cache.put(scs, _scanned(scs), icon_bytes=None, dlc_fp="fpA")
+        assert cache.icon_bytes_for(scs) is None
+
+
+def test_icon_bytes_for_none_after_file_change(tmp_path: Path) -> None:
+    scs = _make_scs(tmp_path / "mod.scs", size=10)
+    with ScanCache(tmp_path / "c.db") as cache:
+        cache.put(scs, _scanned(scs), icon_bytes=b"JPEGDATA", dlc_fp="fpA")
+        scs.write_bytes(b"\x00" * 999)  # edited -> stale
+        assert cache.icon_bytes_for(scs) is None
+
+
+def test_icon_bytes_for_none_for_unknown_path(tmp_path: Path) -> None:
+    with ScanCache(tmp_path / "c.db") as cache:
+        assert cache.icon_bytes_for(tmp_path / "ghost.scs") is None

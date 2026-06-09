@@ -94,6 +94,30 @@ class ScanCache:
             return None
         return _row_to_entry(row, scs_path)
 
+    def icon_bytes_for(self, scs_path: Path) -> bytes | None:
+        """Cached icon for a mod, independent of the owned-DLC fingerprint.
+
+        The icon is invariant to which DLCs are owned, so it must not be dropped
+        when ``dlc_fp`` changes (that gate belongs to def_files freshness only).
+        Keeps the mtime/size freshness check so an edited mod does not show a
+        stale icon; the next scan refreshes the row.
+        """
+        try:
+            stat = scs_path.stat()
+        except OSError:
+            return None
+        row = self._conn.execute(
+            "SELECT icon_bytes, mtime, size FROM mod_cache WHERE path = ?",
+            (str(scs_path),),
+        ).fetchone()
+        if row is None:
+            return None
+        mtime, size = _cache_signature(scs_path, stat)
+        if row["mtime"] != mtime or row["size"] != size:
+            return None
+        blob = row["icon_bytes"]
+        return bytes(blob) if blob is not None else None
+
     def put(
         self,
         scs_path: Path,

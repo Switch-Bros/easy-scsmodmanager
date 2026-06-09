@@ -56,8 +56,7 @@ class WorkshopFetchController:
             wid = workshop_id_for_path(mod.path)
             if wid is None or wid in seen:
                 continue
-            entry = self._cache.get(mod.path)
-            has_icon = bool(entry and entry.icon_bytes)
+            has_icon = self._cache.icon_bytes_for(mod.path) is not None
             has_manifest = mod.manifest is not None
             # also fetch when we still have no real name (workshop mods whose
             # manifest carries no display_name and that aren't in the profile)

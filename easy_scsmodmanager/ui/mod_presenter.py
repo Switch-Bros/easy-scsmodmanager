@@ -99,9 +99,10 @@ class ModPresenter:
     # ------------------------------------------------------------------ #
 
     def icon_for(self, mod: ScannedMod) -> bytes | None:
-        entry = self._cache.get(mod.path)
-        if entry and entry.icon_bytes:
-            return entry.icon_bytes
+        # icon is independent of the owned-DLC gate, so read it without dlc_fp
+        icon = self._cache.icon_bytes_for(mod.path)
+        if icon:
+            return icon
         # Fall back to a Steam-Workshop preview when no local icon is in
         # the .scs - covers map mods with encrypted manifests.
         workshop_id = workshop_id_for_path(mod.path)
