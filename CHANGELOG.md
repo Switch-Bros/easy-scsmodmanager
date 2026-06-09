@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.1] - 2026-06-10
+
+- **Fixed: local mod icons disappeared.** A caching change in 1.4.0 made local
+  mod icons stop showing after a rescan (Workshop icons were unaffected). They
+  are back.
+- **Windows auto-update is more robust.** The update helper now handles
+  non-ASCII install paths (e.g. Chinese Windows), retries a locked swap, and
+  restores the previous version if the swap cannot complete, so an interrupted
+  update never leaves you without a runnable app. Thanks to LLBBC.
+
 ## [1.4.0] - 2026-06-09
 
 - **The extractor now unpacks textures too.** SCS archives store textures
