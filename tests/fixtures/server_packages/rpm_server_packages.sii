@@ -1,0 +1,124 @@
+SiiNunit
+{
+server_packages_info : _nameless.1a0.9ccf.9810 {
+ version: 1
+ dlc_essential_list: 0
+ dlc_non_essential_list: 10
+ dlc_non_essential_list[0]: 2583912098162477
+ dlc_non_essential_list[1]: 5557801920893741
+ dlc_non_essential_list[2]: 92094914797
+ dlc_non_essential_list[3]: 92649725589
+ dlc_non_essential_list[4]: 59316381
+ dlc_non_essential_list[5]: 66750696595669
+ dlc_non_essential_list[6]: 50085130457797
+ dlc_non_essential_list[7]: 63651269
+ dlc_non_essential_list[8]: 2152080662829
+ dlc_non_essential_list[9]: 58739619063725
+ mod_list: 9
+ mod_list[0]: _nameless.1a0.b2f7.d090
+ mod_list[1]: _nameless.1a0.b2f7.d1b0
+ mod_list[2]: _nameless.1a0.b2f7.d330
+ mod_list[3]: _nameless.1a0.b2f7.d6f0
+ mod_list[4]: _nameless.1a0.b2f7.d210
+ mod_list[5]: _nameless.1a0.b2f7.cfd0
+ mod_list[6]: _nameless.1a0.b2f7.d030
+ mod_list[7]: _nameless.1a0.b2f7.d390
+ mod_list[8]: _nameless.1a0.b2f7.d450
+ map_name: "/map/rpm.mbd"
+ map_dimensions: (-3072000, -6144000, 25600000, 2048000)
+ roads_data_file_name: "/home/server_packages.dat"
+ time_stamp: 1780687750
+ time_compression: 1.000000
+}
+
+server_mod_detail : _nameless.1a0.b2f7.d090 {
+ package_name: "RPM [DEF]"
+ mod_name: "RPM - Definitions"
+ checksum: 2663194499860374372
+ mod_id: 237246103828848249
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.1a0.b2f7.d1b0 {
+ package_name: "RPM [ASSETS]"
+ mod_name: "RPM - Assets"
+ checksum: 18352085401870321856
+ mod_id: 11284320174581124774
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.1a0.b2f7.d330 {
+ package_name: "RPM [FEATURES]"
+ mod_name: "RPM - Features"
+ checksum: 12959175572553625160
+ mod_id: 3896832676531368324
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.1a0.b2f7.d6f0 {
+ package_name: "RPM [Map]"
+ mod_name: "RPM - Map"
+ checksum: 6417520881179210304
+ mod_id: 1025485726467613979
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.1a0.b2f7.d210 {
+ package_name: "RPM [MODEL1]"
+ mod_name: "RPM - Models - 1"
+ checksum: 2210603453967944138
+ mod_id: 4312493229923391266
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.1a0.b2f7.cfd0 {
+ package_name: "RPM [MODEL2]"
+ mod_name: "RPM - Models - 2"
+ checksum: 5693559610250415188
+ mod_id: 1862403424908176307
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.1a0.b2f7.d030 {
+ package_name: "RPM [PREFABS]"
+ mod_name: "RPM - Prefabs"
+ checksum: 5768651036092434311
+ mod_id: 15532235021936241801
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.1a0.b2f7.d390 {
+ package_name: "RPM [VEHICLES]"
+ mod_name: "RPM - Vehicles"
+ checksum: 1840484319286095687
+ mod_id: 8074106995199644384
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.1a0.b2f7.d450 {
+ package_name: "RPM [MEDIA] "
+ mod_name: "RPM - Media"
+ checksum: 11336859895480125478
+ mod_id: 3948133108011518851
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+}

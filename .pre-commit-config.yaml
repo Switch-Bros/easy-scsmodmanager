@@ -2,8 +2,13 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # server_packages.sii fixtures are real game files; their CRLF must be
+      # preserved byte-for-byte for the surgical-write tests, so keep the
+      # line-ending / whitespace hooks off them.
       - id: trailing-whitespace
+        exclude: ^tests/fixtures/server_packages/
       - id: end-of-file-fixer
+        exclude: ^tests/fixtures/server_packages/
       - id: check-yaml
       - id: check-json
       - id: check-toml
@@ -13,6 +18,7 @@ repos:
       - id: check-merge-conflict
       - id: mixed-line-ending
         args: ["--fix=lf"]
+        exclude: ^tests/fixtures/server_packages/
 
   - repo: https://github.com/psf/black
     rev: 26.5.1

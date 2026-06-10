@@ -76,6 +76,7 @@ from easy_scsmodmanager.ui.controllers.profile_backup_controller import ProfileB
 from easy_scsmodmanager.ui.controllers.workshop_fetch_controller import WorkshopFetchController
 from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
 from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
+from easy_scsmodmanager.ui.dialogs.server_packages_dialog import ServerPackagesDialog
 from easy_scsmodmanager.ui.dialogs.settings_dialog import SettingsDialog
 from easy_scsmodmanager.ui.menu.main_menu import build_menu_bar
 from easy_scsmodmanager.ui.mod_presenter import ModPresenter
@@ -299,6 +300,9 @@ class MainWindow(QMainWindow):
         store = SettingsStore()
         install_dir = store.get_install_override(self._game) or find_game_install_dir(self._game)
         ExtractDialog(install_dir, self).exec()
+
+    def _on_open_server_packages(self) -> None:
+        ServerPackagesDialog(self).exec()
 
     def _on_open_log_folder(self) -> None:
         log_dir = default_log_dir()

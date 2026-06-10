@@ -1,0 +1,286 @@
+SiiNunit
+{
+server_packages_info : _nameless.2ea.6894.c660 {
+ version: 1
+ dlc_essential_list: 0
+ dlc_non_essential_list: 18
+ dlc_non_essential_list[0]: 184014387494829129
+ dlc_non_essential_list[1]: 1924694473000009
+ dlc_non_essential_list[2]: 159319428036701097
+ dlc_non_essential_list[3]: 35788286297
+ dlc_non_essential_list[4]: 2915488295593
+ dlc_non_essential_list[5]: 127433786367433
+ dlc_non_essential_list[6]: 152580447285606945
+ dlc_non_essential_list[7]: 124049807548903385
+ dlc_non_essential_list[8]: 1923074979804313
+ dlc_non_essential_list[9]: 72657298287504465
+ dlc_non_essential_list[10]: 49463220153873
+ dlc_non_essential_list[11]: 159189650753197777
+ dlc_non_essential_list[12]: 72971089849553161
+ dlc_non_essential_list[13]: 107259835144921
+ dlc_non_essential_list[14]: 3353899168865
+ dlc_non_essential_list[15]: 55132751433
+ dlc_non_essential_list[16]: 24801833
+ dlc_non_essential_list[17]: 74845097
+ mod_list: 23
+ mod_list[0]: _nameless.2e3.896a.5aa0
+ mod_list[1]: _nameless.2e3.896a.6ca0
+ mod_list[2]: _nameless.2e3.896a.5e60
+ mod_list[3]: _nameless.2e3.896a.5fe0
+ mod_list[4]: _nameless.2e3.896a.6760
+ mod_list[5]: _nameless.2e3.896a.61c0
+ mod_list[6]: _nameless.2e3.896a.67c0
+ mod_list[7]: _nameless.2e3.896a.6dc0
+ mod_list[8]: _nameless.2e3.896a.6e80
+ mod_list[9]: _nameless.2e3.896a.6220
+ mod_list[10]: _nameless.2e3.896a.6820
+ mod_list[11]: _nameless.2e3.896a.68e0
+ mod_list[12]: _nameless.2e3.896a.76c0
+ mod_list[13]: _nameless.2e3.896a.83e0
+ mod_list[14]: _nameless.2e3.896a.7840
+ mod_list[15]: _nameless.2e3.896a.8680
+ mod_list[16]: _nameless.2e3.896a.8800
+ mod_list[17]: _nameless.2e3.896a.7a80
+ mod_list[18]: _nameless.2e3.896a.7660
+ mod_list[19]: _nameless.2e3.896a.a060
+ mod_list[20]: _nameless.2e3.896a.8b60
+ mod_list[21]: _nameless.2e3.896a.9ee0
+ mod_list[22]: _nameless.2e3.896a.a0c0
+ map_name: "/map/usa.mbd"
+ map_dimensions: (-31744000, -22528000, 9216000, 27648000)
+ roads_data_file_name: "/home/server_packages.dat"
+ time_stamp: 1773704658
+ time_compression: 16.345001
+}
+
+server_mod_detail : _nameless.2e3.896a.5aa0 {
+ package_name: "More American Cities (Washington - v1.5)"
+ mod_name: "More American Cities (Wa"
+ checksum: 9932208084635252941
+ mod_id: 5601125216232701186
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.6ca0 {
+ package_name: "More American Cities (Utah - v1.3)"
+ mod_name: "More American Cities (Ut"
+ checksum: 15705768505998221214
+ mod_id: 4358386542799131220
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.5e60 {
+ package_name: "More American Cities (Texas - v1.4)"
+ mod_name: "More American Cities (Te"
+ checksum: 17694647948034467309
+ mod_id: 6926641229302660884
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.5fe0 {
+ package_name: "More American Cities (Oregon - v1.1)"
+ mod_name: "More American Cities (Or"
+ checksum: 12080146671487388154
+ mod_id: 12685123606034438973
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.6760 {
+ package_name: "More American Cities (Oklahoma - v1.6)"
+ mod_name: "More American Cities (Ok"
+ checksum: 5674535196673750176
+ mod_id: 18378410635831870992
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.61c0 {
+ package_name: "More American Cities (Idaho - v1.7)"
+ mod_name: "More American Cities (Id"
+ checksum: 108907600525829062
+ mod_id: 17298445358927530724
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.67c0 {
+ package_name: Reforma_MegaResources_v2_9_7_2_158
+ mod_name: "Mega Resources 2.9.7.2.1"
+ checksum: 16096558680450343321
+ mod_id: 11228429837652347136
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.6dc0 {
+ package_name: Reforma_2_9_7_158
+ mod_name: "Reforma 2.9.7.158"
+ checksum: 15712212055937333190
+ mod_id: 5655860810219701129
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.2e3.896a.6e80 {
+ package_name: Reforma_Sierra_Nevada_Remake_v1_12_158
+ mod_name: "Reforma Sierra Nevada 1."
+ checksum: 5673458910227901403
+ mod_id: 18418882151263803059
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.6220 {
+ package_name: "More American Cities (Colorado - v1.7)"
+ mod_name: "More American Cities (Co"
+ checksum: 10698492436698513452
+ mod_id: 12570018996321095386
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.6820 {
+ package_name: "ATS_Expansion_v20_1.58"
+ mod_name: "ATS Expansion v20.0"
+ checksum: 14577571682164785675
+ mod_id: 15741528954070494661
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.2e3.896a.68e0 {
+ package_name: "ATS Expansion Fix"
+ mod_name: "ATS Expansion Fix"
+ checksum: 14218462653584940127
+ mod_id: 16312677020085311777
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.2e3.896a.76c0 {
+ package_name: "promods-ats-models-v161"
+ mod_name: "ProMods Canada Models Pa"
+ checksum: 14501018569099073152
+ mod_id: 255921654034560727
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.83e0 {
+ package_name: "promods-ats-map-v161"
+ mod_name: "ProMods Canada Map Packa"
+ checksum: 15334540721864639759
+ mod_id: 8444241641059241034
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.7840 {
+ package_name: "mod_workshop_package.000000009E501CC5"
+ mod_name: "ProMods Canada 1.6.1 Con"
+ checksum: 5807937731262478875
+ mod_id: 2656050373
+ workshop_mod: true
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.8680 {
+ package_name: "promods-ats-assets-v161"
+ mod_name: "ProMods Canada Assets Pa"
+ checksum: 14468114858080611744
+ mod_id: 14568852283766769670
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.8800 {
+ package_name: Reforma_OtherMaps_Patch_34_158
+ mod_name: "Reforma OtherMaps Compat"
+ checksum: 13421687561915403782
+ mod_id: 3035972231948855417
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.7a80 {
+ package_name: "Ultimate Combo FIX - ATS"
+ mod_name: "Ultimate Combo FIX - ATS"
+ checksum: 12844330159715385832
+ mod_id: 5136330705217025750
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.2e3.896a.7660 {
+ package_name: Edison_BDE
+ mod_name: "Edison BDE"
+ checksum: 12458660620700393577
+ mod_id: 16750858903861729571
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.2e3.896a.a060 {
+ package_name: "mod_workshop_package.000000006C3D569A"
+ mod_name: "Kenworth K100E"
+ checksum: 10165713967654186570
+ mod_id: 1815959194
+ workshop_mod: true
+ optional_mod: false
+ full_name: true
+}
+
+server_mod_detail : _nameless.2e3.896a.8b60 {
+ package_name: "gmc.original_loading_screen.ats"
+ mod_name: "Original Loading Screen "
+ checksum: 359355516470302493
+ mod_id: 11965715026142737476
+ workshop_mod: false
+ optional_mod: false
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.9ee0 {
+ package_name: "promods-america-background-v15"
+ mod_name: "ProMods Complete North A"
+ checksum: 15640596918049895451
+ mod_id: 13852150390985542377
+ workshop_mod: false
+ optional_mod: true
+ full_name: false
+}
+
+server_mod_detail : _nameless.2e3.896a.a0c0 {
+ package_name: "gmc.fullscreen.maps.ats"
+ mod_name: "FullScreen Maps (ATS)"
+ checksum: 8433827848470911234
+ mod_id: 1474138698583331188
+ workshop_mod: false
+ optional_mod: false
+ full_name: true
+}
+
+}

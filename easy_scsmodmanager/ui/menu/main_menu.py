@@ -71,6 +71,10 @@ def build_menu_bar(window: MainWindow) -> None:
     open_logs.triggered.connect(window._on_open_log_folder)
     tools_menu.addAction(open_logs)
 
+    server_packages = QAction(t("menu.tools.server_packages"), window)
+    server_packages.triggered.connect(window._on_open_server_packages)
+    tools_menu.addAction(server_packages)
+
     help_menu = menu_bar.addMenu(t("menu.help"))
     about = QAction(t("menu.help.about"), window)
     about.triggered.connect(window._show_about)

@@ -1,0 +1,2 @@
+# Sikay server_packages fixtures: real game files, keep CRLF intact
+tests/fixtures/server_packages/*.sii -text
