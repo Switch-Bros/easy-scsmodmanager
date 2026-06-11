@@ -2,11 +2,16 @@
 
 import pytest
 
-from easy_scsmodmanager.integrations.supabase.share_api import (
+pytest.importorskip("pytestqt")
+
+from easy_scsmodmanager.integrations.supabase.share_api import (  # noqa: E402
     ShareConnectionError,
     ShareNotFoundError,
 )
-from easy_scsmodmanager.ui.threads.share_thread import ShareFetchThread, ShareUploadThread
+from easy_scsmodmanager.ui.threads.share_thread import (
+    ShareFetchThread,
+    ShareUploadThread,
+)  # noqa: E402
 
 
 def test_upload_emits_code(qtbot, monkeypatch: pytest.MonkeyPatch) -> None:

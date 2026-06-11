@@ -53,7 +53,7 @@ class ShareUploadThread(QThread):
 
 
 class ShareFetchThread(QThread):
-    succeeded = pyqtSignal(dict)  # the raw payload
+    succeeded = pyqtSignal(object)  # the raw payload (dict)
     failed = pyqtSignal(str)  # error kind token
 
     def __init__(self, code: str) -> None:
