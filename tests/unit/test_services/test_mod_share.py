@@ -59,11 +59,22 @@ def test_optional_fields_default_empty() -> None:
         '{"format": "something-else", "version": 1, "game": "ets2", "mods": []}',
         '{"format": "easy-scsmodmanager-modshare", "version": 1, "game": "fs25", "mods": []}',
         '{"format": "easy-scsmodmanager-modshare", "version": 1, "game": "ets2", "mods": [{}]}',
+        '{"format": "easy-scsmodmanager-modshare", "version": 1, "game": "ets2", "profile_name": [1], "mods": []}',
     ],
 )
 def test_bad_payloads_raise(text: str) -> None:
     with pytest.raises(ModShareError):
         parse(text)
+
+
+def test_profile_name_null_or_missing_is_tolerated() -> None:
+    base = '{"format": "easy-scsmodmanager-modshare", "version": 1, "game": "ets2", "mods": []}'
+    assert parse(base).profile_name == ""
+    with_null = (
+        '{"format": "easy-scsmodmanager-modshare", "version": 1, "game": "ets2",'
+        ' "profile_name": null, "mods": []}'
+    )
+    assert parse(with_null).profile_name == ""
 
 
 def test_future_version_raises_distinct_error() -> None:

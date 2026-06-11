@@ -96,9 +96,12 @@ def from_payload(data: object) -> ShareList:
                 group=str(raw.get("group", "")),
             )
         )
+    raw_profile = data.get("profile_name")
+    if raw_profile is not None and not isinstance(raw_profile, str):
+        raise ModShareError(f"profile_name must be a string, got {type(raw_profile).__name__}")
     return ShareList(
         game=game,
-        profile_name=str(data.get("profile_name", "")),
+        profile_name=raw_profile or "",
         entries=tuple(entries),
     )
 
