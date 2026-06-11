@@ -4,8 +4,6 @@
 # Missing workshop mods get a clickable Subscribe link (opens the Steam page
 # in the browser); missing local mods can be copied as a name list so the
 # user can hunt them down manually.
-#
-# TODO: add outdated section once the dialog surfaces it?
 
 from __future__ import annotations
 

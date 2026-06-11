@@ -119,6 +119,11 @@ class ShareCreateDialog(QDialog):
             clipboard.setText(self._code_label.text())
             self._copy_button.setText(t("mod_share.create.copied"))
 
+    def shutdown(self, msecs: int) -> None:
+        """Wait for a running upload so app close cannot destroy a live thread."""
+        if self._thread is not None and self._thread.isRunning():
+            self._thread.wait(msecs)
+
     def closeEvent(self, event) -> None:  # noqa: N802
         # a slow upload may outlive the dialog: detach the slots so the
         # thread cannot emit into a destroyed widget

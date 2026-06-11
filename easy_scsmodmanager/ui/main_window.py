@@ -820,6 +820,3 @@ class MainWindow(QMainWindow):
         self._overrides.close()
         self._group_overrides.close()
         super().closeEvent(event)
-
-
-_ = Path

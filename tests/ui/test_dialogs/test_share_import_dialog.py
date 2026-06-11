@@ -132,6 +132,20 @@ def test_pasted_code_with_leading_junk_normalizes_fully(qtbot) -> None:
     assert blocker.args == ["AB2CD3"]
 
 
+def test_reset_clears_share_status_and_code(qtbot) -> None:
+    dlg = _dialog(qtbot)
+    share = _share()
+    dlg._code_edit.setText("AB2CD3")
+    # game mismatch fills the status label
+    dlg.show_share(share, diff(share, installed={"a": ""}), game_matches=False)
+    dlg.reset()
+    assert dlg.current_share() is None
+    assert not dlg._apply_button.isEnabled()
+    assert dlg._status_label.text() == ""
+    assert dlg._code_edit.text() == ""
+    assert dlg._recheck_button.isHidden()
+
+
 def test_source_switch_cancels_pending_lookup(qtbot) -> None:
     dlg = _dialog(qtbot)
     dlg.set_source("code")

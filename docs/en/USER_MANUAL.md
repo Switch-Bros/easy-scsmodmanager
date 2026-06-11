@@ -111,21 +111,22 @@ The **Share** menu in the main window offers five actions.
 
 ### Share your list as a code
 
-**Share -> Share as code** generates a six-character alphanumeric code (e.g.
-`A3F7KQ`) that is valid for 90 days. Give the code to a friend; they redeem
-it under **Share -> Redeem code** and immediately see a preview (see below).
+**Share -> Share mod list as code...** generates a six-character alphanumeric
+code (e.g. `A3F7KQ`) that is valid for 90 days. Give the code to a friend; they
+redeem it under **Share -> Redeem code...** and immediately see a preview (see
+below).
 This feature requires a configured Supabase backend - if the backend is not
 yet set up the app says so and you can export a file instead.
 
 ### Export / import as a file
 
-**Share -> Export as file** saves the active list to a `.modshare.json` file
-you can send via chat or post on a forum. **Share -> Import from file** loads
-such a file.
+**Share -> Export mod list...** saves the active list to a `.modshare.json`
+file you can send via chat or post on a forum. **Share -> Import mod list...**
+loads such a file.
 
 ### Take over from someone's profile
 
-**Share -> Import from profile** reads a `profile.sii` directly - whether
+**Share -> Take over from profile.sii...** reads a `profile.sii` directly - whether
 the game saved it as plain text or encrypted with the ScsC format. You do not
 need to make a manual backup first; the app does it for you automatically
 (see the backup note below).
@@ -138,7 +139,7 @@ preview first:
 - **Installed / missing** - every mod is marked as present (green) or missing
   (grey).
 - **Subscribe to Workshop mods** - for missing Workshop mods a clickable
-  **Subscribe** link appears, opening the mod's Steam Store page. Subscribe
+  **Subscribe** link appears, opening the mod's Steam Workshop page. Subscribe
   there and let Steam download the mod. Once Steam is done, press **Check
   again** in the preview dialog - the app re-scans without closing the window
   and marks the newly installed mods as present.
@@ -147,8 +148,9 @@ preview first:
 - **Include missing entries** - the checkbox (on by default) controls whether
   missing entries are still written into the active list. Uncheck it if you
   only want the mods you already have.
-- **Version hint** - if a mod is on a newer version than the one recorded in
-  the shared list, you get a hint. This does not block applying the list.
+- **Version hint** - if your installed copy of a mod is older than the version
+  recorded in the shared list, you get a hint. This does not block applying
+  the list.
 - **Game mismatch** - if the list came from ETS2 and you have ATS open (or
   vice versa), the app blocks applying it with a clear message. Switch to the
   correct game first.

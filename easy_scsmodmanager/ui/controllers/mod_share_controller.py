@@ -79,6 +79,9 @@ class ModShareController:
         self._request_rescan = request_rescan
         self._reload_profile = reload_profile
         self._import_dialog: ShareImportDialog | None = None
+        self._create_dialog: ShareCreateDialog | None = None
+        # one popup per share list, even if "check again" re-presents it
+        self._warned_outdated_for: ShareList | None = None
         # freshness marker: results from any other thread are stale
         self._fetch_thread: ShareFetchThread | None = None
         # hard refs for every in-flight thread; a superseded lookup must stay
@@ -99,7 +102,11 @@ class ModShareController:
             payload=to_payload(share),
             parent=self._parent,
         )
-        dialog.exec()
+        self._create_dialog = dialog  # shutdown() must reach a running upload
+        try:
+            dialog.exec()
+        finally:
+            self._create_dialog = None
 
     def redeem_code(self) -> None:
         self._open_import("code")
@@ -118,7 +125,12 @@ class ModShareController:
             return
         if not path.lower().endswith(FILE_SUFFIX):
             path += FILE_SUFFIX
-        Path(path).write_text(serialize(share), encoding="utf-8")
+        try:
+            Path(path).write_text(serialize(share), encoding="utf-8")
+        except OSError as exc:
+            log.exception("share export failed for %s", path)
+            self._show_status(t("status_bar.save_failed", error=str(exc)))
+            return
         self._show_status(t("mod_share.import.exported", count=len(share.entries)))
 
     def import_file(self) -> None:
@@ -128,7 +140,9 @@ class ModShareController:
         self._open_import("profile")
 
     def shutdown(self, msecs: int) -> None:
-        """Wait for in-flight lookups so app close cannot destroy live threads."""
+        """Wait for in-flight lookups/uploads so app close cannot destroy live threads."""
+        if self._create_dialog is not None:
+            self._create_dialog.shutdown(msecs)
         for thread in list(self._fetch_threads):
             if thread.isRunning():
                 thread.wait(msecs)
@@ -155,6 +169,7 @@ class ModShareController:
             dialog.recheck_requested.connect(self._on_recheck)
             dialog.apply_requested.connect(self._on_apply)
             self._import_dialog = dialog
+        self._import_dialog.reset()  # a reopened dialog must not keep an old preview
         profile = self._current_profile()
         self._import_dialog.set_target_profile(profile.profile_name if profile else "")
         self._import_dialog.set_source(source)
@@ -200,6 +215,12 @@ class ModShareController:
         )
         if not path:
             return
+        self._load_share_file(path)
+
+    def _load_share_file(self, path: str) -> None:
+        # the user switched sources: a still-running code lookup is stale now
+        # and must never overwrite this file's preview
+        self._fetch_thread = None
         try:
             self._present(parse(Path(path).read_text(encoding="utf-8")))
         except ModShareVersionError:
@@ -216,6 +237,10 @@ class ModShareController:
         )
         if not path:
             return
+        self._load_foreign_profile(path)
+
+    def _load_foreign_profile(self, path: str) -> None:
+        self._fetch_thread = None  # same staleness rule as _load_share_file
         try:
             foreign = read_profile(Path(path))
         except Exception:  # noqa: BLE001 - any parse/crypto failure reads the same to the user
@@ -284,7 +309,7 @@ class ModShareController:
         self._import_dialog.show_share(
             share, result, game_matches=share.game is self._current_game()
         )
-        self._warn_outdated(result)
+        self._warn_outdated(share, result)
 
     def _apply(self, share: ShareList, *, include_missing: bool) -> bool:
         path = self._profile_sii_path()
@@ -308,9 +333,10 @@ class ModShareController:
         self._show_status(t("mod_share.import.applied", count=len(mods)))
         return True
 
-    def _warn_outdated(self, result: ShareDiff) -> None:
-        if not result.outdated:
-            return
+    def _warn_outdated(self, share: ShareList, result: ShareDiff) -> None:
+        if not result.outdated or share is self._warned_outdated_for:
+            return  # already warned for this share; "check again" re-presents it
+        self._warned_outdated_for = share
         rows = "\n".join(
             t(
                 "mod_share.import.outdated_row",

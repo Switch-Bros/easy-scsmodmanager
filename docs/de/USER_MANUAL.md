@@ -114,22 +114,22 @@ Das **Teilen**-Menü im Hauptfenster bietet fünf Aktionen.
 
 ### Liste als Code teilen
 
-**Teilen -> Als Code teilen** erzeugt einen 6-stelligen alphanumerischen Code
-(z.B. `A3F7KQ`), der 90 Tage gültig ist. Gib den Code einem Freund; er löst
-ihn unter **Teilen -> Code einlösen** ein und sieht sofort eine Vorschau
-(s.u.). Diese Funktion braucht ein konfiguriertes Supabase-Backend - steht
+**Teilen -> Modliste als Code teilen...** erzeugt einen 6-stelligen
+alphanumerischen Code (z.B. `A3F7KQ`), der 90 Tage gültig ist. Gib den Code
+einem Freund; er löst ihn unter **Teilen -> Code einlösen...** ein und sieht
+sofort eine Vorschau (s.u.). Diese Funktion braucht ein konfiguriertes Supabase-Backend - steht
 das Backend noch nicht bereit, meldet die App es und du kannst stattdessen
 eine Datei exportieren.
 
 ### Liste als Datei exportieren / importieren
 
-**Teilen -> Als Datei exportieren** speichert die aktive Liste in eine
+**Teilen -> Modliste exportieren...** speichert die aktive Liste in eine
 `.modshare.json`-Datei, die du per Messenger oder Forum weitergeben kannst.
-**Teilen -> Aus Datei importieren** lädt eine solche Datei.
+**Teilen -> Modliste importieren...** lädt eine solche Datei.
 
 ### Aus einem fremden Profil übernehmen
 
-**Teilen -> Aus Profil übernehmen** liest eine `profile.sii` direkt ein -
+**Teilen -> Aus profile.sii übernehmen...** liest eine `profile.sii` direkt ein -
 egal ob vom Spiel unverschlüsselt gespeichert oder mit dem ScsC-Format
 verschlüsselt. Du musst kein Backup ziehen; die App macht das automatisch
 (s. Backup-Hinweis unten).
@@ -142,7 +142,7 @@ zuerst eine Vorschau:
 - **Installiert / Fehlend** - jeder Mod ist als vorhanden (grün) oder fehlend
   (grau) markiert.
 - **Workshop-Mods abonnieren** - bei fehlenden Workshop-Mods erscheint ein
-  klickbarer **Abonnieren**-Link, der die Steam-Store-Seite des Mods öffnet.
+  klickbarer **Abonnieren**-Link, der die Steam-Workshop-Seite des Mods öffnet.
   Abonnier die Mods dort und lass Steam sie herunterladen. Sobald Steam fertig
   ist, drücke in der Vorschau **Erneut prüfen** - die App scannt neu, ohne
   das Fenster zu schliessen, und markiert die gerade installierten Mods als
@@ -152,8 +152,8 @@ zuerst eine Vorschau:
 - **Fehlende einbeziehen** - die Checkbox (Standard: aktiviert) legt fest,
   ob fehlende Einträge trotzdem in die Liste übernommen werden. Deaktiviere
   sie, wenn du nur die Mods willst, die du schon hast.
-- **Versionshinweis** - ist ein Mod auf einem neueren Stand als in der
-  geteilten Liste angegeben, bekommst du einen Hinweis. Das blockiert das
+- **Versionshinweis** - ist ein Mod bei dir auf einem älteren Stand als in
+  der geteilten Liste angegeben, bekommst du einen Hinweis. Das blockiert das
   Übernehmen nicht.
 - **Spiel-Mismatch** - kommt die Liste von ETS2 und du hast ATS geöffnet
   (oder umgekehrt), blockiert die App das Übernehmen mit einer klaren

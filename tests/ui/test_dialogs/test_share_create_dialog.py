@@ -33,12 +33,17 @@ class _FakeThread:
         self.game, self.profile_name, self.payload = game, profile_name, payload
         self.succeeded = _Signal()
         self.failed = _Signal()
+        self.waited: list[int] = []
         _FakeThread.instances.append(self)
 
     def start(self) -> None:
         pass
 
     def isRunning(self) -> bool:
+        return True
+
+    def wait(self, msecs: int) -> bool:
+        self.waited.append(msecs)
         return True
 
     def disconnect_all(self) -> None:
@@ -93,6 +98,19 @@ def test_copy_button_puts_code_on_clipboard(qtbot) -> None:
     from PyQt6.QtWidgets import QApplication
 
     assert QApplication.clipboard().text() == "AB2CD3"
+
+
+def test_shutdown_waits_for_running_upload(qtbot) -> None:
+    dlg = _dialog(qtbot)
+    dlg._create_button.click()
+    dlg.shutdown(50)
+    assert _FakeThread.instances[0].waited == [50]
+
+
+def test_shutdown_without_upload_is_safe(qtbot) -> None:
+    dlg = _dialog(qtbot)
+    dlg.shutdown(50)
+    assert _FakeThread.instances == []
 
 
 def test_close_while_uploading_detaches_thread_signals(qtbot) -> None:

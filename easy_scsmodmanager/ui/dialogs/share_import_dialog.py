@@ -121,6 +121,13 @@ class ShareImportDialog(QDialog):
         self._source_buttons[source].setChecked(True)
         self._on_source(source)
 
+    def reset(self) -> None:
+        """Start clean: a reopened dialog must not show a previous preview."""
+        self._code_edit.clear()
+        self._status_label.setStyleSheet("")
+        self._status_label.setText("")
+        self._clear_result()
+
     def set_target_profile(self, name: str) -> None:
         self._target_profile = name
         self._update_apply()

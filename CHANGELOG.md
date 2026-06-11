@@ -13,7 +13,7 @@
 - **Import preview with install-status check.** Before applying any shared
   list you see a preview that shows which mods are installed and which are
   missing. Missing Workshop mods get a clickable Subscribe link to the Steam
-  Store page. A "Check again" button re-scans without closing the dialog, so
+  Workshop page. A "Check again" button re-scans without closing the dialog, so
   you can subscribe, wait for Steam downloads, and confirm they are ready -
   all in one flow. Missing local mods are listed with copyable names. An
   "include missing entries" toggle (default on) controls whether unresolved

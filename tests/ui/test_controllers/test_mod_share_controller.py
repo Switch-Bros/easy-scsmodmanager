@@ -14,6 +14,7 @@ from easy_scsmodmanager.services.mod_share import (  # noqa: E402
     serialize,
 )
 from easy_scsmodmanager.services.profile_reader import ActiveMod, read_profile  # noqa: E402
+from easy_scsmodmanager.ui.controllers import mod_share_controller  # noqa: E402
 from easy_scsmodmanager.ui.controllers.mod_share_controller import (  # noqa: E402
     ModShareController,
 )
@@ -186,3 +187,115 @@ def test_apply_skips_unknown_group_id(tmp_path: Path, qtbot) -> None:
 def test_shutdown_with_no_threads_is_safe(tmp_path: Path, qtbot) -> None:
     controller, _, _, _ = _controller(tmp_path)
     controller.shutdown(100)
+
+
+def test_load_share_file_invalidates_pending_lookup(tmp_path: Path, qtbot) -> None:
+    """A file pick must drop an in-flight code lookup or its late result
+    would replace the file's preview and Apply would write the wrong list."""
+    controller, _, _, _ = _controller(tmp_path)
+    controller._open_import("file")
+    share = controller._build_share()
+    assert share is not None
+    share_path = tmp_path / "list.modshare.json"
+    share_path.write_text(serialize(share), encoding="utf-8")
+
+    class _InFlight:
+        code = "OLDOLD"
+
+    controller._fetch_thread = _InFlight()
+    controller._load_share_file(str(share_path))
+    assert controller._fetch_thread is None
+    assert controller._import_dialog.current_share() == share
+    # the superseded lookup resolving now must not touch the preview
+    controller._on_payload({"format": "x"}, source_thread=_InFlight())
+    assert controller._import_dialog.current_share() == share
+
+
+def test_load_foreign_profile_invalidates_pending_lookup(tmp_path: Path, qtbot) -> None:
+    controller, profile_path, _, _ = _controller(tmp_path)
+    controller._open_import("profile")
+
+    class _InFlight:
+        code = "OLDOLD"
+
+    controller._fetch_thread = _InFlight()
+    controller._load_foreign_profile(str(profile_path))
+    assert controller._fetch_thread is None
+    assert controller._import_dialog.current_share() is not None
+
+
+def test_export_file_write_failure_reports_status(
+    tmp_path: Path, qtbot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    controller, _, statuses, _ = _controller(tmp_path)
+    target = tmp_path / "out.modshare.json"
+    monkeypatch.setattr(
+        mod_share_controller.QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *a, **k: (str(target), "")),
+    )
+
+    def _boom(self: Path, *args, **kwargs) -> int:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(Path, "write_text", _boom)
+    controller.export_file()
+    assert len(statuses) == 1
+    assert "disk full" in statuses[0]
+
+
+def test_reopen_import_resets_stale_share(tmp_path: Path, qtbot) -> None:
+    controller, _, _, _ = _controller(tmp_path)
+    controller._open_import("code")
+    share = ShareList(game=Game.ETS2, profile_name="Sender", entries=(ShareEntry(name="have"),))
+    controller._present(share)
+    assert controller._import_dialog.current_share() is not None
+    controller._import_dialog.close()
+    controller._open_import("code")
+    assert controller._import_dialog.current_share() is None
+
+
+def test_outdated_warning_fires_once_per_share(
+    tmp_path: Path, qtbot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    controller, _, _, _ = _controller(tmp_path)
+    controller._open_import("code")
+    warnings: list[tuple] = []
+    monkeypatch.setattr(
+        mod_share_controller.QMessageBox,
+        "information",
+        staticmethod(lambda *a, **k: warnings.append(a)),
+    )
+    # matcher reports "have" installed at 1.0 -> share at 2.0 is outdated locally
+    share = ShareList(
+        game=Game.ETS2,
+        profile_name="Sender",
+        entries=(ShareEntry(name="have", package_version="2.0"),),
+    )
+    controller._present(share)
+    assert len(warnings) == 1
+    controller._present(share)  # "Check again" re-presents the same object
+    assert len(warnings) == 1
+    other = ShareList(
+        game=Game.ETS2,
+        profile_name="Other",
+        entries=(ShareEntry(name="have", package_version="3.0"),),
+    )
+    controller._present(other)
+    assert len(warnings) == 2
+
+
+def test_shutdown_waits_on_open_create_dialog(tmp_path: Path, qtbot) -> None:
+    controller, _, _, _ = _controller(tmp_path)
+
+    class _Dialog:
+        def __init__(self) -> None:
+            self.waited: list[int] = []
+
+        def shutdown(self, msecs: int) -> None:
+            self.waited.append(msecs)
+
+    dialog = _Dialog()
+    controller._create_dialog = dialog
+    controller.shutdown(100)
+    assert dialog.waited == [100]
