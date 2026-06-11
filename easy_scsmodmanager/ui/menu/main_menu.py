@@ -72,12 +72,13 @@ def build_menu_bar(window: MainWindow) -> None:
     tools_menu.addAction(open_logs)
 
     share_menu = menu_bar.addMenu(t("menu.share"))
+    share = window._share_controller
     share_actions = (
-        ("create_code", window._on_share_create_code),
-        ("redeem_code", window._on_share_redeem_code),
-        ("export_file", window._on_share_export_file),
-        ("import_file", window._on_share_import_file),
-        ("from_profile", window._on_share_from_profile),
+        ("create_code", share.create_code),
+        ("redeem_code", share.redeem_code),
+        ("export_file", share.export_file),
+        ("import_file", share.import_file),
+        ("from_profile", share.from_profile),
     )
     for key, handler in share_actions:
         action = QAction(t(f"menu.share.{key}"), window)

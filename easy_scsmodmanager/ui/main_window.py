@@ -675,6 +675,9 @@ class MainWindow(QMainWindow):
             (s, self._profile if s == self._profile_sii_path else p)
             for s, p in self._profile_choices
         ]
+        # re-activate so the header meta text and the chooser entries pick up
+        # the new active-mod count instead of showing the stale one
+        self._activate_profile(self._profile_sii_path)
 
     def _reload_profile_after_share(self) -> None:
         # the share apply rewrote profile.sii behind the widget's back:
@@ -687,21 +690,6 @@ class MainWindow(QMainWindow):
         self._refresh_active_list()
         self._refresh_grid()
         self._save_btn.setEnabled(False)
-
-    def _on_share_create_code(self) -> None:
-        self._share_controller.create_code()
-
-    def _on_share_redeem_code(self) -> None:
-        self._share_controller.redeem_code()
-
-    def _on_share_export_file(self) -> None:
-        self._share_controller.export_file()
-
-    def _on_share_import_file(self) -> None:
-        self._share_controller.import_file()
-
-    def _on_share_from_profile(self) -> None:
-        self._share_controller.from_profile()
 
     def _refresh_all(self) -> None:
         self._refresh_grid()

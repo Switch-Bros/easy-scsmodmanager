@@ -55,8 +55,8 @@ def test_save_writes_active_list_to_profile(qtbot, tmp_path, monkeypatch) -> Non
     sii = tmp_path / "profiles" / "abc" / "profile.sii"
     sii.parent.mkdir(parents=True)
     sii.write_text(_PROFILE_TEMPLATE, encoding="utf-8")
-    window._profile_sii_path = sii
-    window._profile = read_profile(sii)
+    window._profile_choices = [(sii, read_profile(sii))]
+    window._activate_profile(sii)
     window._active_list.set_active_mods([ActiveMod("a", "A"), ActiveMod("b", "B")])
 
     # user declines the pre-save backup
@@ -64,6 +64,52 @@ def test_save_writes_active_list_to_profile(qtbot, tmp_path, monkeypatch) -> Non
     window._on_save_clicked()
 
     assert [m.name for m in read_profile(sii).active_mods] == ["a", "b"]
+
+
+def test_save_refreshes_header_and_chooser_counts(qtbot, tmp_path, monkeypatch) -> None:
+    from PyQt6.QtWidgets import QMessageBox
+
+    from easy_scsmodmanager.services.profile_reader import ActiveMod, read_profile
+    from easy_scsmodmanager.utils.i18n import t
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    sii = tmp_path / "profiles" / "abc" / "profile.sii"
+    sii.parent.mkdir(parents=True)
+    sii.write_text(_PROFILE_TEMPLATE, encoding="utf-8")
+    window._profile_choices = [(sii, read_profile(sii))]
+    window._activate_profile(sii)
+    assert window._profile_header._meta_label.text() == t("active_panel.count", count=0)
+
+    window._active_list.set_active_mods([ActiveMod("a", "A"), ActiveMod("b", "B")])
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.StandardButton.No)
+    window._on_save_clicked()
+
+    # the header meta text and the chooser entry both show the saved count
+    assert window._profile_header._meta_label.text() == t("active_panel.count", count=2)
+    chooser_profile = next(p for s, p in window._profile_choices if s == sii)
+    assert len(chooser_profile.active_mods) == 2
+
+
+def test_reload_after_share_refreshes_header_count(qtbot, tmp_path) -> None:
+    from easy_scsmodmanager.services.profile_reader import ActiveMod, read_profile
+    from easy_scsmodmanager.services.profile_writer import save_active_mods
+    from easy_scsmodmanager.utils.i18n import t
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    sii = tmp_path / "profiles" / "abc" / "profile.sii"
+    sii.parent.mkdir(parents=True)
+    sii.write_text(_PROFILE_TEMPLATE, encoding="utf-8")
+    window._profile_choices = [(sii, read_profile(sii))]
+    window._activate_profile(sii)
+
+    # a share apply rewrites profile.sii behind the window's back
+    save_active_mods(sii, [ActiveMod("a", "A"), ActiveMod("b", "B")], backup=False)
+    window._reload_profile_after_share()
+
+    assert window._profile_header._meta_label.text() == t("active_panel.count", count=2)
+    assert window._save_btn.isEnabled() is False
 
 
 def test_save_aborts_on_cancel(qtbot, tmp_path, monkeypatch) -> None:
