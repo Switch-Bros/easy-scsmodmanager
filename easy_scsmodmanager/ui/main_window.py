@@ -375,9 +375,14 @@ class MainWindow(QMainWindow):
             self._profile_header.set_profile_choices([])
             return
 
-        # Default: most recently modified profile.
-        sii_path = max(loaded, key=lambda p: p[0].stat().st_mtime)[0]
+        # Reopen the profile the user last had selected; when it is gone
+        # (deleted, renamed) fall back to the most recently modified one.
+        remembered = self._settings.get_last_selected_profile(self._game)
+        sii_path = next((s for s, _ in loaded if s == remembered), None)
+        if sii_path is None:
+            sii_path = max(loaded, key=lambda p: p[0].stat().st_mtime)[0]
         self._activate_profile(sii_path)
+        self._settings.set_last_selected_profile(self._game, sii_path)
 
     def _activate_profile(self, sii_path: Path) -> None:
         profile = next((p for s, p in self._profile_choices if s == sii_path), None)
@@ -732,6 +737,7 @@ class MainWindow(QMainWindow):
         if choice.sii_path == self._profile_sii_path:
             return
         self._activate_profile(choice.sii_path)
+        self._settings.set_last_selected_profile(self._game, choice.sii_path)
         self._refresh_active_list()
         self._refresh_grid()
 

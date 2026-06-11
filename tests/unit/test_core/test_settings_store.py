@@ -83,6 +83,24 @@ def test_update_check_on_startup_roundtrips_false(store: SettingsStore) -> None:
     assert store.get_update_check_on_startup() is True
 
 
+def test_last_selected_profile_defaults_none(store: SettingsStore) -> None:
+    assert store.get_last_selected_profile(Game.ETS2) is None
+
+
+def test_last_selected_profile_round_trip_per_game(store: SettingsStore, tmp_path: Path) -> None:
+    ets2_sii = tmp_path / "profiles" / "aa" / "profile.sii"
+    store.set_last_selected_profile(Game.ETS2, ets2_sii)
+    assert store.get_last_selected_profile(Game.ETS2) == ets2_sii
+    # ATS keeps its own slot - the games have separate profile sets
+    assert store.get_last_selected_profile(Game.ATS) is None
+
+
+def test_last_selected_profile_clear(store: SettingsStore, tmp_path: Path) -> None:
+    store.set_last_selected_profile(Game.ATS, tmp_path / "profile.sii")
+    store.set_last_selected_profile(Game.ATS, None)
+    assert store.get_last_selected_profile(Game.ATS) is None
+
+
 def test_grid_click_jump_defaults_false(store: SettingsStore) -> None:
     assert store.get_grid_click_jumps_to_active() is False
 

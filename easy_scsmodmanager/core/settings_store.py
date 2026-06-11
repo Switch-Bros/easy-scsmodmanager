@@ -39,6 +39,10 @@ def _install_key(game: Game) -> str:
     return f"paths/{game.value}_install"
 
 
+def _last_profile_key(game: Game) -> str:
+    return f"profiles/{game.value}_last_selected"
+
+
 class SettingsStore:
     """Thin typed wrapper around a QSettings instance."""
 
@@ -82,6 +86,13 @@ class SettingsStore:
 
     def set_active_game(self, game: Game) -> None:
         _put(self._s, _KEY_ACTIVE_GAME, game.value)
+
+    def get_last_selected_profile(self, game: Game) -> Path | None:
+        """The profile.sii the user last had open for this game, if any."""
+        return _as_path(self._s.value(_last_profile_key(game)))
+
+    def set_last_selected_profile(self, game: Game, path: Path | None) -> None:
+        _put(self._s, _last_profile_key(game), str(path) if path else None)
 
     def get_update_check_on_startup(self) -> bool:
         return _as_bool(self._s.value(_KEY_UPDATE_CHECK), default=True)

@@ -134,6 +134,79 @@ def test_save_aborts_on_cancel(qtbot, tmp_path, monkeypatch) -> None:
     assert list(read_profile(sii).active_mods) == []
 
 
+def _profile_pair(tmp_path, monkeypatch, window) -> tuple:
+    """Two on-disk profiles wired into the window; ``b`` is the newer one."""
+    import os
+
+    from PyQt6.QtCore import QSettings
+
+    from easy_scsmodmanager.core.game_paths import Game, GameInstall, InstallKind
+    from easy_scsmodmanager.core.settings_store import SettingsStore
+
+    window._settings = SettingsStore(QSettings(str(tmp_path / "s.ini"), QSettings.Format.IniFormat))
+    docs = tmp_path / "docs"
+    sii_a = docs / "profiles" / "aa" / "profile.sii"
+    sii_b = docs / "profiles" / "bb" / "profile.sii"
+    for sii in (sii_a, sii_b):
+        sii.parent.mkdir(parents=True)
+        sii.write_text(_PROFILE_TEMPLATE, encoding="utf-8")
+    os.utime(sii_a, (1_000_000, 1_000_000))  # a is old, b stays freshly written
+    window._install = GameInstall(
+        game=Game.ETS2, kind=InstallKind.PROTON, documents_dir=docs, workshop_dir=None
+    )
+    monkeypatch.setattr(
+        "easy_scsmodmanager.ui.main_window.discover_profiles", lambda install: [sii_a, sii_b]
+    )
+    return sii_a, sii_b
+
+
+def test_load_profiles_reopens_last_selected(qtbot, tmp_path, monkeypatch) -> None:
+    from easy_scsmodmanager.core.game_paths import Game
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    sii_a, _sii_b = _profile_pair(tmp_path, monkeypatch, window)
+    window._settings.set_last_selected_profile(Game.ETS2, sii_a)
+
+    window._load_profiles()
+
+    # the remembered one wins even though b was modified more recently
+    assert window._profile_sii_path == sii_a
+
+
+def test_load_profiles_falls_back_when_remembered_is_gone(qtbot, tmp_path, monkeypatch) -> None:
+    from easy_scsmodmanager.core.game_paths import Game
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    _sii_a, sii_b = _profile_pair(tmp_path, monkeypatch, window)
+    window._settings.set_last_selected_profile(Game.ETS2, tmp_path / "gone" / "profile.sii")
+
+    window._load_profiles()
+
+    # stale key: back to the most recently modified profile, key refreshed
+    assert window._profile_sii_path == sii_b
+    assert window._settings.get_last_selected_profile(Game.ETS2) == sii_b
+
+
+def test_choosing_a_profile_stores_it_as_last_selected(qtbot, tmp_path, monkeypatch) -> None:
+    from easy_scsmodmanager.core.game_paths import Game
+    from easy_scsmodmanager.ui.widgets.profile_header import ProfileChoice
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    sii_a, sii_b = _profile_pair(tmp_path, monkeypatch, window)
+    window._load_profiles()
+    assert window._profile_sii_path == sii_b  # nothing remembered yet
+
+    window._on_profile_chosen(
+        ProfileChoice(sii_path=sii_a, display_name="A", active_count=0, is_current=False)
+    )
+
+    assert window._profile_sii_path == sii_a
+    assert window._settings.get_last_selected_profile(Game.ETS2) == sii_a
+
+
 def test_double_click_grid_card_inserts_into_group_block(qtbot) -> None:
     from pathlib import Path
 
