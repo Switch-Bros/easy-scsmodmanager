@@ -119,6 +119,24 @@ Map-Combo-Ersteller reichen ihre Ladereihenfolge meist als Screenshot oder getip
   </picture>
 </p>
 
+<h3 align="center">🔗 Teile deine ganze Modliste - <i>per Code, Datei oder direkt aus einer profile.sii</i></h3>
+
+Map-Combos teilen nur den Map-Block. Das **Teilen-Menü** teilt deine *komplette* aktive Ladereihenfolge - jeden Mod, in Reihenfolge - auf drei Wegen: als kurzen **6-Zeichen-Online-Code** (90 Tage gültig), als `.modshare.json`-**Datei** oder direkt **aus der `profile.sii` eines Freundes** (verschlüsselt oder Klartext, wird für dich entschlüsselt).
+
+- **Installations-Vorschau, bevor irgendetwas übernommen wird** - du siehst, welche Mods du schon hast und welche fehlen. Fehlende Workshop-Mods bekommen einen klickbaren **Abonnieren**-Link; ein **Erneut-prüfen**-Knopf scannt neu, ohne den Dialog zu schließen, sodass du abonnieren, Steam herunterladen lassen und bestätigen kannst - alles in einem Ablauf
+- **Fehlende lokale Mods** werden mit kopierbarem Namen aufgelistet, damit du weißt, was du besorgen musst
+- **Gruppen-Pins reisen mit** - nutzen beide Seiten Easy SCSModManager, kommen auch deine Ladereihenfolge-Gruppen mit
+- **Sicher konzipiert** - geteilt wird nur die Modliste, nie deine Spielstände oder Einstellungen; ein Spiel-Mismatch (ETS2 vs ATS) sperrt das Übernehmen; und vor jedem Import wird automatisch ein Profil-Backup angelegt
+- **Online-Codes brauchen ein winziges optionales Backend** (selbst hostbares Supabase, siehe [`packaging/SUPABASE_SETUP.md`](packaging/SUPABASE_SETUP.md)); Teilen per Datei und profile.sii geht immer
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="easy_scsmodmanager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="easy_scsmodmanager/resources/images/readme_divider_light.webp">
+    <img src="easy_scsmodmanager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
 <h3 align="center">⚠️ Kompatibilität und Konflikte - <i>Ärger sehen, bevor das Spiel abstürzt</i></h3>
 
 - **Kompatibilitäts-Prüfung** - Mods werden gegen die erkannte Spielversion geprüft, genau so wie es das Spiel macht: markiert wird nur ein Mod, dessen `manifest.sii` tatsächlich eine inkompatible Version angibt. Ein Mod ohne Versionsangabe wird nie fälschlich markiert - der 1.58-Mod, den du bewusst auf 1.59 fährst, bleibt also in Ruhe
@@ -206,7 +224,7 @@ Benötigt **Python 3.13+** und **PyQt6**.
 | Favoriten, ETS2/ATS-Spiel-Umschalter | ✅ Fertig |
 | Multi-Format-Pakete (AppImage, EXE, .deb, .rpm, tar.gz, AUR) | ✅ Fertig |
 | **v1.1.1 - Erste öffentliche Version** | ✅ **Veröffentlicht** |
-| Mod-Presets / teilbare Ladereihenfolge-Profile | 📋 Geplant |
+| Komplette Modliste teilen (Online-Code, Datei, profile.sii) mit Installations-Vorschau | ✅ Fertig |
 | Workshop-Update-Benachrichtigungen und Ein-Klick-Links zur Workshop-Seite | 📋 Geplant |
 | Flatpak (Flathub-Einreichung) | 📋 Geplant |
 

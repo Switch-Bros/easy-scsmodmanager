@@ -119,6 +119,24 @@ Map combo authors usually pass their load order around as a screenshot or a type
   </picture>
 </p>
 
+<h3 align="center">🔗 Share Your Whole Mod List - <i>Code, File, or Straight from a profile.sii</i></h3>
+
+Map Combos share only the map block. The **Share menu** shares your *entire* active load order - every mod, in order - three ways: as a short **6-character online code** (valid 90 days), as a `.modshare.json` **file**, or pulled **straight from a friend's `profile.sii`** (encrypted or plain, decrypted for you).
+
+- **Install-status preview before anything is applied** - you see which mods you already have and which are missing. Missing Workshop mods get a clickable **Subscribe** link; a **Check again** button re-scans without closing the dialog, so you can subscribe, let Steam download, and confirm - all in one flow
+- **Missing local mods** are listed with copyable names so you know what to grab
+- **Group pins travel with the list** - when both sides use Easy SCSModManager, your load-order group assignments come across too
+- **Safe by design** - only the mod list is shared, never your saves or settings; a game mismatch (ETS2 vs ATS) blocks applying; and a profile backup is made automatically before every import
+- **Online codes need a tiny optional backend** (self-hostable Supabase, see [`packaging/SUPABASE_SETUP.md`](packaging/SUPABASE_SETUP.md)); file and profile.sii sharing always work
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="easy_scsmodmanager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="easy_scsmodmanager/resources/images/readme_divider_light.webp">
+    <img src="easy_scsmodmanager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
 <h3 align="center">⚠️ Compatibility and Conflicts - <i>Spot Trouble Before the Game Crashes</i></h3>
 
 - **Compatibility check** - mods are checked against the detected game version exactly the way the game does it: only a mod whose `manifest.sii` actually declares an incompatible version is flagged. A mod with no version info is never wrongly marked, so the 1.58 mod you run on purpose on 1.59 is left alone
@@ -206,7 +224,7 @@ Requires **Python 3.13+** and **PyQt6**.
 | Favourites, ETS2/ATS game switcher | ✅ Complete |
 | Multi-format packaging (AppImage, EXE, .deb, .rpm, tar.gz, AUR) | ✅ Complete |
 | **v1.1.1 - First public release** | ✅ **Released** |
-| Mod presets / shareable load-order profiles | 📋 Planned |
+| Share full mod list (online code, file, profile.sii) with install preview | ✅ Complete |
 | Workshop update notifications and one-click Workshop links | 📋 Planned |
 | Flatpak (Flathub submission) | 📋 Planned |
 
