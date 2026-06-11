@@ -101,6 +101,7 @@ no_implicit_optional = true
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
+qt_api = "pyqt6"  # PyQt5/PySide6 may coexist on dev machines; the app is PyQt6-only
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = ["-ra", "--strict-markers"]

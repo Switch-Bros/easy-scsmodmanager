@@ -51,7 +51,7 @@ _WORKSHOP_URL = "https://steamcommunity.com/sharedfiles/filedetails/?id={id}"
 
 
 def workshop_id_from_active_name(name: str) -> str | None:
-    """``mod_workshop_package.000000003A4B7C12`` -> ``"977853202"``.
+    """``mod_workshop_package.000000003A4B7C12`` -> ``"978025490"``.
 
     ETS2 stores workshop ids in active_mods[] as a 16-char zero-padded
     hex tail after the fixed prefix. Returns the decimal id, or None if
