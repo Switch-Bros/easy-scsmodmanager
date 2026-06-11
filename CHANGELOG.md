@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.1] - 2026-06-11
+
+### Added
+
+- **Online share codes are now live.** The optional Supabase backend behind the
+  "share as code" and "redeem code" actions is configured, so sharing your mod
+  list as a 6-character code works out of the box - no setup needed. File and
+  `profile.sii` sharing were already available in 1.5.0 and are unchanged.
+
 ## [1.5.0] - 2026-06-11
 
 ### Added

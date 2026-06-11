@@ -15,9 +15,11 @@ import httpx
 
 log = logging.getLogger(__name__)
 
-# Fill in once the Supabase project is set up (see packaging/supabase.sql).
-SUPABASE_URL = ""
-SUPABASE_KEY = ""
+# Supabase project for the ModShare backend (see packaging/supabase.sql).
+# The key is the publishable "anon" key on purpose: access is RPC-only with RLS
+# fully locking the table, so it carries no privilege beyond the two functions.
+SUPABASE_URL = "https://tlpkfflnyfmkhakhuqrw.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRscGtmZmxueWZta2hha2h1cXJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyMDU3MTQsImV4cCI6MjA5Njc4MTcxNH0.H_yEouxIl8WlTwJNRih2cZSZx5d2XQfbBztXvmHdA5c"
 
 _TIMEOUT_S = 10.0
 
