@@ -70,3 +70,11 @@ def test_unconfigured_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(ShareNotConfiguredError):
         share_api.fetch_share("AB2CD3")
     assert share_api.is_configured() is False
+
+
+def test_non_json_body_maps_to_rejected() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="<html>gateway error</html>")
+
+    with pytest.raises(ShareRejectedError):
+        share_api.fetch_share("AB2CD3", client=_client(handler))

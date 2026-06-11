@@ -81,4 +81,7 @@ def _rpc(name: str, body: dict, client: httpx.Client | None) -> object:
         raise ShareRejectedError(f"{name} -> HTTP {response.status_code}: {response.text[:200]}")
     if not response.content:
         return None
-    return response.json()
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise ShareRejectedError(f"{name}: non-JSON response body") from exc
