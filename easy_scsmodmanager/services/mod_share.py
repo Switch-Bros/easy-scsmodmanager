@@ -13,9 +13,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 
 from easy_scsmodmanager.core.game_paths import Game
+from easy_scsmodmanager.core.version_compare import compare_versions
+from easy_scsmodmanager.services.mod_identity import workshop_url_from_active_name
 from easy_scsmodmanager.services.profile_reader import ActiveMod, Profile
 
 FORMAT_ID = "easy-scsmodmanager-modshare"
@@ -146,9 +149,7 @@ def build_from_profile(
     return ShareList(game=game, profile_name=profile.profile_name, entries=entries)
 
 
-def to_active_mods(
-    share: ShareList, skip: set[str] | frozenset[str] = frozenset()
-) -> list[ActiveMod]:
+def to_active_mods(share: ShareList, skip: AbstractSet[str] = frozenset()) -> list[ActiveMod]:
     """The writer-ready list, share order preserved, ``skip`` names dropped."""
     return [
         ActiveMod(name=e.name, display_name=e.display_name)
@@ -161,3 +162,52 @@ def normalize_code(raw: str) -> str:
     """Uppercase, drop everything outside the code alphabet, cap the length."""
     cleaned = "".join(ch for ch in raw.upper() if ch in CODE_ALPHABET)
     return cleaned[:CODE_LENGTH]
+
+
+@dataclass(frozen=True)
+class ShareDiff:
+    """Receiver-side view of a share: what is here, what is not."""
+
+    found: tuple[ShareEntry, ...]
+    missing_workshop: tuple[tuple[ShareEntry, str], ...]  # (entry, subscribe url)
+    missing_local: tuple[ShareEntry, ...]
+    outdated: tuple[tuple[ShareEntry, str], ...]  # (entry, local version)
+
+    def missing_names(self) -> set[str]:
+        return {e.name for e, _ in self.missing_workshop} | {e.name for e in self.missing_local}
+
+
+def diff(share: ShareList, installed: Mapping[str, str | None]) -> ShareDiff:
+    """Bucket the share against the receiver's mods.
+
+    ``installed`` maps entry.name -> local package_version; "" means
+    installed with unknown version, a missing key or None means the mod
+    is not installed. The caller builds this via ActiveModMatcher so all
+    its matching strategies apply (see mod_share_controller).
+    """
+    found: list[ShareEntry] = []
+    missing_ws: list[tuple[ShareEntry, str]] = []
+    missing_local: list[ShareEntry] = []
+    outdated: list[tuple[ShareEntry, str]] = []
+    for entry in share.entries:
+        local_version = installed.get(entry.name)
+        if local_version is None:
+            url = workshop_url_from_active_name(entry.name)
+            if url is not None:
+                missing_ws.append((entry, url))
+            else:
+                missing_local.append(entry)
+            continue
+        found.append(entry)
+        if (
+            entry.package_version
+            and local_version
+            and compare_versions(local_version, entry.package_version) == -1
+        ):
+            outdated.append((entry, local_version))
+    return ShareDiff(
+        found=tuple(found),
+        missing_workshop=tuple(missing_ws),
+        missing_local=tuple(missing_local),
+        outdated=tuple(outdated),
+    )

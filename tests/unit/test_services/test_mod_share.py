@@ -10,6 +10,7 @@ from easy_scsmodmanager.services.mod_share import (
     ShareEntry,
     ShareList,
     build_from_profile,
+    diff,
     normalize_code,
     parse,
     serialize,
@@ -108,6 +109,8 @@ def test_build_from_profile_carries_versions_and_groups() -> None:
         versions={"local_mod": "1.2"},
         groups={"mod_workshop_package.000000003A4B7C12": "maps"},
     )
+    assert share.game is Game.ETS2
+    assert len(share.entries) == 2
     assert share.profile_name == "Sender"
     assert share.entries[0].group == "maps"
     assert share.entries[0].package_version == ""
@@ -132,3 +135,48 @@ def test_normalize_code_uppercases_and_strips() -> None:
     assert normalize_code(" ab-cd3z ") == "ABCD3Z"
     assert normalize_code("abcd3zXX") == "ABCD3Z"  # capped at CODE_LENGTH
     assert normalize_code("i1o0") == ""  # lookalikes are not in the alphabet
+
+
+def test_diff_buckets_found_missing_workshop_missing_local() -> None:
+    share = ShareList(
+        game=Game.ETS2,
+        profile_name="x",
+        entries=(
+            ShareEntry(name="have_it", display_name="Have"),
+            ShareEntry(name="mod_workshop_package.000000003A4B7C12", display_name="WsMissing"),
+            ShareEntry(name="local_missing", display_name="LocalMissing"),
+        ),
+    )
+    result = diff(share, installed={"have_it": "1.0"})
+    assert [e.name for e in result.found] == ["have_it"]
+    assert [(e.name, url) for e, url in result.missing_workshop] == [
+        (
+            "mod_workshop_package.000000003A4B7C12",
+            "https://steamcommunity.com/sharedfiles/filedetails/?id=978025490",
+        )
+    ]
+    assert [e.name for e in result.missing_local] == ["local_missing"]
+
+
+def test_diff_flags_outdated_local_versions() -> None:
+    share = ShareList(
+        game=Game.ETS2,
+        profile_name="x",
+        entries=(
+            ShareEntry(name="older_here", package_version="2.0"),
+            ShareEntry(name="same_here", package_version="1.0"),
+            ShareEntry(name="no_versions"),
+        ),
+    )
+    result = diff(share, installed={"older_here": "1.0", "same_here": "1.0", "no_versions": ""})
+    assert [(e.name, local) for e, local in result.outdated] == [("older_here", "1.0")]
+
+
+def test_diff_missing_names() -> None:
+    share = ShareList(
+        game=Game.ETS2,
+        profile_name="x",
+        entries=(ShareEntry(name="a"), ShareEntry(name="b")),
+    )
+    result = diff(share, installed={"a": ""})
+    assert result.missing_names() == {"b"}
