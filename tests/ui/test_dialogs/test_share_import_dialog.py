@@ -101,3 +101,41 @@ def test_apply_emits_signal(qtbot) -> None:
     dlg.show_share(share, diff(share, installed={"a": ""}), game_matches=True)
     with qtbot.waitSignal(dlg.apply_requested, timeout=1000):
         dlg._apply_button.click()
+
+
+def test_lookup_busy_clears_stale_share(qtbot) -> None:
+    dlg = _dialog(qtbot)
+    share = _share()
+    dlg.show_share(share, diff(share, installed={"a": ""}), game_matches=True)
+    dlg.show_lookup_busy()
+    assert dlg.current_share() is None
+    assert not dlg._apply_button.isEnabled()
+    assert dlg._recheck_button.isHidden()
+
+
+def test_error_clears_preview_and_recheck(qtbot) -> None:
+    dlg = _dialog(qtbot)
+    share = _share()
+    dlg.show_share(
+        share, diff(share, installed={}), game_matches=True
+    )  # has missing -> recheck visible
+    dlg.show_error("boom")
+    assert dlg._recheck_button.isHidden()
+    assert "A" not in dlg._preview.summary_text()
+
+
+def test_pasted_code_with_leading_junk_normalizes_fully(qtbot) -> None:
+    dlg = _dialog(qtbot)
+    dlg.set_source("code")
+    with qtbot.waitSignal(dlg.code_lookup_requested, timeout=2000) as blocker:
+        dlg._code_edit.setText(" ab2cd3")
+    assert blocker.args == ["AB2CD3"]
+
+
+def test_source_switch_cancels_pending_lookup(qtbot) -> None:
+    dlg = _dialog(qtbot)
+    dlg.set_source("code")
+    dlg._code_edit.setText("AB2CD3")
+    assert dlg._debounce.isActive()
+    dlg.set_source("file")
+    assert not dlg._debounce.isActive()

@@ -73,7 +73,6 @@ class ShareImportDialog(QDialog):
         self._code_prompt = QLabel(t("mod_share.import.code_prompt"))
         layout.addWidget(self._code_prompt)
         self._code_edit = QLineEdit()
-        self._code_edit.setMaxLength(CODE_LENGTH)
         self._code_edit.textChanged.connect(self._on_code_text)
         layout.addWidget(self._code_edit)
         self._debounce = QTimer(self)
@@ -127,11 +126,14 @@ class ShareImportDialog(QDialog):
         self._update_apply()
 
     def show_lookup_busy(self) -> None:
+        self._clear_result()
+        self._status_label.setStyleSheet("")
         self._status_label.setText(t("mod_share.import.looking_up"))
 
     def show_share(self, share: ShareList, diff: ShareDiff, *, game_matches: bool) -> None:
         self._share = share
         self._game_matches = game_matches
+        self._status_label.setStyleSheet("")
         self._status_label.setText(
             ""
             if game_matches
@@ -150,11 +152,9 @@ class ShareImportDialog(QDialog):
         self._update_apply()
 
     def show_error(self, message: str) -> None:
-        self._share = None
-        self._game_matches = False
-        self._header_label.setText("")
+        self._clear_result()
+        self._status_label.setStyleSheet(f"color: {Theme.DANGER};")
         self._status_label.setText(message)
-        self._update_apply()
 
     def current_share(self) -> ShareList | None:
         return self._share
@@ -166,7 +166,19 @@ class ShareImportDialog(QDialog):
     # internals
     # ------------------------------------------------------------------ #
 
+    def _clear_result(self) -> None:
+        self._share = None
+        self._game_matches = False
+        self._header_label.setText("")
+        self._preview.set_diff(
+            ShareDiff(found=(), missing_workshop=(), missing_local=(), outdated=())
+        )
+        self._recheck_button.hide()
+        self._update_apply()
+
     def _on_source(self, source: str) -> None:
+        if source != "code":
+            self._debounce.stop()
         is_code = source == "code"
         self._code_prompt.setVisible(is_code)
         self._code_edit.setVisible(is_code)
