@@ -9,7 +9,11 @@ and the UI offers only the file-based paths.
 
 from __future__ import annotations
 
+import logging
+
 import httpx
+
+log = logging.getLogger(__name__)
 
 # Fill in once the Supabase project is set up (see packaging/supabase.sql).
 SUPABASE_URL = ""
@@ -72,16 +76,19 @@ def _rpc(name: str, body: dict, client: httpx.Client | None) -> object:
     own = client or httpx.Client(timeout=_TIMEOUT_S)
     try:
         response = own.post(f"{SUPABASE_URL}/rest/v1/rpc/{name}", json=body, headers=headers)
+        if response.status_code != 200:
+            raise ShareRejectedError(
+                f"{name} -> HTTP {response.status_code}: {response.text[:200]}"
+            )
+        if not response.content:
+            return None
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise ShareRejectedError(f"{name}: non-JSON response body") from exc
     except httpx.HTTPError as exc:
+        log.debug("share rpc %s failed: %s", name, exc)
         raise ShareConnectionError(str(exc)) from exc
     finally:
         if client is None:
             own.close()
-    if response.status_code != 200:
-        raise ShareRejectedError(f"{name} -> HTTP {response.status_code}: {response.text[:200]}")
-    if not response.content:
-        return None
-    try:
-        return response.json()
-    except ValueError as exc:
-        raise ShareRejectedError(f"{name}: non-JSON response body") from exc
