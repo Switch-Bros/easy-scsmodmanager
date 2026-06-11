@@ -15,9 +15,10 @@
 6. [Konflikte](#konflikte)
 7. [Mods löschen](#mods-löschen)
 8. [Backups](#backups)
-9. [Spiel wechseln](#spiel-wechseln)
-10. [Einstellungen](#einstellungen)
-11. [Updates](#updates)
+9. [Modlisten teilen](#modlisten-teilen)
+10. [Spiel wechseln](#spiel-wechseln)
+11. [Einstellungen](#einstellungen)
+12. [Updates](#updates)
 
 ---
 
@@ -106,6 +107,67 @@ sichtbaren Mods zu wählen, dann löschen - schnelles Aufräumen.
 Der Profil-Kopf hat **Sichern** und **Wiederherstellen**. Ein Backup ist ein Zip
 des Profils, außerhalb des Spiel-Baums gespeichert, damit das Spiel es nie
 anfasst. Wiederherstellen holt ein früheres Backup zurück.
+
+## Modlisten teilen
+
+Das **Teilen**-Menü im Hauptfenster bietet fünf Aktionen.
+
+### Liste als Code teilen
+
+**Teilen -> Als Code teilen** erzeugt einen 6-stelligen alphanumerischen Code
+(z.B. `A3F7KQ`), der 90 Tage gültig ist. Gib den Code einem Freund; er löst
+ihn unter **Teilen -> Code einlösen** ein und sieht sofort eine Vorschau
+(s.u.). Diese Funktion braucht ein konfiguriertes Supabase-Backend - steht
+das Backend noch nicht bereit, meldet die App es und du kannst stattdessen
+eine Datei exportieren.
+
+### Liste als Datei exportieren / importieren
+
+**Teilen -> Als Datei exportieren** speichert die aktive Liste in eine
+`.modshare.json`-Datei, die du per Messenger oder Forum weitergeben kannst.
+**Teilen -> Aus Datei importieren** lädt eine solche Datei.
+
+### Aus einem fremden Profil übernehmen
+
+**Teilen -> Aus Profil übernehmen** liest eine `profile.sii` direkt ein -
+egal ob vom Spiel unverschlüsselt gespeichert oder mit dem ScsC-Format
+verschlüsselt. Du musst kein Backup ziehen; die App macht das automatisch
+(s. Backup-Hinweis unten).
+
+### Import-Vorschau
+
+Egal woher die Liste kommt (Code, Datei oder Profil) - es erscheint immer
+zuerst eine Vorschau:
+
+- **Installiert / Fehlend** - jeder Mod ist als vorhanden (grün) oder fehlend
+  (grau) markiert.
+- **Workshop-Mods abonnieren** - bei fehlenden Workshop-Mods erscheint ein
+  klickbarer **Abonnieren**-Link, der die Steam-Store-Seite des Mods öffnet.
+  Abonnier die Mods dort und lass Steam sie herunterladen. Sobald Steam fertig
+  ist, drücke in der Vorschau **Nochmal prüfen** - die App scannt neu, ohne
+  das Fenster zu schliessen, und markiert die gerade installierten Mods als
+  vorhanden.
+- **Fehlende lokale Mods** - bei lokalen Mods, die auf dem Rechner des
+  Absenders lagen, siehst du den Dateinamen kopierbereit in der Liste.
+- **Fehlende einbeziehen** - die Checkbox (Standard: aktiviert) legt fest,
+  ob fehlende Einträge trotzdem in die Liste übernommen werden. Deaktiviere
+  sie, wenn du nur die Mods willst, die du schon hast.
+- **Versionshinweis** - ist ein Mod auf einem neueren Stand als in der
+  geteilten Liste angegeben, bekommst du einen Hinweis. Das blockiert das
+  Übernehmen nicht.
+- **Spiel-Mismatch** - kommt die Liste von ETS2 und du hast ATS geöffnet
+  (oder umgekehrt), blockiert die App das Übernehmen mit einer klaren
+  Meldung. Wechsle zuerst ins richtige Spiel.
+
+Sind alle gewünschten Mods vorhanden, klicke **Übernehmen**. Die App legt
+vorher automatisch ein Backup des aktuellen Profils an (wie **Sichern** im
+Profil-Kopf), damit du jederzeit zurück kannst.
+
+### Gruppen-Pins werden mitgeteilt
+
+Wenn du mit Easy SCSModManager arbeitest und einem anderen Easy-SCSModManager-
+Nutzer eine Liste schickst, werden die Load-Order-Gruppen-Pins mitübertragen.
+Der Empfänger sieht nach dem Übernehmen dieselbe Gruppen-Einteilung wie du.
 
 ## Spiel wechseln
 

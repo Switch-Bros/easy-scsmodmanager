@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.5.0] - 2026-06-11
+
+### Added
+
+- **Share mod lists (Teilen menu).** A new Share menu offers five actions:
+  share the active list as a short 6-character online code (valid 90 days,
+  requires the optional Supabase backend - the UI explains when it is not
+  configured); redeem a code someone sent you; export the full list to a
+  `.modshare.json` file; import such a file; and take over a list straight
+  from another player's `profile.sii` (ScsC-encrypted or plain text).
+- **Import preview with install-status check.** Before applying any shared
+  list you see a preview that shows which mods are installed and which are
+  missing. Missing Workshop mods get a clickable Subscribe link to the Steam
+  Store page. A "Check again" button re-scans without closing the dialog, so
+  you can subscribe, wait for Steam downloads, and confirm they are ready -
+  all in one flow. Missing local mods are listed with copyable names. An
+  "include missing entries" toggle (default on) controls whether unresolved
+  entries are still written. A game mismatch (ETS2 vs ATS) blocks applying.
+  A profile backup is created automatically before every apply.
+- **Group pins travel with the list.** When sender and receiver both use Easy
+  SCSModManager, load-order group assignments are embedded in the shared list
+  and applied for installed mods on import.
+- **`packaging/supabase.sql`** - a self-hostable share backend schema with
+  RPC-only access and automatic 90-day TTL cleanup, for anyone who wants to
+  run their own code server.
+
+### Fixed
+
+- **App reopens the last selected profile per game on startup.** Previously
+  the app reopened the most recently modified profile, which could silently
+  switch your active profile after saving. It now remembers which profile you
+  had selected.
+- **Profile header and chooser mod-count refreshes after save and share
+  apply.** The count could stay stale until the next full rescan.
+
 ## [1.4.1] - 2026-06-10
 
 - **Fixed: local mod icons disappeared.** A caching change in 1.4.0 made local
