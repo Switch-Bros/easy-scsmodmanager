@@ -118,3 +118,11 @@ class ShareCreateDialog(QDialog):
         if clipboard is not None:
             clipboard.setText(self._code_label.text())
             self._copy_button.setText(t("mod_share.create.copied"))
+
+    def closeEvent(self, event) -> None:  # noqa: N802
+        # a slow upload may outlive the dialog: detach the slots so the
+        # thread cannot emit into a destroyed widget
+        if self._thread is not None and self._thread.isRunning():
+            self._thread.succeeded.disconnect(self._on_code)
+            self._thread.failed.disconnect(self._on_error)
+        super().closeEvent(event)

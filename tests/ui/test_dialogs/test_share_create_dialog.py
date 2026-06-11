@@ -16,6 +16,9 @@ class _Signal:
     def connect(self, slot) -> None:
         self._slots.append(slot)
 
+    def disconnect(self, slot) -> None:
+        self._slots.remove(slot)
+
     def emit(self, *args) -> None:
         for slot in self._slots:
             slot(*args)
@@ -34,6 +37,13 @@ class _FakeThread:
 
     def start(self) -> None:
         pass
+
+    def isRunning(self) -> bool:
+        return True
+
+    def disconnect_all(self) -> None:
+        self.succeeded._slots.clear()
+        self.failed._slots.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -83,3 +93,13 @@ def test_copy_button_puts_code_on_clipboard(qtbot) -> None:
     from PyQt6.QtWidgets import QApplication
 
     assert QApplication.clipboard().text() == "AB2CD3"
+
+
+def test_close_while_uploading_detaches_thread_signals(qtbot) -> None:
+    dlg = _dialog(qtbot)
+    dlg._create_button.click()
+    thread = _FakeThread.instances[0]
+    dlg.close()
+    assert thread.succeeded._slots == []
+    assert thread.failed._slots == []
+    thread.succeeded.emit("AB2CD3")  # must be harmless now
