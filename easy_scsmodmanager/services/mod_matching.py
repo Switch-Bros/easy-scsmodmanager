@@ -21,7 +21,11 @@ so the GUI does not pay O(N) per row.
 
 from __future__ import annotations
 
-from easy_scsmodmanager.services.mod_identity import mod_name_for_path, workshop_id_for_path
+from easy_scsmodmanager.services.mod_identity import (
+    mod_name_for_path,
+    workshop_id_for_path,
+    workshop_id_from_active_name,
+)
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.services.profile_reader import ActiveMod
 
@@ -115,19 +119,5 @@ def active_name_for(mod: ScannedMod) -> str:
     return mod.mod_name
 
 
-def _extract_workshop_id_from_name(name: str) -> str | None:
-    """``mod_workshop_package.000000003A4B7C12`` -> ``"977853202"``.
-
-    ETS2 stores workshop ids as a 16-char zero-padded hex string after
-    a dot. Returns the decimal id if the input matches that shape,
-    otherwise None.
-    """
-    if "." not in name:
-        return None
-    head, tail = name.rsplit(".", 1)
-    if head != "mod_workshop_package":
-        return None
-    try:
-        return str(int(tail, 16))
-    except ValueError:
-        return None
+# the public helper in mod_identity replaced the old private copy
+_extract_workshop_id_from_name = workshop_id_from_active_name

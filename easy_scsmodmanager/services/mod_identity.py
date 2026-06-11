@@ -44,3 +44,30 @@ def mod_name_for_path(path: Path) -> str:
     if ws_id is not None:
         return f"mod_workshop_package.{int(ws_id):016X}"
     return path.stem
+
+
+WORKSHOP_NAME_PREFIX = "mod_workshop_package."
+_WORKSHOP_URL = "https://steamcommunity.com/sharedfiles/filedetails/?id={id}"
+
+
+def workshop_id_from_active_name(name: str) -> str | None:
+    """``mod_workshop_package.000000003A4B7C12`` -> ``"977853202"``.
+
+    ETS2 stores workshop ids in active_mods[] as a 16-char zero-padded
+    hex tail after the fixed prefix. Returns the decimal id, or None if
+    the name does not match that shape.
+    """
+    if not name.startswith(WORKSHOP_NAME_PREFIX):
+        return None
+    try:
+        return str(int(name[len(WORKSHOP_NAME_PREFIX) :], 16))
+    except ValueError:
+        return None
+
+
+def workshop_url_from_active_name(name: str) -> str | None:
+    """Steam Workshop page for a workshop active-mod name, else None."""
+    ws_id = workshop_id_from_active_name(name)
+    if ws_id is None:
+        return None
+    return _WORKSHOP_URL.format(id=ws_id)
