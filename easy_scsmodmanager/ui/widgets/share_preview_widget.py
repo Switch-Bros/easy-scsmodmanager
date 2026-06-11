@@ -9,8 +9,7 @@
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QPushButton, QTextBrowser, QVBoxLayout, QWidget
 
 from easy_scsmodmanager.services.mod_share import ShareDiff
 from easy_scsmodmanager.utils.i18n import t
@@ -22,15 +21,15 @@ class SharePreviewWidget(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._diff: ShareDiff | None = None
+        self._rendered_html: str = ""
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self._body = QLabel("")
-        self._body.setWordWrap(True)
-        self._body.setTextFormat(Qt.TextFormat.RichText)
+        self._body = QTextBrowser()
         self._body.setOpenExternalLinks(True)
-        self._body.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        self._body.setReadOnly(True)
+        self._body.setMinimumHeight(200)
         layout.addWidget(self._body)
 
         self._copy_button = QPushButton(t("mod_share.import.copy_names"))
@@ -42,15 +41,17 @@ class SharePreviewWidget(QWidget):
 
     def set_diff(self, diff: ShareDiff) -> None:
         self._diff = diff
-        self._body.setText(self._render(diff))
+        self._rendered_html = self._render(diff)
+        self._body.setHtml(self._rendered_html)
         self._copy_button.setVisible(bool(diff.missing_local))
 
     def has_missing(self) -> bool:
-        # true if any mod cannot be found locally
-        return self._diff is not None and bool(self._diff.missing_names())
+        return self._diff is not None and bool(
+            self._diff.missing_workshop or self._diff.missing_local
+        )
 
     def summary_text(self) -> str:
-        return self._body.text()
+        return self._rendered_html
 
     def missing_local_names_for_clipboard(self) -> str:
         if self._diff is None:
@@ -73,7 +74,7 @@ class SharePreviewWidget(QWidget):
             lbl = t("mod_share.import.subscribe_link")
             for e, url in diff.missing_workshop:
                 nm = _esc(e.display_name or e.name)
-                parts.append(f'&#9888; {nm} - <a href="{url}">{lbl}</a>')
+                parts.append(f'&#9888; {nm} - <a href="{_esc(url)}">{lbl}</a>')
             parts.append(f"<i>{_esc(t('mod_share.import.steam_hint'))}</i>")
 
         if diff.missing_local:
@@ -91,5 +92,6 @@ class SharePreviewWidget(QWidget):
 
 
 def _esc(text: str) -> str:
-    # minimal HTML escaping - only what's needed for a QLabel RichText body
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return (
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    )

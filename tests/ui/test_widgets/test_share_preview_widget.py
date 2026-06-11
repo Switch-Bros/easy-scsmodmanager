@@ -74,3 +74,19 @@ def test_html_escapes_display_names(qtbot) -> None:
     widget.set_diff(evil)
     assert "<b>bold</b>" not in widget.summary_text()
     assert "&lt;b&gt;" in widget.summary_text()
+
+
+def test_url_quotes_cannot_break_href(qtbot) -> None:
+    crafted = ShareDiff(
+        found=(),
+        missing_workshop=(
+            (ShareEntry(name="mod_workshop_package.00000000000000FF"), 'https://x/"evil'),
+        ),
+        missing_local=(),
+        outdated=(),
+    )
+    widget = SharePreviewWidget()
+    qtbot.addWidget(widget)
+    widget.set_diff(crafted)
+    assert '"evil' not in widget.summary_text()
+    assert "&quot;evil" in widget.summary_text()
