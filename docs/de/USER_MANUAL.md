@@ -144,7 +144,7 @@ zuerst eine Vorschau:
 - **Workshop-Mods abonnieren** - bei fehlenden Workshop-Mods erscheint ein
   klickbarer **Abonnieren**-Link, der die Steam-Store-Seite des Mods öffnet.
   Abonnier die Mods dort und lass Steam sie herunterladen. Sobald Steam fertig
-  ist, drücke in der Vorschau **Nochmal prüfen** - die App scannt neu, ohne
+  ist, drücke in der Vorschau **Erneut prüfen** - die App scannt neu, ohne
   das Fenster zu schliessen, und markiert die gerade installierten Mods als
   vorhanden.
 - **Fehlende lokale Mods** - bei lokalen Mods, die auf dem Rechner des
