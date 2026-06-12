@@ -47,7 +47,7 @@ class UpdateDialog(QDialog):
         self._svc = service
         self._dl_path: str | None = None
 
-        self.setWindowTitle(t("update.dialog_title"))
+        self.setWindowTitle(t("common.update_available"))
         self.setMinimumWidth(540)
         self.setStyleSheet(f"background-color: {Theme.BACKGROUND}; color: {Theme.TEXT};")
         self._build()

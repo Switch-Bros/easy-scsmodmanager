@@ -145,6 +145,6 @@ class MapComboController:
         )
         QMessageBox.information(
             self._parent,
-            t("map_combo.outdated_title"),
+            t("common.update_available"),
             f"{t('map_combo.outdated_body')}\n\n{rows}",
         )

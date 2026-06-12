@@ -66,7 +66,7 @@ class ModInfoDialog(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         close = buttons.button(QDialogButtonBox.StandardButton.Close)
         if close is not None:
-            close.setText(t("dialog.info.close"))
+            close.setText(t("common.close"))
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)
         root.addWidget(buttons, 0, Qt.AlignmentFlag.AlignRight)
@@ -91,12 +91,12 @@ class ModInfoDialog(QDialog):
             return ""
         parts: list[str] = []
         if man.author:
-            parts.append(f"{t('dialog.info.author')}: {man.author}")
+            parts.append(f"{t('common.author')}: {man.author}")
         if man.package_version:
             parts.append(f"{t('dialog.info.version')}: {man.package_version}")
         cats = canonical_categories(man.categories)
         names = ", ".join(t(i18n_key(c)) for c in cats)
-        parts.append(f"{t('dialog.info.category')}: {names}")
+        parts.append(f"{t('common.category')}: {names}")
         return "   |   ".join(parts)
 
     def _description_or_fallback(self) -> str:

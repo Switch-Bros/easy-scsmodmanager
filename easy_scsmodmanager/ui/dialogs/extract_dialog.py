@@ -70,7 +70,7 @@ class ExtractDialog(QDialog):
         self._dest_edit = QLineEdit()
         self._dest_edit.setReadOnly(True)
         dest_row.addWidget(self._dest_edit, 1)
-        dest_browse = QPushButton(t("dialog.extract.browse"))
+        dest_browse = QPushButton(t("common.browse"))
         dest_browse.clicked.connect(self._on_pick_dest)
         dest_row.addWidget(dest_browse)
         root.addLayout(dest_row)
@@ -89,7 +89,7 @@ class ExtractDialog(QDialog):
         btn_row.addStretch(1)
         self._extract_btn = QPushButton(t("dialog.extract.start"))
         self._extract_btn.clicked.connect(self._on_extract)
-        self._close_btn = QPushButton(t("dialog.extract.close"))
+        self._close_btn = QPushButton(t("common.close"))
         self._close_btn.clicked.connect(self.reject)
         btn_row.addWidget(self._extract_btn)
         btn_row.addWidget(self._close_btn)
@@ -172,11 +172,11 @@ class ExtractDialog(QDialog):
         self._progress.setVisible(running)
         self._extract_btn.setEnabled(not running)
         if running:
-            self._close_btn.setText(t("dialog.extract.cancel"))
+            self._close_btn.setText(t("common.cancel"))
             self._close_btn.clicked.disconnect()
             self._close_btn.clicked.connect(self._on_cancel)
         else:
-            self._close_btn.setText(t("dialog.extract.close"))
+            self._close_btn.setText(t("common.close"))
             self._close_btn.clicked.disconnect()
             self._close_btn.clicked.connect(self.reject)
 

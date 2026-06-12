@@ -39,8 +39,8 @@ GROUPS: tuple[LoadOrderGroup, ...] = (
         ("load_order.graphics_weather",),
         ("graphics", "weather_setup"),
     ),
-    LoadOrderGroup("sound", ("load_order.sound",), ("sound",)),
-    LoadOrderGroup("physics", ("load_order.physics",), ("physics",)),
+    LoadOrderGroup("sound", ("category.sound",), ("sound",)),
+    LoadOrderGroup("physics", ("category.physics",), ("physics",)),
     LoadOrderGroup(
         "ui_other",
         ("load_order.ui_other",),
@@ -49,12 +49,12 @@ GROUPS: tuple[LoadOrderGroup, ...] = (
     LoadOrderGroup(
         "tuning_interior", ("load_order.tuning_interior",), ("tuning_parts", "interior")
     ),
-    LoadOrderGroup("ai_traffic", ("load_order.ai_traffic",), ("ai_traffic",)),
-    LoadOrderGroup("cargo", ("load_order.cargo",), ("cargo_pack",)),
-    LoadOrderGroup("paint_jobs", ("load_order.paint_jobs",), ("paint_job",)),
-    LoadOrderGroup("trailers", ("load_order.trailers",), ("trailer",)),
-    LoadOrderGroup("trucks", ("load_order.trucks",), ("truck",)),
-    LoadOrderGroup("maps", ("load_order.maps",), ("map",)),
+    LoadOrderGroup("ai_traffic", ("category.ai_traffic",), ("ai_traffic",)),
+    LoadOrderGroup("cargo", ("category.cargo_pack",), ("cargo_pack",)),
+    LoadOrderGroup("paint_jobs", ("category.paint_job",), ("paint_job",)),
+    LoadOrderGroup("trailers", ("category.trailer",), ("trailer",)),
+    LoadOrderGroup("trucks", ("category.truck",), ("truck",)),
+    LoadOrderGroup("maps", ("category.map",), ("map",)),
 )
 
 _UI_OTHER_INDEX = next(i for i, g in enumerate(GROUPS) if g.id == "ui_other")

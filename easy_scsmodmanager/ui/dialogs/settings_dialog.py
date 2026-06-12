@@ -115,8 +115,8 @@ class SettingsDialog(QDialog):
         self._build_map_base_section(root)
 
         buttons = QDialogButtonBox()
-        buttons.addButton(t("dialog.settings.save"), QDialogButtonBox.ButtonRole.AcceptRole)
-        buttons.addButton(t("dialog.settings.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
+        buttons.addButton(t("common.save"), QDialogButtonBox.ButtonRole.AcceptRole)
+        buttons.addButton(t("common.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         root.addWidget(buttons)
@@ -144,7 +144,7 @@ class SettingsDialog(QDialog):
             edit.setText(str(path))
         self._edits[(game, kind)] = edit
 
-        browse = QPushButton(t("settings.paths.browse"))
+        browse = QPushButton(t("common.browse"))
         browse.clicked.connect(lambda: self._on_browse(game, kind))
         reset = QPushButton(t("settings.paths.reset"))
         reset.clicked.connect(lambda: self._on_reset(game, kind))

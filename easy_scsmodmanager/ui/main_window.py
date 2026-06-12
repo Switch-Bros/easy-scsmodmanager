@@ -248,7 +248,7 @@ class MainWindow(QMainWindow):
 
         save_row = QHBoxLayout()
         save_row.addStretch(1)
-        self._save_btn = QPushButton(t("active_panel.save"))
+        self._save_btn = QPushButton(t("common.save"))
         self._save_btn.setEnabled(False)
         self._save_btn.clicked.connect(self._on_save_clicked)
         save_row.addWidget(self._save_btn)

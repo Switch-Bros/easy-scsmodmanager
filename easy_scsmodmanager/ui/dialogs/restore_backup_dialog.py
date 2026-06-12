@@ -78,7 +78,7 @@ class RestoreBackupDialog(QDialog):
         button_row.addStretch(1)
 
         self._buttons = QDialogButtonBox()
-        self._restore_btn = QPushButton(t("dialog.restore.restore"))
+        self._restore_btn = QPushButton(t("common.restore"))
         self._restore_btn.setStyleSheet(_primary_button_style())
         self._restore_btn.setDefault(True)
         self._buttons.addButton(self._restore_btn, QDialogButtonBox.ButtonRole.AcceptRole)

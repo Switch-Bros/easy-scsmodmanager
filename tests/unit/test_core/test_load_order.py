@@ -45,5 +45,5 @@ def test_label_keys_present_for_every_group():
 
 
 def test_group_label_keys_lookup():
-    assert group_label_keys("trucks") == ("load_order.trucks",)
+    assert group_label_keys("trucks") == ("category.truck",)
     assert len(group_label_keys("map_base")) == 3

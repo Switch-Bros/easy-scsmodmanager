@@ -108,7 +108,7 @@ class ProfileHeader(QWidget):
         self._backup_btn.setStyleSheet(_secondary_button_style())
         self._backup_btn.setEnabled(False)
         self._backup_btn.clicked.connect(self.backup_requested.emit)
-        self._restore_btn = QPushButton(t("profile_header.restore"))
+        self._restore_btn = QPushButton(t("common.restore"))
         self._restore_btn.setToolTip(t("profile_header.restore_tooltip"))
         self._restore_btn.setStyleSheet(_secondary_button_style())
         self._restore_btn.setEnabled(False)

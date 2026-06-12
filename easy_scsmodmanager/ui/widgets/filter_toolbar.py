@@ -86,7 +86,10 @@ class FilterToolbar(QWidget):
         row.addWidget(QLabel(t("filter.sort.label")))
         self._sort = QComboBox()
         for key in SortKey:
-            self._sort.addItem(t(f"filter.sort.{key.value}"), key)
+            # "Author" collapses onto the shared common.author label; the other
+            # sort keys keep their dedicated filter.sort.* strings.
+            label_key = "common.author" if key is SortKey.AUTHOR else f"filter.sort.{key.value}"
+            self._sort.addItem(t(label_key), key)
         self._sort.currentIndexChanged.connect(self._on_sort_changed)
         row.addWidget(self._sort)
 
@@ -96,7 +99,7 @@ class FilterToolbar(QWidget):
         self._sort_dir.currentIndexChanged.connect(self._on_sort_dir_changed)
         row.addWidget(self._sort_dir)
 
-        row.addWidget(QLabel(t("filter.category.label")))
+        row.addWidget(QLabel(t("common.category")))
         self._category = QComboBox()
         # Fixed, game-ordered list - never derived from the mods themselves.
         self._category.addItem(t("filter.category.all"), None)
