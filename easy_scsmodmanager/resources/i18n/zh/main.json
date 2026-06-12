@@ -78,6 +78,7 @@
     "mod_card.no_author": "未知作者",
     "mod_card.favorite_tooltip": "切换收藏状态",
     "mod_card.show_in_active": "在已激活列表中显示",
+    "mod_card.open_location": "打开文件位置",
     "mod_card.delete": "删除...",
     "mod_card.delete_workshop_tooltip": "创意工坊模组由 Steam 管理 - 请在创意工坊中取消订阅以移除它们。",
     "dialog.delete.title_one": "删除模组？",

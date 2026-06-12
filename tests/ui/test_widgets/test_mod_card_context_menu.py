@@ -43,8 +43,26 @@ def _workshop(wid: str = "123456", name: str = "b.scs"):
 
 
 def _delete_action(menu):
-    # actions(): [show_in_active, delete]
-    return menu.actions()[1]
+    # actions(): [show_in_active, open_location, delete]
+    return menu.actions()[2]
+
+
+def test_open_location_present_and_enabled_for_local(qtbot) -> None:
+    mod = _local()
+    card = ModCard(mod, is_active=False)
+    qtbot.addWidget(card)
+    # index 1, right after show_in_active; available for every mod
+    action = card.build_context_menu().actions()[1]
+    assert action.isEnabled() is True
+    with qtbot.waitSignal(card.open_location_requested, timeout=500):
+        action.trigger()
+
+
+def test_open_location_enabled_for_workshop(qtbot) -> None:
+    mod = _workshop()
+    card = ModCard(mod, is_active=False)
+    qtbot.addWidget(card)
+    assert card.build_context_menu().actions()[1].isEnabled() is True
 
 
 def test_delete_enabled_for_local_selection(qtbot) -> None:

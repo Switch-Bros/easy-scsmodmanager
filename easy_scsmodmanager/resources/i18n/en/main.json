@@ -78,6 +78,7 @@
   "mod_card.no_author": "Unknown author",
   "mod_card.favorite_tooltip": "Toggle favorite",
   "mod_card.show_in_active": "Show in active list",
+  "mod_card.open_location": "Open file location",
   "mod_card.delete": "Delete...",
   "mod_card.delete_workshop_tooltip": "Workshop mods are managed by Steam - unsubscribe in the Workshop to remove them.",
   "dialog.delete.title_one": "Delete mod?",

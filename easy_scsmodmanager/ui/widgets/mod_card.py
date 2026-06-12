@@ -56,6 +56,7 @@ class ModCard(QFrame):
     info_requested = pyqtSignal()
     drag_started = pyqtSignal()  # left-drag moved past the threshold
     show_in_active_requested = pyqtSignal()  # jump to this mod's row in the active list
+    open_location_requested = pyqtSignal()  # open the mod's containing folder
     delete_requested = pyqtSignal()  # delete this mod (and the rest of the selection)
 
     def __init__(
@@ -172,6 +173,10 @@ class ModCard(QFrame):
         show = menu.addAction(t("mod_card.show_in_active"))
         show.setEnabled(self._is_active)  # only mods on the active list can jump
         show.triggered.connect(lambda: self.show_in_active_requested.emit())
+
+        # every mod (local and workshop) has a folder on disk, so this is always on
+        loc = menu.addAction(t("mod_card.open_location"))
+        loc.triggered.connect(lambda: self.open_location_requested.emit())
 
         # delete: enabled if the selection holds at least one local mod; only
         # the locals get deleted. Workshop-only -> disabled with a why tooltip.

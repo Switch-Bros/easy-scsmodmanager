@@ -78,6 +78,7 @@
   "mod_card.no_author": "Unbekannter Ersteller",
   "mod_card.favorite_tooltip": "Als Favorit markieren",
   "mod_card.show_in_active": "In Aktiv-Liste zeigen",
+  "mod_card.open_location": "Dateispeicherort öffnen",
   "mod_card.delete": "Löschen...",
   "mod_card.delete_workshop_tooltip": "Workshop-Mods verwaltet Steam - beende das Abo im Workshop, um sie zu entfernen.",
   "dialog.delete.title_one": "Mod löschen?",

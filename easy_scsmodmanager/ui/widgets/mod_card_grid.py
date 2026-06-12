@@ -34,6 +34,7 @@ class ModCardGrid(QScrollArea):
     info_requested = pyqtSignal(object)  # ScannedMod
     favorite_toggled = pyqtSignal(object, bool)  # (ScannedMod, is_favorite)
     show_in_active_requested = pyqtSignal(object)  # ScannedMod
+    open_location_requested = pyqtSignal(object)  # ScannedMod
     delete_requested = pyqtSignal(list)  # list[ScannedMod] - the current selection
 
     def __init__(self, columns: int = 3, parent: QWidget | None = None) -> None:
@@ -102,6 +103,7 @@ class ModCardGrid(QScrollArea):
             card.show_in_active_requested.connect(
                 lambda m=mod: self.show_in_active_requested.emit(m)
             )
+            card.open_location_requested.connect(lambda m=mod: self.open_location_requested.emit(m))
             card.delete_requested.connect(lambda: self.delete_requested.emit(self.selected_mods()))
             card.drag_started.connect(lambda i=idx: self._start_drag(i))
             self._cards.append(card)
