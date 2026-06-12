@@ -42,11 +42,22 @@ def test_format_placeholders() -> None:
 
 
 def test_available_languages_only_lists_shipped_locales() -> None:
+    # available_languages() must be exactly the locales that are both registered
+    # in languages.json and actually ship a <code>/main.json. Both sides are
+    # derived from the package, so adding a translation (en, de, zh, ...) needs
+    # no edit here.
+    root = i18n._i18n_root()
+    shipped = {
+        entry.name
+        for entry in root.iterdir()
+        if entry.is_dir() and root.joinpath(entry.name, "main.json").is_file()
+    }
+    expected = set(i18n._language_names()) & shipped
+
     langs = available_languages()
-    # de and en ship a main.json; the other languages.json entries do not.
-    assert set(langs) == {"de", "en"}
-    assert "Deutsch" in langs["de"]
-    assert "English" in langs["en"]
+    assert set(langs) == expected
+    assert all(langs[code] for code in langs)  # every display name is non-empty
+    assert i18n.DEFAULT_LANG in langs  # the default locale always ships
 
 
 def test_set_language_accepts_any_locale_that_ships_strings(
