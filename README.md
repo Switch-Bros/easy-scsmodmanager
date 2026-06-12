@@ -71,6 +71,7 @@ Easy SCSModManager reads your local `mod/` folder and your Steam Workshop subscr
 - **Search, sort and filter** - full-text search across name, author and category, sort by name or install date, filter by category, workshop-only or favourites-only
 - **Multi-select** with Ctrl / Shift (or Ctrl+A for everything visible) to activate, deactivate or delete whole batches at once
 - **Delete mods to the trash** - right-click (or press Del) to remove local mods, with a warning if a saved profile still uses them; Workshop mods stay managed by Steam
+- **Open file location** - right-click any mod to open its folder in your system file manager (the workshop item's folder for Workshop mods)
 - **Filter by source** - show all mods, only Workshop, or only your local ones
 - **Responsive grid** - maximise the window and the grid adds columns to fill the width instead of leaving an empty strip; the cards keep their size
 - **BVB-yellow accent** - the refined dark theme paints mod names in Borussia Dortmund yellow
@@ -241,7 +242,7 @@ Easy SCSModManager ships with **English** and **German**. Want it in your langua
 4. Check `easy_scsmodmanager/resources/i18n/languages.json`: if your language code has no entry yet, add one line with its code and its name in the language itself
 5. Submit a Pull Request
 
-A missing key shows up as the raw key in the interface, so gaps are easy to spot while you work.
+You do not have to translate everything at once. English is the reference and any key you leave out simply shows in English, so a partial translation is welcome - and the English text marks exactly what is still left to do. Send a small PR with just the strings you have done; you (or someone else) can fill in the rest later.
 
 <details>
 <summary>🧪 Test your translation before the PR (optional, no coding either)</summary>
@@ -261,7 +262,7 @@ pip install -e .
 python -m easy_scsmodmanager
 ```
 
-Your language appears under **Settings -> Language**; pick it and restart the app. Any text that still shows as a raw key like `menu.file.refresh` is a key you have not translated yet.
+Your language appears under **Settings -> Language**; pick it and restart the app. Any text that still appears in English is a key you have not translated yet - that English fallback is intentional, so the app is never broken by a partial translation.
 
 Requires **Python 3.13+** (from [python.org](https://www.python.org/), on Windows tick "Add python.exe to PATH" in the installer).
 

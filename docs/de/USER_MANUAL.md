@@ -14,11 +14,12 @@
 5. [Load-Order-Gruppen](#load-order-gruppen)
 6. [Konflikte](#konflikte)
 7. [Mods löschen](#mods-löschen)
-8. [Backups](#backups)
-9. [Modlisten teilen](#modlisten-teilen)
-10. [Spiel wechseln](#spiel-wechseln)
-11. [Einstellungen](#einstellungen)
-12. [Updates](#updates)
+8. [Den Ordner eines Mods öffnen](#den-ordner-eines-mods-öffnen)
+9. [Backups](#backups)
+10. [Modlisten teilen](#modlisten-teilen)
+11. [Spiel wechseln](#spiel-wechseln)
+12. [Einstellungen](#einstellungen)
+13. [Updates](#updates)
 
 ---
 
@@ -101,6 +102,14 @@ die betroffenen Profile zuerst.
 
 Tipp: Setz den **Quelle**-Filter auf **Lokal**, drück **Strg+A**, um alle
 sichtbaren Mods zu wählen, dann löschen - schnelles Aufräumen.
+
+## Den Ordner eines Mods öffnen
+
+Rechtsklick auf einen beliebigen Mod und **Dateispeicherort öffnen** öffnet
+seinen Ordner im System-Dateimanager. Bei einem lokalen Mod ist das der Ordner,
+in dem die Datei liegt; bei einem Workshop-Mod der Ordner des Eintrags im Steam-
+Workshop-Baum. Praktisch, um die Dateien eines Mods anzusehen oder ihn woanders
+hinzukopieren.
 
 ## Backups
 

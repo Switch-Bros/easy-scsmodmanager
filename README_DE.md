@@ -71,6 +71,7 @@ Easy SCSModManager liest deinen lokalen `mod/`-Ordner und deine Steam-Workshop-A
 - **Suche, Sortierung und Filter** - Volltextsuche über Name, Ersteller und Kategorie, Sortierung nach Name oder Installationsdatum, Filter nach Kategorie, nur Workshop oder nur Favoriten
 - **Mehrfachauswahl** mit Strg / Shift (oder Strg+A für alles Sichtbare), um ganze Stapel auf einmal zu aktivieren, zu deaktivieren oder zu löschen
 - **Mods in den Papierkorb löschen** - Rechtsklick (oder Entf) entfernt lokale Mods, mit Warnung falls ein gespeichertes Profil sie noch nutzt; Workshop-Mods bleiben bei Steam
+- **Dateispeicherort öffnen** - Rechtsklick auf einen Mod öffnet seinen Ordner im System-Dateimanager (bei Workshop-Mods der Ordner des Workshop-Eintrags)
 - **Nach Quelle filtern** - alle Mods, nur Workshop oder nur deine lokalen anzeigen
 - **Responsives Raster** - maximier das Fenster und das Raster fügt Spalten hinzu, statt einen leeren Streifen zu lassen; die Karten behalten ihre Größe
 - **BVB-gelber Akzent** - das verfeinerte dunkle Theme malt Modnamen in Borussia-Dortmund-Gelb
@@ -241,7 +242,7 @@ Easy SCSModManager kommt mit **Englisch** und **Deutsch**. Du willst es in deine
 4. Prüfe `easy_scsmodmanager/resources/i18n/languages.json`: Fehlt dein Sprachcode dort, ergänze eine Zeile mit Code und dem Namen in der Sprache selbst
 5. Reiche einen Pull Request ein
 
-Ein fehlender Schlüssel erscheint als nackter Schlüssel in der Oberfläche, sodass Lücken beim Arbeiten leicht auffallen.
+Du musst nicht alles auf einmal übersetzen. Englisch ist die Referenz, und jeder Schlüssel, den du auslässt, erscheint einfach auf Englisch - eine Teilübersetzung ist also willkommen, und der englische Text zeigt genau, was noch zu tun ist. Schick ruhig einen kleinen PR mit nur den Strings, die du schon hast; den Rest könnt ihr später ergänzen.
 
 <details>
 <summary>🧪 Übersetzung vor dem PR testen (optional, auch ohne Programmieren)</summary>
@@ -261,7 +262,7 @@ pip install -e .
 python -m easy_scsmodmanager
 ```
 
-Deine Sprache erscheint unter **Einstellungen -> Sprache**; auswählen und die App neu starten. Jeder Text, der noch als nackter Schlüssel wie `menu.file.refresh` erscheint, ist noch nicht übersetzt.
+Deine Sprache erscheint unter **Einstellungen -> Sprache**; auswählen und die App neu starten. Jeder Text, der noch auf Englisch erscheint, ist ein noch nicht übersetzter Schlüssel - dieser englische Rückfall ist gewollt, damit eine Teilübersetzung die App nie kaputt macht.
 
 Benötigt **Python 3.13+** (von [python.org](https://www.python.org/), unter Windows im Installer "Add python.exe to PATH" anhaken).
 

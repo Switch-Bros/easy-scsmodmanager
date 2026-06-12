@@ -14,11 +14,12 @@
 5. [Load-order groups](#load-order-groups)
 6. [Conflicts](#conflicts)
 7. [Deleting mods](#deleting-mods)
-8. [Backups](#backups)
-9. [Sharing mod lists](#sharing-mod-lists)
-10. [Switching games](#switching-games)
-11. [Settings](#settings)
-12. [Updates](#updates)
+8. [Opening a mod's folder](#opening-a-mods-folder)
+9. [Backups](#backups)
+10. [Sharing mod lists](#sharing-mod-lists)
+11. [Switching games](#switching-games)
+12. [Settings](#settings)
+13. [Updates](#updates)
 
 ---
 
@@ -98,6 +99,13 @@ the affected profiles first.
 
 Tip: set the **Source** filter to **Local**, press **Ctrl+A** to select every
 visible mod, then delete - a quick way to clean out local clutter.
+
+## Opening a mod's folder
+
+Right-click any mod and choose **Open file location** to open its folder in your
+system file manager. For a local mod that is the folder the file sits in; for a
+Workshop mod it is the item's folder inside the Steam workshop tree. Handy for
+inspecting a mod's files or copying one elsewhere.
 
 ## Backups
 

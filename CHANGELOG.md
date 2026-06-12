@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.5.4] - 2026-06-13
+
+### Added
+
+- **Open file location.** Right-clicking a mod now offers "Open file location",
+  which opens the mod's folder in the system file manager - the containing
+  directory for a local mod, the workshop item's folder for a workshop mod.
+  Available for every mod.
+
+### Fixed
+
+- **"Date installed" sort.** Sorting by date now uses each mod's install time
+  captured at scan time (when the file landed on your system) instead of the
+  file's modification time. Local mods carry the modder's build date in their
+  modification time, so a freshly added mod could sort as the oldest; the
+  order now reflects when you actually installed each mod, and a missing file
+  no longer breaks the sort.
+
+### Changed
+
+- **Translation workflow.** English and German stay complete (the languages we
+  maintain); every other language may now be partial and falls back to English
+  for any key it has not translated yet. A translator can contribute just the
+  new strings without blocking the build. Polish (pl) is registered so it
+  appears as soon as a translation is dropped in.
+
 ## [1.5.3] - 2026-06-12
 
 ### Added
