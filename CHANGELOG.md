@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.2] - 2026-06-12
+
+### Added
+
+- **Simplified Chinese (zh) localization.** A complete Chinese translation is
+  now bundled and selectable in Settings. The selectable language list is
+  data-driven, so further translations only need to drop in their own
+  `<code>/main.json`. Thanks to @huayishuang for the contribution.
+
 ## [1.5.1] - 2026-06-11
 
 ### Added
