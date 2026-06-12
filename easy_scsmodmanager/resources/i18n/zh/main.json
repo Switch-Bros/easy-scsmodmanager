@@ -210,7 +210,6 @@
     "main_window.discard_changes": "放弃更改",
     "main_window.unsaved_changes": "您有未保存的模组列表更改。请先应用或放弃它们。",
     "dialog.about.title": "关于 Easy SCSModManager",
-    "dialog.about.body": "适用于 ETS2 和 ATS 的跨平台模组与存档管理器。\n版本 {version}\nGPL-3.0 或更高版本开源协议",
     "menu.game": "游戏(&G)",
     "menu.share": "分享",
     "menu.share.create_code": "将模组列表分享为代码...",

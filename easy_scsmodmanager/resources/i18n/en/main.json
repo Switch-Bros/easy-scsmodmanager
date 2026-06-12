@@ -210,7 +210,6 @@
   "main_window.discard_changes": "Discard changes",
   "main_window.unsaved_changes": "You have unsaved mod-list changes. Apply or discard them first.",
   "dialog.about.title": "About Easy SCSModManager",
-  "dialog.about.body": "Cross-platform mod and profile manager for ETS2 and ATS.\nVersion {version}\nGPL-3.0-or-later",
   "menu.game": "&Game",
   "menu.share": "Share",
   "menu.share.create_code": "Share mod list as code...",

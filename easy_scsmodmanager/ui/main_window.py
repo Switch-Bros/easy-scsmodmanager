@@ -754,11 +754,9 @@ class MainWindow(QMainWindow):
             self._start_scan()
 
     def _show_about(self) -> None:
-        QMessageBox.about(
-            self,
-            t("dialog.about.title"),
-            t("dialog.about.body", version=__version__),
-        )
+        from easy_scsmodmanager.ui.dialogs.about_dialog import AboutDialog
+
+        AboutDialog(self).exec()
 
     # ------------------------------------------------------------------ #
     # updates

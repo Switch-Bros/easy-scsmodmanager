@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.3] - 2026-06-12
+
+### Added
+
+- **Redesigned About dialog.** The Help -> About entry now opens a proper
+  two-column dialog (logo, version, description, credits and project links)
+  instead of a plain message box. Contributors are credited there.
+
+### Changed
+
+- **Leaner translation files.** Shared button and label wording (Cancel, Save,
+  Close, ...) is now stored once under `common.*` keys instead of being
+  duplicated, and a hygiene guard keeps the catalogues free of duplicate
+  values and in sync across languages. No visible text changed.
+
 ## [1.5.2] - 2026-06-12
 
 ### Added

@@ -210,7 +210,6 @@
   "main_window.discard_changes": "Änderungen verwerfen",
   "main_window.unsaved_changes": "Du hast ungespeicherte Mod-Listen-Änderungen. Erst bestätigen oder verwerfen.",
   "dialog.about.title": "Über Easy SCSModManager",
-  "dialog.about.body": "Plattformübergreifender Mod- und Profile-Manager für ETS2 und ATS.\nVersion {version}\nGPL-3.0-or-later",
   "menu.game": "&Spiel",
   "menu.share": "Teilen",
   "menu.share.create_code": "Modliste als Code teilen...",
