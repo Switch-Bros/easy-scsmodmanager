@@ -62,6 +62,49 @@ def test_status_sort_orders_active_first_without_crashing() -> None:
     assert ordered[0] is active  # active mods come first
 
 
+def _dated(path: str, installed_at: float) -> ScannedMod:
+    return ScannedMod(
+        path=Path(path),
+        format=ScsFormat.ZIP,
+        manifest=None,
+        error=None,
+        installed_at=installed_at,
+    )
+
+
+def test_date_sort_orders_by_installed_at_not_live_stat() -> None:
+    # Regression LLBBC #64: DATE sorted by a live mod.path.stat() which, for
+    # local mods, is the upstream build date (not the install date) and raised
+    # on a missing file. The order must follow the captured installed_at, and
+    # the paths here do not exist on disk, so a live stat would crash.
+    presenter = _presenter()
+    old = _dated("/mod/old.scs", 100.0)
+    mid = _dated("/mod/mid.scs", 200.0)
+    new = _dated("/mod/new.scs", 300.0)
+    presenter.set_context(matcher=None, profile=None, game_version=None, map_base_names=())
+
+    ascending = presenter.filter_and_sort([new, old, mid], FilterState(sort_key=SortKey.DATE))
+    assert ascending == [old, mid, new]
+
+    descending = presenter.filter_and_sort(
+        [new, old, mid], FilterState(sort_key=SortKey.DATE, sort_descending=True)
+    )
+    assert descending == [new, mid, old]
+
+
+def test_date_sort_puts_unknown_install_time_first() -> None:
+    # A mod whose stamp could not be read keeps installed_at 0.0 and sorts to
+    # the start (ascending) rather than raising - missing file is not a crash.
+    presenter = _presenter()
+    known = _dated("/mod/known.scs", 500.0)
+    unknown = _dated("/mod/unknown.scs", 0.0)
+    presenter.set_context(matcher=None, profile=None, game_version=None, map_base_names=())
+
+    ordered = presenter.filter_and_sort([known, unknown], FilterState(sort_key=SortKey.DATE))
+
+    assert ordered == [unknown, known]
+
+
 def test_display_name_prefers_profile_active_display() -> None:
     # A workshop-less mod with no manifest name falls back through the chain;
     # the profile's active display name wins over the bare file stem.

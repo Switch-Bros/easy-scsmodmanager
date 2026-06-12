@@ -70,6 +70,12 @@ class ScannedMod:
     # conflict detection (mods overwriting the same def file) and the physics
     # content signal. Empty for mods we could not list.
     def_files: tuple[str, ...] = ()
+    # when the payload landed on this filesystem - the st_ctime, captured once
+    # at scan time. This is "Date installed": creation time on Windows,
+    # inode-change time on Linux, and (unlike st_mtime) never an inherited
+    # upstream build timestamp. 0.0 when the path could not be stat'd, which
+    # sorts such a mod to the start of the DATE order instead of raising.
+    installed_at: float = 0.0
 
     @property
     def mod_name(self) -> str:
@@ -261,8 +267,22 @@ def _scan_one(
         )
         icon, description = None, None
 
+    result = replace(result, installed_at=installed_at_for(path))
     _store_if_caching(cache, path, result, icon, description, dlc_fp)
     return result
+
+
+def installed_at_for(path: Path) -> float:
+    """The payload's install timestamp - its st_ctime, or 0.0 if unreadable.
+
+    st_ctime is when the file last entered/changed on this filesystem (creation
+    time on Windows), so it tracks the install/download moment rather than the
+    mod's upstream build date the way st_mtime does for copied local mods.
+    """
+    try:
+        return path.stat().st_ctime
+    except OSError:
+        return 0.0
 
 
 def _strip_base_prefix(path: str) -> str:

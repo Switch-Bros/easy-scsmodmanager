@@ -46,6 +46,28 @@ def _full_manifest(display_name: str = "Test Mod", author: str = "Tester") -> st
     )
 
 
+def test_scan_captures_installed_at_from_ctime(tmp_path: Path) -> None:
+    # LLBBC #64: "Date installed" must sort by when the payload landed on this
+    # filesystem, captured once at scan time. st_ctime is that moment (creation
+    # time on Windows, inode-change on Linux) and, unlike st_mtime, can never be
+    # an inherited upstream build timestamp.
+    scs = _zip_mod(tmp_path / "mod_a.scs", _full_manifest())
+
+    mod = scan_mod_directory(tmp_path)[0]
+
+    assert mod.installed_at == scs.stat().st_ctime
+
+
+def test_scan_missing_path_leaves_installed_at_zero(tmp_path: Path) -> None:
+    from easy_scsmodmanager.services.mod_scanner import _scan_one
+
+    # A path that vanished between enumeration and stat must not raise; the mod
+    # keeps installed_at 0.0 so the DATE sort puts it first instead of crashing.
+    mod = _scan_one(tmp_path / "gone.scs")
+
+    assert mod.installed_at == 0.0
+
+
 def test_scan_mod_directory_returns_empty_for_empty_dir(tmp_path: Path) -> None:
     assert scan_mod_directory(tmp_path) == []
 

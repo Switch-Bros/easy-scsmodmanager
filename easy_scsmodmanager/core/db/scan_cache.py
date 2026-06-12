@@ -92,7 +92,10 @@ class ScanCache:
         # (e.g. a DLC was bought) means the cached def_files may be stale
         if _row_dlc_fp(row) != dlc_fp:
             return None
-        return _row_to_entry(row, scs_path)
+        # installed_at is the live st_ctime, not a stored column: get() already
+        # stat'd the path above, and a missing path is a cache miss anyway, so a
+        # column would only duplicate what the stat gives us for free.
+        return _row_to_entry(row, scs_path, stat.st_ctime)
 
     def icon_bytes_for(self, scs_path: Path) -> bytes | None:
         """Cached icon for a mod, independent of the owned-DLC fingerprint.
@@ -300,7 +303,7 @@ def _manifest_from_json(text: str | None) -> ModManifest | None:
     )
 
 
-def _row_to_entry(row: sqlite3.Row, scs_path: Path) -> CachedEntry:
+def _row_to_entry(row: sqlite3.Row, scs_path: Path, installed_at: float = 0.0) -> CachedEntry:
     try:
         description = row["description"]
     except (IndexError, KeyError):
@@ -322,6 +325,7 @@ def _row_to_entry(row: sqlite3.Row, scs_path: Path) -> CachedEntry:
         description=description,
         is_map=is_map,
         def_files=def_files,
+        installed_at=installed_at,
     )
     icon_bytes = row["icon_bytes"]
     return CachedEntry(

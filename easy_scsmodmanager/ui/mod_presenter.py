@@ -285,7 +285,9 @@ class ModPresenter:
         if key is SortKey.AUTHOR:
             return (0, (mod.manifest.author if mod.manifest else "").lower())
         if key is SortKey.DATE:
-            return (0, mod.path.stat().st_mtime)
+            # installed_at captured once at scan time (st_ctime) - no live stat,
+            # so a vanished file sorts to the start instead of raising
+            return (0, mod.installed_at)
         if key is SortKey.STATUS:
             is_active = active_name_for(mod) in self.active_names()
             return (0 if is_active else 1, mod.path.name.lower())
