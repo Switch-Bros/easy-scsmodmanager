@@ -304,3 +304,6 @@ Easy SCSModManager bearbeitet nur deine eigene `profile.sii` und liest deine eig
 <p align="center">
   Mit ❤️ auf Linux gebaut von <a href="https://github.com/Switch-Bros">Switch Bros</a>
 </p>
+<p align="center">
+  <a href="https://deepwiki.com/Switch-Bros/easy-scsmodmanager"><img src="https://deepwiki.com/badge.svg" alt="Frage DeepWiki"></a>
+</p>
