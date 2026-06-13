@@ -304,3 +304,6 @@ Easy SCSModManager edits only your own `profile.sii` and reads your own installe
 <p align="center">
   Made with ❤️ on Linux by <a href="https://github.com/Switch-Bros">Switch Bros</a>
 </p>
+<p align="center">
+  <a href="https://deepwiki.com/Switch-Bros/easy-scsmodmanager"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+</p>
