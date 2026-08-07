@@ -92,11 +92,16 @@ def test_windows_helper_batch_handles_cjk_path() -> None:
     assert isinstance(bat, str)
 
 
-def test_windows_helper_batch_chcp_is_first_command() -> None:
+def test_windows_helper_batch_chcp_after_wait_loop() -> None:
+    # chcp 65001 must come AFTER the wait loop - piping tasklist through chcp on
+    # CJK Windows causes find to deadlock reading from stdin (00player00 / LLBBC)
     bat = ui.windows_helper_batch(Path(r"C:\a\ESCSMM.exe"), Path(r"C:\a\new.exe"), 1)
     lines = [ln for ln in bat.splitlines() if ln.strip()]
     assert lines[0] == "@echo off"
-    assert lines[1] == "chcp 65001 >NUL"  # before anything that prints CJK text
+    assert "chcp 65001 >NUL" not in lines[1]
+    # chcp must appear before the first move but after the wait label
+    assert bat.index("chcp 65001") > bat.index(":wait")
+    assert bat.index("chcp 65001") < bat.index("move /Y")
 
 
 def test_windows_helper_batch_restores_backup_on_failure() -> None:

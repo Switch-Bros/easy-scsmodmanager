@@ -56,20 +56,23 @@ def current_exe_path() -> Path:
 def windows_helper_batch(current: Path, new: Path, pid: int) -> str:
     """The .bat that waits for our PID to die, swaps the exe and relaunches.
 
-    ``chcp 65001`` + a UTF-8 (no BOM) file let it run on a CJK install path. The
-    ``current -> bak`` move happens ONCE before the retry loop; only ``new ->
-    current`` is retried (the locked-target case). If every retry fails the
-    backup is restored and the OLD exe relaunched, so a failed swap never leaves
-    the user without a runnable app. Everything is logged for diagnosis.
+    PID wait uses a temp file instead of a pipe so ``find`` reads from a file
+    (pipe + chcp 65001 deadlocks on CJK Windows). ``chcp 65001`` comes AFTER
+    the wait loop so it is only active for the ``move`` calls that need it.
+    The ``current -> bak`` move happens ONCE before the retry loop; only ``new
+    -> current`` is retried. If every retry fails the backup is restored and
+    the OLD exe relaunched so the user always has a runnable app.
     """
     return (
         "@echo off\r\n"
-        "chcp 65001 >NUL\r\n"
         'set "LOG=%TEMP%\\escsmm_update.log"\r\n'
         f'echo [start] waiting for PID {pid} >> "%LOG%"\r\n'
         ":wait\r\n"
-        f'tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL\r\n'
+        f'tasklist /FI "PID eq {pid}" /NH 2>NUL > "%TEMP%\\escsmm_pid.txt"\r\n'
+        f'find "{pid}" "%TEMP%\\escsmm_pid.txt" >NUL\r\n'
         "if not errorlevel 1 ( timeout /t 1 /nobreak >NUL & goto wait )\r\n"
+        'del "%TEMP%\\escsmm_pid.txt" >NUL 2>&1\r\n'
+        "chcp 65001 >NUL\r\n"
         f'move /Y "{current}" "{current}.bak" >> "%LOG%" 2>&1\r\n'
         "set /a tries=0\r\n"
         ":swap\r\n"
@@ -107,9 +110,7 @@ def install_windows_exe(new_path: str) -> bool:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(script)
         # detached so it survives us exiting; flags only exist on Windows
-        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
-            subprocess, "DETACHED_PROCESS", 0
-        )
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         subprocess.Popen(["cmd", "/c", bat], creationflags=flags, close_fds=True)
         log.info("launched Windows update helper: %s", bat)
     except Exception as exc:
