@@ -78,7 +78,7 @@ def create_backup(sii_path: Path, root: Path | None = None) -> BackupEntry:
         tmp_path = Path(tmp_fp.name)
 
     try:
-        with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED, strict_timestamps=False) as zf:
             for entry in sorted(profile_dir.rglob("*")):
                 if entry.is_file():
                     zf.write(entry, entry.relative_to(profile_dir))

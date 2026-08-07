@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import os
 import zipfile
 from pathlib import Path
 
@@ -86,6 +87,21 @@ def test_create_backup_atomic_no_tmp_file_left_on_disk(tmp_path: Path) -> None:
 def test_create_backup_raises_when_profile_directory_missing(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         create_backup(tmp_path / "missing" / "profile.sii", root=tmp_path / "backups")
+
+
+def test_create_backup_handles_pre_1980_file_timestamps(tmp_path: Path) -> None:
+    # some Windows systems leave file timestamps at the Unix epoch (1970-01-01),
+    # which is before the ZIP format minimum (1980); strict_timestamps=False clamps it
+    sii = _make_profile(tmp_path)
+    epoch = 0  # 1970-01-01 00:00:00 UTC
+    for f in sii.parent.rglob("*"):
+        if f.is_file():
+            os.utime(f, (epoch, epoch))
+
+    entry = create_backup(sii, root=tmp_path / "backups")
+    assert entry.path.exists()
+    with zipfile.ZipFile(entry.path) as zf:
+        assert "profile.sii" in zf.namelist()
 
 
 def test_list_backups_returns_newest_first(tmp_path: Path) -> None:
