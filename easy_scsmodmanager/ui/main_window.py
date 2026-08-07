@@ -17,6 +17,7 @@ Layout::
 from __future__ import annotations
 
 import logging
+import webbrowser
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -57,6 +58,7 @@ from easy_scsmodmanager.core.load_order import (
     group_repr_token,
 )
 from easy_scsmodmanager.core.settings_store import SettingsStore
+from easy_scsmodmanager.services.mod_identity import workshop_url_for_path
 from easy_scsmodmanager.services.mod_matching import (
     ActiveModMatcher,
     active_name_for,
@@ -193,6 +195,7 @@ class MainWindow(QMainWindow):
         self._grid.favorite_toggled.connect(self._on_favorite_toggled)
         self._grid.show_in_active_requested.connect(self._show_mod_in_active_list)
         self._grid.open_location_requested.connect(self._open_mod_location)
+        self._grid.open_workshop_requested.connect(self._open_workshop_page)
         self._delete = ModDeleteController(
             parent=self,
             profiles=lambda: [p for _, p in self._profile_choices if p is not None],
@@ -544,6 +547,11 @@ class MainWindow(QMainWindow):
         # for a workshop mod the <modid> folder. Same opener as the log folder,
         # so it works on Linux and Windows.
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(mod.path.parent)))
+
+    def _open_workshop_page(self, mod: ScannedMod) -> None:
+        url = workshop_url_for_path(mod.path)
+        if url:
+            webbrowser.open(url)
 
     def _on_mod_info_requested(self, mod: ScannedMod) -> None:
         ModInfoDialog(mod, parent=self, display_name=self._presenter.display_name_for(mod)).exec()

@@ -57,6 +57,7 @@ class ModCard(QFrame):
     drag_started = pyqtSignal()  # left-drag moved past the threshold
     show_in_active_requested = pyqtSignal()  # jump to this mod's row in the active list
     open_location_requested = pyqtSignal()  # open the mod's containing folder
+    open_workshop_requested = pyqtSignal()  # open the Steam Workshop page in a browser
     delete_requested = pyqtSignal()  # delete this mod (and the rest of the selection)
 
     def __init__(
@@ -177,6 +178,10 @@ class ModCard(QFrame):
         # every mod (local and workshop) has a folder on disk, so this is always on
         loc = menu.addAction(t("mod_card.open_location"))
         loc.triggered.connect(lambda: self.open_location_requested.emit())
+
+        if workshop_id_for_path(self._mod.path) is not None:
+            ws = menu.addAction(t("mod_card.open_workshop_page"))
+            ws.triggered.connect(lambda: self.open_workshop_requested.emit())
 
         # delete: enabled if the selection holds at least one local mod; only
         # the locals get deleted. Workshop-only -> disabled with a why tooltip.

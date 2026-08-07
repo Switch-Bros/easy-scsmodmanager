@@ -71,3 +71,9 @@ def workshop_url_from_active_name(name: str) -> str | None:
     if ws_id is None:
         return None
     return _WORKSHOP_URL.format(id=ws_id)
+
+
+def workshop_url_for_path(path: Path) -> str | None:
+    """Steam Workshop page URL for a scanned mod path, else None."""
+    ws_id = workshop_id_for_path(path)
+    return _WORKSHOP_URL.format(id=ws_id) if ws_id else None

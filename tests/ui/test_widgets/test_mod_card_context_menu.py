@@ -43,8 +43,9 @@ def _workshop(wid: str = "123456", name: str = "b.scs"):
 
 
 def _delete_action(menu):
-    # actions(): [show_in_active, open_location, delete]
-    return menu.actions()[2]
+    # delete is always the last action; open_workshop_page may appear before it
+    # for workshop mods, shifting the index - so use [-1] instead of a hardcoded slot
+    return menu.actions()[-1]
 
 
 def test_open_location_present_and_enabled_for_local(qtbot) -> None:
