@@ -94,6 +94,15 @@ class ModPresenter:
             title = meta.title if meta else None
         return resolve_display_name(mod, self._active_display_map(), workshop_title=title)
 
+    def _display_with_map(self, mod: ScannedMod, adm: dict[str, str]) -> str:
+        # same logic as display_name_for but reuses a pre-built active-display map
+        title = None
+        wid = workshop_id_for_path(mod.path)
+        if wid is not None:
+            meta = self._workshop_cache.get(wid)
+            title = meta.title if meta else None
+        return resolve_display_name(mod, adm, workshop_title=title)
+
     # ------------------------------------------------------------------ #
     # icons
     # ------------------------------------------------------------------ #
@@ -255,7 +264,9 @@ class ModPresenter:
     # ------------------------------------------------------------------ #
 
     def filter_and_sort(self, mods: list[ScannedMod], state: FilterState) -> list[ScannedMod]:
-        result: list[ScannedMod] = []
+        # build the active-display map once so neither search nor sort rebuilds it
+        adm = self._active_display_map()
+        pairs: list[tuple[ScannedMod, str]] = []
         for mod in mods:
             source_id = workshop_id_for_path(mod.path)
             if state.source is ModSource.WORKSHOP and source_id is None:
@@ -264,9 +275,8 @@ class ModPresenter:
                 continue
             if state.favorites_only and not self.is_favorite(mod):
                 continue
-            # Search the name the user actually sees on the card, not a second
-            # divergent source - a workshop "...Dashboard" lives in its title.
-            display = self.display_name_for(mod)
+            # search against the name the user sees on the card
+            display = self._display_with_map(mod, adm)
             author = mod.manifest.author if mod.manifest else ""
             cats = self.effective_for(mod)
             cat_names = [t(i18n_key(c)) for c in cats]
@@ -274,14 +284,21 @@ class ModPresenter:
                 continue
             if state.category is not None and state.category not in cats:
                 continue
-            result.append(mod)
+            pairs.append((mod, display))
 
-        result.sort(key=lambda m: self._sort_key(m, state.sort_key), reverse=state.sort_descending)
-        return result
+        # decorate-sort-undecorate: NAME uses the already-computed display string
+        pairs.sort(
+            key=lambda p: self._sort_key(p[0], state.sort_key, display=p[1]),
+            reverse=state.sort_descending,
+        )
+        return [m for m, _ in pairs]
 
-    def _sort_key(self, mod: ScannedMod, key: SortKey) -> tuple[int, str | float]:
+    def _sort_key(
+        self, mod: ScannedMod, key: SortKey, *, display: str = ""
+    ) -> tuple[int, str | float]:
         if key is SortKey.NAME:
-            return (0, (mod.manifest.display_name if mod.manifest else mod.path.stem).lower())
+            # use the visible card name, not the manifest or filename
+            return (0, display.lower())
         if key is SortKey.AUTHOR:
             return (0, (mod.manifest.author if mod.manifest else "").lower())
         if key is SortKey.DATE:
