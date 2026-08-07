@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any
@@ -115,6 +116,82 @@ class FilterToolbar(QWidget):
     @property
     def state(self) -> FilterState:
         return self._state
+
+    def to_primitives(self) -> dict[str, object]:
+        return {
+            "search": self._state.search,
+            "source": self._state.source.value,
+            "favorites_only": self._state.favorites_only,
+            "sort_key": self._state.sort_key.value,
+            "sort_descending": self._state.sort_descending,
+            "category": self._state.category,
+        }
+
+    def restore_state(self, json_str: str) -> None:
+        # parse defensively - enum values may change across versions
+        try:
+            prim = json.loads(json_str)
+        except (ValueError, TypeError):
+            return
+        try:
+            src = ModSource(prim.get("source", ModSource.ALL.value))
+        except ValueError:
+            src = ModSource.ALL
+        try:
+            sk = SortKey(prim.get("sort_key", SortKey.NAME.value))
+        except ValueError:
+            sk = SortKey.NAME
+        cat = prim.get("category")
+        if cat is not None and not isinstance(cat, str):
+            cat = None
+        search = str(prim.get("search", ""))
+        fav = bool(prim.get("favorites_only", False))
+        desc = bool(prim.get("sort_descending", False))
+
+        # update widgets without emitting individually; emit once at end
+        self._search.blockSignals(True)
+        self._source.blockSignals(True)
+        self._favorites.blockSignals(True)
+        self._sort.blockSignals(True)
+        self._sort_dir.blockSignals(True)
+        self._category.blockSignals(True)
+        try:
+            self._search.setText(search)
+            for i in range(self._source.count()):
+                if self._source.itemData(i) is src:
+                    self._source.setCurrentIndex(i)
+                    break
+            self._favorites.setChecked(fav)
+            for i in range(self._sort.count()):
+                if self._sort.itemData(i) is sk:
+                    self._sort.setCurrentIndex(i)
+                    break
+            self._sort_dir.setCurrentIndex(1 if desc else 0)
+            found = False
+            for i in range(self._category.count()):
+                if self._category.itemData(i) == cat:
+                    self._category.setCurrentIndex(i)
+                    found = True
+                    break
+            if not found:
+                self._category.setCurrentIndex(0)
+        finally:
+            self._search.blockSignals(False)
+            self._source.blockSignals(False)
+            self._favorites.blockSignals(False)
+            self._sort.blockSignals(False)
+            self._sort_dir.blockSignals(False)
+            self._category.blockSignals(False)
+
+        self._state = FilterState(
+            search=search,
+            source=src,
+            favorites_only=fav,
+            sort_key=sk,
+            sort_descending=desc,
+            category=cat,
+        )
+        self._emit_filter()
 
     # ------------------------------------------------------------------ #
     # internals

@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from pathlib import Path
 
-from PyQt6.QtCore import QSettings
+from PyQt6.QtCore import QByteArray, QSettings
 
 from easy_scsmodmanager.core.game_paths import Game
 from easy_scsmodmanager.core.map_base_mods import DEFAULT_MAP_BASE_NAMES
@@ -25,6 +25,9 @@ _KEY_MAP_BASE_NAMES = "map_base_names"
 _KEY_ACTIVE_GAME = "active_game"
 _KEY_UPDATE_CHECK = "update_check_on_startup"
 _KEY_GRID_JUMP = "grid_click_jumps_to_active"
+_KEY_WINDOW_GEOMETRY = "ui/window_geometry"
+_KEY_SPLITTER_STATE = "ui/splitter_state"
+_KEY_VIEW_FILTER = "ui/view_filter"
 
 
 def _documents_key(game: Game) -> str:
@@ -106,6 +109,26 @@ class SettingsStore:
 
     def set_grid_click_jumps_to_active(self, enabled: bool) -> None:
         self._s.setValue(_KEY_GRID_JUMP, enabled)
+
+    def get_window_geometry(self) -> QByteArray | None:
+        v = self._s.value(_KEY_WINDOW_GEOMETRY)
+        return v if isinstance(v, QByteArray) and not v.isEmpty() else None
+
+    def set_window_geometry(self, data: QByteArray) -> None:
+        self._s.setValue(_KEY_WINDOW_GEOMETRY, data)
+
+    def get_splitter_state(self) -> QByteArray | None:
+        v = self._s.value(_KEY_SPLITTER_STATE)
+        return v if isinstance(v, QByteArray) and not v.isEmpty() else None
+
+    def set_splitter_state(self, data: QByteArray) -> None:
+        self._s.setValue(_KEY_SPLITTER_STATE, data)
+
+    def get_view_filter(self) -> str | None:
+        return _clean(self._s.value(_KEY_VIEW_FILTER))
+
+    def set_view_filter(self, json_str: str) -> None:
+        _put(self._s, _KEY_VIEW_FILTER, json_str)
 
     def get_map_base_names(self) -> tuple[str, ...]:
         raw = _clean(self._s.value(_KEY_MAP_BASE_NAMES))

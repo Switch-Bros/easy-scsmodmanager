@@ -16,6 +16,7 @@ Layout::
 
 from __future__ import annotations
 
+import json
 import logging
 import webbrowser
 from pathlib import Path
@@ -159,6 +160,18 @@ class MainWindow(QMainWindow):
         self._build_central()
         self.statusBar().setStyleSheet(f"color: {Theme.TEXT_DIM};")
 
+        # restore window state saved on last close (after _build_central so
+        # splitter and toolbar exist; after resize so we override the default)
+        geom = self._settings.get_window_geometry()
+        if geom is not None:
+            self.restoreGeometry(geom)
+        sp = self._settings.get_splitter_state()
+        if sp is not None:
+            self._splitter.restoreState(sp)
+        vf = self._settings.get_view_filter()
+        if vf is not None:
+            self._filter_toolbar.restore_state(vf)
+
         self._update_service: object | None = None  # kept alive during a check
         if auto_scan:
             self._detect_install_and_scan()
@@ -178,7 +191,8 @@ class MainWindow(QMainWindow):
         root.setContentsMargins(8, 8, 8, 0)
         root.setSpacing(8)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter = self._splitter
         splitter.setChildrenCollapsible(False)
         splitter.setHandleWidth(6)
 
@@ -824,6 +838,11 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def closeEvent(self, event) -> None:  # noqa: N802
+        # save view state so the next launch opens exactly as left
+        self._settings.set_window_geometry(self.saveGeometry())
+        self._settings.set_splitter_state(self._splitter.saveState())
+        self._settings.set_view_filter(json.dumps(self._filter_toolbar.to_primitives()))
+
         if self._scan_thread is not None and self._scan_thread.isRunning():
             self._scan_thread.wait(5000)
         self._workshop.shutdown(5000)
