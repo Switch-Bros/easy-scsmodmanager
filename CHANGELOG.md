@@ -35,6 +35,11 @@
   "find" window open indefinitely. The script now writes the process list to a
   temp file and reads from it - no pipe, no deadlock. Reported by 00player00
   and LLBBC (#71).
+- **Importing a mod list no longer fails with "ZIP does not support timestamps
+  before 1980".** Some Windows systems leave file modification times at the
+  Unix epoch (1970-01-01), which is before the ZIP format minimum. The backup
+  that the import flow creates before applying now clamps those dates to 1980
+  instead of raising an error. Reported by benceje (#2).
 
 ## [1.5.4] - 2026-06-13
 
