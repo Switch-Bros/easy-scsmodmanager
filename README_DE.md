@@ -12,7 +12,7 @@
 [![Plattform](https://img.shields.io/badge/Plattform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Spiele](https://img.shields.io/badge/Spiele-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-664%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-770%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
 
@@ -71,7 +71,10 @@ Easy SCSModManager liest deinen lokalen `mod/`-Ordner und deine Steam-Workshop-A
 - **Mehrfachauswahl** mit Strg / Shift (oder Strg+A für alles Sichtbare), um ganze Stapel auf einmal zu aktivieren, zu deaktivieren oder zu löschen
 - **Mods in den Papierkorb löschen** - Rechtsklick (oder Entf) entfernt lokale Mods, mit Warnung falls ein gespeichertes Profil sie noch nutzt; Workshop-Mods bleiben bei Steam
 - **Dateispeicherort öffnen** - Rechtsklick auf einen Mod öffnet seinen Ordner im System-Dateimanager (bei Workshop-Mods der Ordner des Workshop-Eintrags)
+- **Workshop-Seite öffnen** - Rechtsklick auf einen Workshop-Mod öffnet seine Steam-Workshop-Seite direkt im Browser
+- **Quell-Badge** - jede Karte zeigt ein kleines Icon in der Ecke: 📂 für lokale Mods, ☁️ für Workshop-Mods, damit die Herkunft auf einen Blick klar ist
 - **Nach Quelle filtern** - alle Mods, nur Workshop oder nur deine lokalen anzeigen
+- **Fensterzustand gespeichert** - Größe, Position, Splitter und der komplette Filter-Zustand (Suche, Sortierung, Kategorie, Favoriten) werden beim Schließen gespeichert und beim nächsten Start wiederhergestellt
 - **Responsives Raster** - maximier das Fenster und das Raster fügt Spalten hinzu, statt einen leeren Streifen zu lassen; die Karten behalten ihre Größe
 - **BVB-gelber Akzent** - das verfeinerte dunkle Theme malt Modnamen in Borussia-Dortmund-Gelb
 

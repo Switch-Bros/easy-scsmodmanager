@@ -12,7 +12,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Games](https://img.shields.io/badge/Games-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![License](https://img.shields.io/badge/License-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-664%20passed-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-770%20passed-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
 
@@ -71,7 +71,10 @@ Easy SCSModManager reads your local `mod/` folder and your Steam Workshop subscr
 - **Multi-select** with Ctrl / Shift (or Ctrl+A for everything visible) to activate, deactivate or delete whole batches at once
 - **Delete mods to the trash** - right-click (or press Del) to remove local mods, with a warning if a saved profile still uses them; Workshop mods stay managed by Steam
 - **Open file location** - right-click any mod to open its folder in your system file manager (the workshop item's folder for Workshop mods)
+- **Open Workshop page** - right-click any Workshop mod to jump straight to its Steam Workshop page in your browser
+- **Source badge** - every card shows a small icon in the corner: 📂 for local mods, ☁️ for Workshop mods, so the origin is clear at a glance
 - **Filter by source** - show all mods, only Workshop, or only your local ones
+- **Window state remembered** - size, position, splitter split and the full filter (search, sort, category, favourites) are saved when you close and restored on the next launch
 - **Responsive grid** - maximise the window and the grid adds columns to fill the width instead of leaving an empty strip; the cards keep their size
 - **BVB-yellow accent** - the refined dark theme paints mod names in Borussia Dortmund yellow
 

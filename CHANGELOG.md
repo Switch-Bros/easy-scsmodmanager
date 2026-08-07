@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.6.0] - 2026-08-07
+
+### Added
+
+- **Source badge on each mod card.** Every card now carries a small icon in the
+  top-right corner: a folder icon (📂) for mods you installed manually, a cloud
+  icon (☁️) for Steam Workshop mods. Hover it for a short tooltip that spells
+  out the source. Requested by gl00ria (#21).
+- **"Open Workshop page" in the right-click menu.** Right-clicking a Workshop
+  mod now offers "Open Workshop page", which opens the mod's Steam Workshop
+  page in your browser so you can read the description, check for updates, or
+  unsubscribe - without leaving the app. Local mods do not get this entry.
+  Requested by gl00ria (#21).
+- **Window state remembered across restarts.** The app now saves the window
+  size, position and splitter split when you close it and restores them next
+  time. The full filter state - search text, source filter, sort key and
+  direction, category and the favorites toggle - is also preserved, so the app
+  opens exactly as you left it. Requested by LLBBC (#70).
+- **Filename in mod details.** The "i" button now shows the mod's file name
+  (e.g. `cool_trucks_v2.scs`) in the details dialog, so you can identify the
+  file without opening the folder. Requested by 00player00 (#69).
+
+### Fixed
+
+- **Name sort uses the visible card label.** Sorting by Name now matches the
+  text shown on the card (Workshop title or profile display name) instead of
+  the raw filename. A mod titled "Jazzycat's Truck Pack" no longer sorts under
+  the filename `jc_tp.scs`. Also faster: the display-name lookup no longer
+  rebuilds an internal map on every comparison. Reported by LLBBC (#70).
+- **Auto-update no longer hangs on Chinese Windows.** The helper batch script
+  used a pipe to check whether the app had exited; `chcp 65001` (UTF-8 mode)
+  combined with `cmd.exe`'s pipe deadlocks on CJK systems, leaving a black
+  "find" window open indefinitely. The script now writes the process list to a
+  temp file and reads from it - no pipe, no deadlock. Reported by 00player00
+  and LLBBC (#71).
+
 ## [1.5.4] - 2026-06-13
 
 ### Added
