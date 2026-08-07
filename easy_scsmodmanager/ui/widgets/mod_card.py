@@ -40,7 +40,7 @@ from easy_scsmodmanager.core.version_compat import CompatStatus
 from easy_scsmodmanager.services.mod_identity import workshop_id_for_path
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.ui.theme import Theme
-from easy_scsmodmanager.utils.i18n import t
+from easy_scsmodmanager.utils.i18n import emoji, t
 
 
 class ModCard(QFrame):
@@ -227,9 +227,19 @@ class ModCard(QFrame):
         )
         self._category.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
+        # source badge: static per mod, set once at build time
+        is_workshop = workshop_id_for_path(self._mod.path) is not None
+        glyph = emoji("cloud") if is_workshop else emoji("category")
+        tip = t("mod_card.source_workshop") if is_workshop else t("mod_card.source_local")
+        self._source_badge = QLabel(glyph)
+        self._source_badge.setStyleSheet("font-size: 12px;")
+        self._source_badge.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self._source_badge.setToolTip(tip)
+
         row.addWidget(self._fav_btn)
         row.addWidget(self._info_btn)
         row.addStretch(1)
+        row.addWidget(self._source_badge)
         row.addWidget(self._category)
         return row
 
