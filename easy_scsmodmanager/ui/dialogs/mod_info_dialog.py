@@ -50,6 +50,11 @@ class ModInfoDialog(QDialog):
             meta_label.setWordWrap(True)
             root.addWidget(meta_label)
 
+        fn_label = QLabel(f"{t('dialog.info.file_name')}: {self._mod.path.name}")
+        fn_label.setStyleSheet(f"color: {Theme.TEXT_DIM}; font-size: 11px;")
+        fn_label.setWordWrap(True)
+        root.addWidget(fn_label)
+
         desc_caption = QLabel(t("dialog.info.description"))
         desc_caption.setStyleSheet(f"color: {Theme.TEXT_DIM}; font-size: 11px;")
         root.addWidget(desc_caption)

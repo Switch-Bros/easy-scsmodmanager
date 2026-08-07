@@ -135,6 +135,7 @@
   "status_bar.restore_failed": "Restore failed: {reason}",
   "dialog.info.title": "Mod details",
   "dialog.info.version": "Version",
+  "dialog.info.file_name": "File name",
   "dialog.info.description": "Description",
   "dialog.info.no_description": "No description available.",
   "dialog.settings.title": "Settings",

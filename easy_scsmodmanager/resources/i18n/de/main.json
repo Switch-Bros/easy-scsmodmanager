@@ -135,6 +135,7 @@
   "status_bar.restore_failed": "Wiederherstellung fehlgeschlagen: {reason}",
   "dialog.info.title": "Mod-Details",
   "dialog.info.version": "Version",
+  "dialog.info.file_name": "Dateiname",
   "dialog.info.description": "Beschreibung",
   "dialog.info.no_description": "Keine Beschreibung vorhanden.",
   "dialog.settings.title": "Einstellungen",
