@@ -67,6 +67,14 @@
   </screenshots>
 
   <releases>
+    <release version="1.6.1" date="2026-08-17">
+      <description>
+        <p>Adds a conflict details dialog: right-click a flagged mod for the
+           complete list of overwritten files without the tooltip's twelve-row
+           cap, switchable between that mod and every flagged mod, and
+           exportable to the clipboard or a text log.</p>
+      </description>
+    </release>
     <release version="1.1.1" date="2026-06-01">
       <description>
         <p>Initial release. Browse and activate mods for ETS2 and ATS, drag &amp; drop
