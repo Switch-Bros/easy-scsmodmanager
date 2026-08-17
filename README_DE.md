@@ -12,7 +12,7 @@
 [![Plattform](https://img.shields.io/badge/Plattform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Spiele](https://img.shields.io/badge/Spiele-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-770%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-812%20bestanden-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
 
@@ -145,6 +145,7 @@ Map-Combos teilen nur den Map-Block. Das **Teilen-Menü** teilt deine *komplette
 - **Kompatibilitäts-Prüfung** - Mods werden gegen die erkannte Spielversion geprüft, genau so wie es das Spiel macht: markiert wird nur ein Mod, dessen `manifest.sii` tatsächlich eine inkompatible Version angibt. Ein Mod ohne Versionsangabe wird nie fälschlich markiert - der 1.58-Mod, den du bewusst auf 1.59 fährst, bleibt also in Ruhe
 - **Konflikt-Schwere auf einen Blick** - überschreiben zwei aktive Mods dieselbe `def/`-Datei, gewinnt der höhere. Jeder betroffene Mod wird eingestuft: ein **gelbes ⚠ Dreieck**, wenn er *einige* Dateien verliert (teilweise überschrieben), ein **roter ⊘ durchgestrichener Kreis**, wenn er *alle* verliert (komplett überschrieben - er bewirkt an seiner Stelle nichts), und kein Zeichen, wenn er alles gewinnt. Die zwei Formen bleiben in Graustufen unterscheidbar, also lesbar ohne Farbe
 - **Voller Konflikt-Tooltip + Legende** - fahr über einen markierten Mod für jede überschriebene Datei samt Gewinner; eine einzeilige Legende erscheint unter der Aktiv-Liste, solange ein Konflikt existiert. Es ist ein Hinweis, keine Blockade - bei Maps ist eine Überschneidung oft gewollt
+- **Konflikt-Detail-Dialog** - der Tooltip endet nach zwölf Zeilen, also Rechtsklick auf einen markierten Mod und "Alle Konflikte anzeigen..." wählen: jede überschriebene Datei samt Gewinner, umschaltbar zwischen diesem einen Mod und allen markierten Mods. Der Text ist markierbar, "Alles kopieren" legt den ganzen Bericht in die Zwischenablage, und "Als Datei speichern..." schreibt ein `.txt`-Log mit App-Version, Spiel, Profil und Zeitstempel - fertig zum Posten im Forum
 - **Dreistufige Überlappungs-Ansicht** - Dateien, die viele Mods gleichzeitig anfassen (Physik, Klima ...), erscheinen als neutraler grauer "häufig geteilt"-Marker statt versteckt zu werden - nichts geht still verloren, während echte rot/gelbe Konflikte klar bleiben
 - **1.48-Paketstruktur erkannt** - Mods, die ihren Inhalt unter einem Wurzel-`base/`- oder einem besessenen `dlc_<name>/`-Ordner ausliefern, werden wie alle anderen gelesen und so auch auf Konflikte, Maps und Physik geprüft
 

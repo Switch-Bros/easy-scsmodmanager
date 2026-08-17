@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.6.1] - 2026-08-17
+
+### Added
+
+- **Conflict details dialog.** Right-clicking a flagged mod in the active list
+  now offers "Show all conflicts...", which opens a proper window instead of a
+  tooltip. It lists every overwritten file and the mod that wins it - no cap,
+  no "... and 82 more files". A radio switches between the mod you clicked and
+  every flagged mod at once, top of the load order first. The text is
+  selectable, so Ctrl+C works straight out of the window. The entry only
+  appears for a mod that actually carries a mark. Requested by Dukester (#72).
+- **Save the conflict log to a file.** The dialog writes a UTF-8 `.txt` with a
+  header block (app version, game, profile, timestamp, number of affected
+  mods) followed by every flagged mod - handy for forum posts and bug reports.
+  "Copy all" puts the same text on the clipboard. Both always cover *all*
+  mods, no matter which view is on screen.
+- **Right-click hint on the tooltip.** The hover tooltip still caps at twelve
+  rows, but now says so: when it actually had to cut something short, a single
+  line points at the right-click menu. It stays away when nothing was cut.
+
 ## [1.6.0] - 2026-08-07
 
 ### Added

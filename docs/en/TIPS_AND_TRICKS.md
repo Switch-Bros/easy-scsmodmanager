@@ -32,7 +32,9 @@ never accumulate stale pins.
 
 A **⚠ yellow** glyph means the mod still does part of its job; a **⊘ red** glyph
 means it is fully overwritten where it sits and you should move it up or drop it.
-Hover for the exact files and winners.
+Hover for the exact files and winners - and when the tooltip runs out of room,
+right-click the mod and pick **Show all conflicts...** for the uncapped list,
+which you can also copy or save as a `.txt` log.
 
 ## 🖥️ Use the whole window
 

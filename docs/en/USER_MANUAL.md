@@ -84,10 +84,29 @@ A conflicting mod gets a glyph before its name:
   above it.
 - **⊘ red crossed circle - fully overwritten:** all of its files lose - the mod
   effectively does nothing where it sits.
+- **= grey equals sign - frequently shared:** the mod touches files that many
+  mods change at once (physics, climate ...). That is usually intended, so it
+  is shown as neutral information, never as a conflict.
 - **No glyph:** it wins all its shared files.
 
-Hover the mod for the full list of overwritten files and which mod wins each. A
-legend appears at the bottom of the panel while any conflict exists.
+Hover the mod for the overwritten files and which mod wins each. A legend
+appears at the bottom of the panel while any conflict exists.
+
+### Seeing every conflict
+
+The tooltip stops after twelve rows and says so. For the complete picture,
+right-click the mod and choose **Show all conflicts...** (the entry only
+appears for a mod that actually carries a glyph). The dialog shows:
+
+- every overwritten file with the mod that wins it, uncapped;
+- a switch between **This mod** and **All mods** - the latter lists every
+  flagged mod, top of the load order first;
+- selectable text, so Ctrl+C works directly.
+
+**Copy all** puts the whole report on the clipboard and **Save to file...**
+writes it as a `.txt` with a header block (app version, game, profile,
+timestamp). Both always cover every flagged mod, no matter which view is on
+screen - handy when someone in a forum thread asks for your conflict list.
 
 ## Deleting mods
 

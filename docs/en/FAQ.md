@@ -40,12 +40,20 @@ does the same.
 A conflict means two active mods change the same `def/` file; the higher one
 wins. **⚠ (yellow)** = the mod loses some of its files to mods above it.
 **⊘ (red)** = it loses all of them and effectively does nothing where it sits.
-No glyph = it wins everything. Hover for the full file list and the winners.
+**= (grey)** = it touches files that many mods change at once, which is usually
+intended and never counted as a conflict. No glyph = it wins everything. Hover
+for the file list and the winners.
 
 ### Is a conflict an error?
 
 No, it is a hint. For maps an overlap is often intentional and the load order
 resolves it.
+
+### The tooltip says "... and 82 more files". How do I see them all?
+
+Right-click the mod and choose **Show all conflicts...**. The dialog lists every
+overwritten file without a cap and can switch to all flagged mods at once. Use
+**Copy all** or **Save to file...** if you want to share the list.
 
 ## Deleting
 

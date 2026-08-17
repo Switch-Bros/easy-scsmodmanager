@@ -33,7 +33,10 @@ sodass sich keine alten Pins ansammeln.
 
 Ein **⚠ gelber** Glyph heißt, der Mod erledigt noch einen Teil seiner Aufgabe;
 ein **⊘ roter** Glyph heißt, er ist an seiner Stelle komplett überschrieben - zieh
-ihn höher oder raus. Maus drüber zeigt die genauen Dateien und Gewinner.
+ihn höher oder raus. Maus drüber zeigt die genauen Dateien und Gewinner - und
+wenn der Tooltip nicht mehr reicht, Rechtsklick auf den Mod und **Alle Konflikte
+anzeigen...** wählen: die ungekürzte Liste, die du auch kopieren oder als
+`.txt`-Log speichern kannst.
 
 ## 🖥️ Das ganze Fenster nutzen
 

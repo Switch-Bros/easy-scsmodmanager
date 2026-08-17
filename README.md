@@ -12,7 +12,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Windows-E67E22?style=plastic&logo=linux&logoColor=E67E22&labelColor=000000)](https://www.python.org/)
 [![Games](https://img.shields.io/badge/Games-ETS2%20%7C%20ATS-E67E22?style=plastic&labelColor=000000)](https://www.scssoft.com/)
 [![License](https://img.shields.io/badge/License-GPL--3.0-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-770%20passed-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
+[![Tests](https://img.shields.io/badge/Tests-812%20passed-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-E67E22?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/easy-scsmodmanager/total?style=plastic&color=E67E22&labelColor=000000)](https://github.com/Switch-Bros/easy-scsmodmanager/releases)
 
@@ -145,6 +145,7 @@ Map Combos share only the map block. The **Share menu** shares your *entire* act
 - **Compatibility check** - mods are checked against the detected game version exactly the way the game does it: only a mod whose `manifest.sii` actually declares an incompatible version is flagged. A mod with no version info is never wrongly marked, so the 1.58 mod you run on purpose on 1.59 is left alone
 - **Conflict severity at a glance** - when two active mods overwrite the same `def/` file, the higher one wins. Each affected mod is graded: a **yellow ⚠ triangle** when it loses *some* of its files (partly overwritten), a **red ⊘ crossed circle** when it loses *all* of them (fully overwritten - it does nothing where it sits), and no mark when it wins everything. The two shapes stay distinct in greyscale, so it reads without relying on colour
 - **Full conflict tooltip + legend** - hover a flagged mod for every overwritten file and which mod wins it; a one-line legend appears under the active list while a conflict exists. It's a hint, not a block - for maps an overlap is often intentional
+- **Conflict details dialog** - the tooltip stops at twelve rows, so right-click a flagged mod and pick "Show all conflicts..." for the complete picture: every overwritten file with its winner, switchable between that one mod and every flagged mod at once. The text is selectable, "Copy all" puts the whole report on the clipboard, and "Save to file..." writes a `.txt` log with app version, game, profile and timestamp - ready to paste into a forum thread
 - **Three-tier overlap view** - files touched by many mods at once (physics, climate ...) are shown as a neutral grey "frequently shared" marker instead of being hidden, so nothing is silently dropped while the real red/yellow conflicts still stand out
 - **1.48 package layout aware** - mods that ship their content under a top-level `base/` or an owned `dlc_<name>/` folder are read just like any other, so they are checked for conflicts, maps and physics too
 

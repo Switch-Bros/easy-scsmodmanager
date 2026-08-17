@@ -40,13 +40,21 @@ Abschnitt gezogen, passiert dasselbe.
 Ein Konflikt heißt, zwei aktive Mods ändern dieselbe `def/`-Datei; der höhere
 gewinnt. **⚠ (gelb)** = der Mod verliert einige Dateien gegen Mods darüber.
 **⊘ (rot)** = er verliert alle und bewirkt an seiner Stelle effektiv nichts.
-Kein Glyph = er gewinnt alles. Maus drüber zeigt die volle Dateiliste samt
-Gewinner.
+**= (grau)** = er fasst Dateien an, die viele Mods gleichzeitig ändern - meist
+Absicht und nie als Konflikt gezählt. Kein Glyph = er gewinnt alles. Maus drüber
+zeigt die Dateiliste samt Gewinner.
 
 ### Ist ein Konflikt ein Fehler?
 
 Nein, ein Hinweis. Bei Maps ist eine Überschneidung oft Absicht und die
 Load-Order löst sie auf.
+
+### Im Tooltip steht "... und 82 weitere Dateien". Wie sehe ich alle?
+
+Rechtsklick auf den Mod und **Alle Konflikte anzeigen...** wählen. Der Dialog
+listet jede überschriebene Datei ohne Deckel und kann auf alle markierten Mods
+umschalten. Mit **Alles kopieren** oder **Als Datei speichern...** kannst du die
+Liste weitergeben.
 
 ## Löschen
 

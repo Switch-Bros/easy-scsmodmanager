@@ -86,11 +86,30 @@ Ein kollidierender Mod bekommt einen Glyph vor dem Namen:
   Mods darüber.
 - **⊘ roter durchgestrichener Kreis - komplett überschrieben:** alle Dateien
   verlieren - der Mod bewirkt an seiner Stelle effektiv nichts.
+- **= graues Gleichheitszeichen - häufig geteilt:** der Mod fasst Dateien an,
+  die viele Mods gleichzeitig ändern (Physik, Klima ...). Das ist meist Absicht
+  und wird deshalb als neutrale Information gezeigt, nie als Konflikt.
 - **Kein Glyph:** er gewinnt alle geteilten Dateien.
 
-Fahr mit der Maus über den Mod für die volle Liste der überschriebenen Dateien
-samt Gewinner. Eine Legende erscheint unten im Panel, solange ein Konflikt
-existiert.
+Fahr mit der Maus über den Mod für die überschriebenen Dateien samt Gewinner.
+Eine Legende erscheint unten im Panel, solange ein Konflikt existiert.
+
+### Alle Konflikte sehen
+
+Der Tooltip endet nach zwölf Zeilen und sagt das auch. Für das ganze Bild
+Rechtsklick auf den Mod und **Alle Konflikte anzeigen...** wählen (der Eintrag
+erscheint nur bei einem Mod, der wirklich einen Glyph trägt). Der Dialog zeigt:
+
+- jede überschriebene Datei samt Gewinner, ungekürzt;
+- einen Umschalter zwischen **Dieser Mod** und **Alle Mods** - letzteres listet
+  alle markierten Mods, oben zuerst (höchste Priorität);
+- markierbaren Text, Strg+C funktioniert also direkt.
+
+**Alles kopieren** legt den kompletten Bericht in die Zwischenablage,
+**Als Datei speichern...** schreibt ihn als `.txt` mit Kopfblock (App-Version,
+Spiel, Profil, Zeitstempel). Beides umfasst immer alle markierten Mods,
+unabhängig von der Ansicht - praktisch, wenn im Forum jemand nach deiner
+Konfliktliste fragt.
 
 ## Mods löschen
 
