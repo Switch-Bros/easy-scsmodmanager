@@ -229,4 +229,9 @@ def _header_html(glyph: str, colour: str, text: str) -> str:
 
 
 def _row_html(text: str) -> str:
-    return f'<div style="margin-left:{_ROW_INDENT_PX}px">{escape(text)}</div>'
+    # pre-wrap keeps the padding around the arrow that the row format builds in;
+    # plain HTML would collapse it and the columns would drift
+    return (
+        f'<div style="margin-left:{_ROW_INDENT_PX}px; white-space:pre-wrap">'
+        f"{escape(text)}</div>"
+    )

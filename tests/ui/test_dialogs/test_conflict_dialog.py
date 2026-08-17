@@ -168,6 +168,14 @@ def test_failed_save_warns_instead_of_raising(qtbot: QtBot, tmp_path, monkeypatc
     assert not unwritable.exists()
 
 
+def test_rows_keep_the_padding_around_the_arrow(qtbot: QtBot) -> None:
+    # HTML would collapse the double spaces the row format builds in
+    dlg = _dialog([_entry("a", "Mod A")])
+    qtbot.addWidget(dlg)
+
+    assert "  ->  " in dlg.shown_text()
+
+
 def test_markup_in_a_mod_name_does_not_break_the_view(qtbot: QtBot) -> None:
     dlg = _dialog([_entry("a", "Ben & Jerry <Trucks>")])
     qtbot.addWidget(dlg)
