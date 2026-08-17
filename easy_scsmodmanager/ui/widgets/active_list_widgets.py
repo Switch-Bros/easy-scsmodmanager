@@ -25,15 +25,13 @@ from PyQt6.QtWidgets import (
 from easy_scsmodmanager.core.load_order import group_label_keys
 from easy_scsmodmanager.services.conflict_detect import Severity
 from easy_scsmodmanager.services.profile_reader import ActiveMod
+from easy_scsmodmanager.ui.conflict_text import (
+    GLYPH_FREQUENT,
+    GLYPH_FULL,
+    GLYPH_PARTIAL,
+)
 from easy_scsmodmanager.ui.theme import Theme
 from easy_scsmodmanager.utils.i18n import t
-
-# Severity glyphs: shape differs (triangle vs. crossed circle) so the two levels
-# stay distinct in greyscale / for colour-blind users, not colour alone.
-# U+2298 renders in Inter on Win+Linux; documented fallback is U+2715 ("X").
-_GLYPH_PARTIAL = "⚠"  # warning triangle
-_GLYPH_FULL = "⊘"  # circled division slash (crossed circle)
-_GLYPH_FREQUENT = "="  # neutral "frequently shared" (not a conflict); fallback "•"
 
 THUMB_SIZE = QSize(Theme.ACTIVE_THUMBNAIL_WIDTH, Theme.ACTIVE_THUMBNAIL_HEIGHT)
 
@@ -246,11 +244,11 @@ def _format_label(mod: ActiveMod) -> str:
 def conflict_legend_html() -> str:
     """One-line legend: the three glyphs in their colours + meaning."""
     return (
-        f'<span style="color:{Theme.WARNING}">{_GLYPH_PARTIAL}</span> '
+        f'<span style="color:{Theme.WARNING}">{GLYPH_PARTIAL}</span> '
         f'{t("conflict.legend.partial")}'
-        f'&nbsp;&nbsp;&nbsp;<span style="color:{Theme.DANGER}">{_GLYPH_FULL}</span> '
+        f'&nbsp;&nbsp;&nbsp;<span style="color:{Theme.DANGER}">{GLYPH_FULL}</span> '
         f'{t("conflict.legend.full")}'
-        f'&nbsp;&nbsp;&nbsp;<span style="color:{Theme.TEXT_DIM}">{_GLYPH_FREQUENT}</span> '
+        f'&nbsp;&nbsp;&nbsp;<span style="color:{Theme.TEXT_DIM}">{GLYPH_FREQUENT}</span> '
         f'{t("conflict.legend.frequent")}'
     )
 
@@ -259,11 +257,11 @@ def _severity_label(mod: ActiveMod, severity: Severity | None, frequent: bool = 
     name = _format_label(mod)
     # one glyph per card, precedence FULL > PARTIAL > FREQUENT > none
     if severity is Severity.FULL:
-        glyph, colour = _GLYPH_FULL, Theme.DANGER
+        glyph, colour = GLYPH_FULL, Theme.DANGER
     elif severity is Severity.PARTIAL:
-        glyph, colour = _GLYPH_PARTIAL, Theme.WARNING
+        glyph, colour = GLYPH_PARTIAL, Theme.WARNING
     elif frequent:
-        glyph, colour = _GLYPH_FREQUENT, Theme.TEXT_DIM  # neutral grey, not an alarm
+        glyph, colour = GLYPH_FREQUENT, Theme.TEXT_DIM  # neutral grey, not an alarm
     else:
         return name
     # rich text so only the glyph carries the colour; the name keeps the label's
