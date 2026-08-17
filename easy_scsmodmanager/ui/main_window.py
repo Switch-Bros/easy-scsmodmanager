@@ -78,6 +78,7 @@ from easy_scsmodmanager.ui.controllers.mod_delete_controller import ModDeleteCon
 from easy_scsmodmanager.ui.controllers.mod_share_controller import ModShareController
 from easy_scsmodmanager.ui.controllers.profile_backup_controller import ProfileBackupController
 from easy_scsmodmanager.ui.controllers.workshop_fetch_controller import WorkshopFetchController
+from easy_scsmodmanager.ui.dialogs.conflict_dialog import ConflictDialog
 from easy_scsmodmanager.ui.dialogs.extract_dialog import ExtractDialog
 from easy_scsmodmanager.ui.dialogs.mod_info_dialog import ModInfoDialog
 from easy_scsmodmanager.ui.dialogs.settings_dialog import SettingsDialog
@@ -252,6 +253,7 @@ class MainWindow(QMainWindow):
         self._active_list.mods_dropped.connect(self._on_mods_dropped)
         self._active_list.reorder_pin_requested.connect(self._on_reorder_pin)
         self._active_list.move_to_group_requested.connect(self._on_move_to_group)
+        self._active_list.show_conflicts_requested.connect(self._on_show_conflicts)
         self._combo = MapComboController(
             parent=self,
             active_list=self._active_list,
@@ -728,6 +730,25 @@ class MainWindow(QMainWindow):
     def _refresh_all(self) -> None:
         self._refresh_grid()
         self._refresh_active_list()
+
+    def _on_show_conflicts(self, mod: object) -> None:
+        # the menu entry only exists for a marked mod, so the report is never
+        # empty here - the guard is for a stale signal after a rescan
+        if not isinstance(mod, ActiveMod):
+            return
+        entries = self._presenter.conflict_report()
+        if not entries:
+            return
+        dialog = ConflictDialog(
+            entries,
+            self._presenter.active_display_names(),
+            focus_name=mod.name,
+            version=__version__,
+            game=GAME_SHORT_NAME[self._game],
+            profile=self._profile.profile_name if self._profile else "",
+            parent=self,
+        )
+        dialog.exec()
 
     def _on_active_mod_focus(self, active_mod: ActiveMod) -> None:
         """Clicking a row in the active list scrolls to + selects the

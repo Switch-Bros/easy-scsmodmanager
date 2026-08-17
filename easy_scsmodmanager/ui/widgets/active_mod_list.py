@@ -66,6 +66,7 @@ class ActiveModList(QWidget):
     mods_dropped = pyqtSignal(list, int, str)  # (grid path strings, target row, target group)
     reorder_pin_requested = pyqtSignal(list, str)  # (moved ActiveMods, target group) - pin first
     move_to_group_requested = pyqtSignal(object, str)  # (ActiveMod or list, group_id)
+    show_conflicts_requested = pyqtSignal(object)  # ActiveMod that was right-clicked
     export_combo_requested = pyqtSignal()  # right-click on the maps spacer
     import_combo_requested = pyqtSignal()  # right-click on the maps spacer
 
@@ -371,9 +372,28 @@ class ActiveModList(QWidget):
             action.triggered.connect(
                 lambda checked=False, gid=gid: self.move_to_group_requested.emit(mods, gid)
             )
+        self._add_conflict_entry(menu, mod)
         viewport = self._list.viewport()
         if viewport is not None:
             menu.exec(viewport.mapToGlobal(pos))
+
+    def _add_conflict_entry(self, menu: QMenu, mod: ActiveMod) -> None:
+        """Offer the details dialog, but only for a mod that actually carries a mark.
+
+        Both callbacks stay None until the window pushes them in via
+        set_active_mods, so guard on them - and on the mod itself, otherwise
+        the dialog would open empty on a clean row.
+        """
+        if self._severity_for is None or self._frequent_for is None:
+            return
+        if self._severity_for(mod) is None and not self._frequent_for(mod):
+            return
+        menu.addSeparator()
+        show = menu.addAction(t("active_panel.show_conflicts"))
+        if show is not None:
+            show.triggered.connect(
+                lambda checked=False, m=mod: self.show_conflicts_requested.emit(m)
+            )
 
     def _show_maps_spacer_menu(self, pos: object) -> None:
         menu = QMenu()

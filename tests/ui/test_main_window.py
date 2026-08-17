@@ -459,3 +459,54 @@ def test_reorder_pin_applies_pin_rule(qtbot, monkeypatch) -> None:
     window._on_reorder_pin([ActiveMod("m", "M")], "trucks")  # foreign -> pin
 
     assert window._group_overrides.get("m") == "trucks"
+
+
+def test_show_conflicts_opens_the_dialog_with_the_report(qtbot, monkeypatch) -> None:
+    from easy_scsmodmanager.services.conflict_detect import ModOverride, Severity
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+    from easy_scsmodmanager.ui.conflict_text import ReportEntry
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    entry = ReportEntry(
+        name="m",
+        display_name="M",
+        override=ModOverride(severity=Severity.FULL, lost=(("def/x.sii", "other"),)),
+        frequent=None,
+    )
+    monkeypatch.setattr(window._presenter, "conflict_report", lambda: [entry])
+    opened: list = []
+    monkeypatch.setattr(
+        "easy_scsmodmanager.ui.dialogs.conflict_dialog.ConflictDialog.exec",
+        lambda self: opened.append(self),
+    )
+
+    window._on_show_conflicts(ActiveMod("m", "M"))
+
+    assert len(opened) == 1
+    assert opened[0]._focus_name == "m"
+
+
+def test_show_conflicts_ignores_a_non_mod_payload(qtbot, monkeypatch) -> None:
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    monkeypatch.setattr(
+        "easy_scsmodmanager.ui.dialogs.conflict_dialog.ConflictDialog.exec",
+        lambda self: pytest.fail("dialog must not open"),
+    )
+
+    window._on_show_conflicts("not a mod")
+
+
+def test_show_conflicts_stays_shut_on_an_empty_report(qtbot, monkeypatch) -> None:
+    from easy_scsmodmanager.services.profile_reader import ActiveMod
+
+    window = MainWindow(auto_scan=False)
+    qtbot.addWidget(window)
+    monkeypatch.setattr(window._presenter, "conflict_report", lambda: [])
+    monkeypatch.setattr(
+        "easy_scsmodmanager.ui.dialogs.conflict_dialog.ConflictDialog.exec",
+        lambda self: pytest.fail("dialog must not open"),
+    )
+
+    window._on_show_conflicts(ActiveMod("m", "M"))
