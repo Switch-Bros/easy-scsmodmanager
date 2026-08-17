@@ -261,3 +261,128 @@ def test_frequent_tier_in_presenter() -> None:
     tip = presenter.conflict_for(ActiveMod("m0", "M0"))
     assert "physics.sii" in tip
     assert "9" in tip  # owner count, no names
+
+
+# conflict report + tooltip hint
+
+
+def _with_defs(name: str, defs: tuple[str, ...]) -> ScannedMod:
+    return ScannedMod(
+        path=Path(f"/m/{name}.scs"),
+        format=ScsFormat.ZIP,
+        manifest=None,
+        error=None,
+        def_files=defs,
+    )
+
+
+def _conflict_presenter(mods: list[ScannedMod], names: list[str]) -> ModPresenter:
+    from easy_scsmodmanager.services.mod_matching import ActiveModMatcher
+
+    presenter = _presenter()
+    presenter.set_context(
+        matcher=ActiveModMatcher(mods),
+        profile=Profile(
+            dir_name="d",
+            profile_name="P",
+            active_mods=tuple(ActiveMod(n, n.upper()) for n in names),
+        ),
+        game_version=None,
+        map_base_names=(),
+    )
+    presenter.compute_conflicts()
+    return presenter
+
+
+def test_conflict_report_runs_top_down_and_skips_clean_mods() -> None:
+    # a chain: a loses def/1 to b, b loses def/2 to c, c wins everything.
+    # profile order is bottom-up (a, b, c) so the report must come back b, a.
+    mods = [
+        _with_defs("a", ("def/1.sii",)),
+        _with_defs("b", ("def/1.sii", "def/2.sii")),
+        _with_defs("c", ("def/2.sii",)),
+    ]
+    presenter = _conflict_presenter(mods, ["a", "b", "c"])
+
+    report = presenter.conflict_report()
+
+    assert [e.name for e in report] == ["b", "a"]  # display order, c has no marks
+    assert report[0].display_name == "B"
+
+
+def test_conflict_report_is_empty_without_a_profile() -> None:
+    assert _presenter().conflict_report() == []
+
+
+def test_tooltip_appends_the_right_click_hint_once_it_caps() -> None:
+    from easy_scsmodmanager.utils.i18n import t
+
+    shared = tuple(f"def/x{i}.sii" for i in range(15))
+    presenter = _conflict_presenter(
+        [_with_defs("low", shared), _with_defs("high", shared)], ["low", "high"]
+    )
+
+    tip = presenter.conflict_for(ActiveMod("low", "LOW"))
+
+    assert t("conflict.tooltip.more", count=3) in tip
+    assert tip.endswith(t("conflict.tooltip.full_hint"))
+
+
+def test_tooltip_has_no_hint_when_nothing_was_capped() -> None:
+    from easy_scsmodmanager.utils.i18n import t
+
+    shared = ("def/x0.sii", "def/x1.sii")
+    presenter = _conflict_presenter(
+        [_with_defs("low", shared), _with_defs("high", shared)], ["low", "high"]
+    )
+
+    tip = presenter.conflict_for(ActiveMod("low", "LOW"))
+
+    assert t("conflict.tooltip.full_hint") not in tip
+
+
+def test_hint_also_fires_for_a_capped_frequent_block() -> None:
+    # the frequent block caps silently (no "more" row), so the hint is the only
+    # sign that files are missing - the one path that would otherwise go untested
+    from easy_scsmodmanager.utils.i18n import t
+
+    shared = tuple(f"def/p{i}.sii" for i in range(15))
+    mods = [_with_defs(f"m{i}", shared) for i in range(9)]
+    presenter = _conflict_presenter(mods, [f"m{i}" for i in range(9)])
+
+    tip = presenter.conflict_for(ActiveMod("m0", "M0"))
+
+    assert presenter.severity_for(ActiveMod("m0", "M0")) is None  # frequent only
+    assert t("conflict.tooltip.more", count=3) not in tip  # frequent never says it
+    assert tip.endswith(t("conflict.tooltip.full_hint"))
+
+
+def test_no_hint_when_both_blocks_fit() -> None:
+    from easy_scsmodmanager.utils.i18n import t
+
+    frequent = tuple(f"def/p{i}.sii" for i in range(3))
+    overridden = tuple(f"def/x{i}.sii" for i in range(3))
+    # m0 and m1 fight over the x files; all nine share the p files
+    mods = [_with_defs("m0", frequent + overridden), _with_defs("m1", frequent + overridden)]
+    mods += [_with_defs(f"m{i}", frequent) for i in range(2, 9)]
+    presenter = _conflict_presenter(mods, [f"m{i}" for i in range(9)])
+
+    tip = presenter.conflict_for(ActiveMod("m0", "M0"))
+
+    assert presenter.severity_for(ActiveMod("m0", "M0")) is not None
+    assert presenter.frequent_for(ActiveMod("m0", "M0")) is True
+    assert t("conflict.tooltip.full_hint") not in tip
+
+
+def test_active_display_names_exposes_the_profile_map() -> None:
+    presenter = _presenter()
+    presenter.set_context(
+        matcher=None,
+        profile=Profile(
+            dir_name="d", profile_name="P", active_mods=(ActiveMod("raw", "Pretty Name"),)
+        ),
+        game_version=None,
+        map_base_names=(),
+    )
+
+    assert presenter.active_display_names() == {"raw": "Pretty Name"}

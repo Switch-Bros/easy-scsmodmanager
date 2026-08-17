@@ -33,6 +33,11 @@ from easy_scsmodmanager.services.mod_matching import (
 from easy_scsmodmanager.services.mod_scanner import ScannedMod
 from easy_scsmodmanager.services.mod_search import matches_search
 from easy_scsmodmanager.services.profile_reader import ActiveMod, Profile
+from easy_scsmodmanager.ui.conflict_text import (
+    ReportEntry,
+    frequent_lines,
+    override_lines,
+)
 from easy_scsmodmanager.ui.widgets.filter_toolbar import FilterState, ModSource, SortKey
 from easy_scsmodmanager.utils.i18n import t
 
@@ -218,31 +223,53 @@ class ModPresenter:
         """Tooltip: severity block (if any), then a dimmed frequent-shared block."""
         override = self._conflict_overrides.get(active_mod.name)
         frequent = self._frequent.get(active_mod.name)
+        names = self._active_display_map()  # built once, both blocks read it
         lines: list[str] = []
+        dropped = 0
         if override is not None:
-            names = self._active_display_map()
-            header = (
-                "conflict.tooltip.header_full"
-                if override.severity is Severity.FULL
-                else "conflict.tooltip.header_partial"
-            )
-            lines.append(t(header))
-            shown = override.lost[:_MAX_TOOLTIP_ROWS]
-            for path, winner in shown:
-                lines.append(t("conflict.tooltip.row", file=path, mod=names.get(winner, winner)))
-            rest = len(override.lost) - len(shown)
+            block, rest = override_lines(override, names, limit=_MAX_TOOLTIP_ROWS)
+            lines.extend(block)
+            dropped += rest
             if rest > 0:
                 lines.append(t("conflict.tooltip.more", count=rest))
         if frequent is not None:
             # a real conflict already has a header above, so use the "also" lead
-            lines.append(
-                t("conflict.tooltip.frequent_also")
-                if override is not None
-                else t("conflict.tooltip.header_frequent")
+            block, rest = frequent_lines(
+                frequent, also=override is not None, limit=_MAX_TOOLTIP_ROWS
             )
-            for path, count in frequent.files[:_MAX_TOOLTIP_ROWS]:
-                lines.append(t("conflict.tooltip.frequent_row", file=path, count=count))
+            lines.extend(block)
+            dropped += rest
+        # point at the dialog only when the tooltip actually swallowed something,
+        # otherwise the hint rides along on every harmless two-liner
+        if dropped > 0:
+            lines.append(t("conflict.tooltip.full_hint"))
         return "\n".join(lines)
+
+    def conflict_report(self) -> list[ReportEntry]:
+        """Every mod carrying a mark, top of the load order first."""
+        if self._profile is None:
+            return []
+        names = self._active_display_map()  # once, not per mod
+        report: list[ReportEntry] = []
+        # active_mods is bottom-up; the list (and so the report) reads top-down
+        for a in reversed(self._profile.active_mods):
+            override = self._conflict_overrides.get(a.name)
+            frequent = self._frequent.get(a.name)
+            if override is None and frequent is None:
+                continue
+            report.append(
+                ReportEntry(
+                    name=a.name,
+                    display_name=names.get(a.name, a.name),
+                    override=override,
+                    frequent=frequent,
+                )
+            )
+        return report
+
+    def active_display_names(self) -> dict[str, str]:
+        """active.name -> display name, for views outside the presenter."""
+        return self._active_display_map()
 
     # ------------------------------------------------------------------ #
     # versions
